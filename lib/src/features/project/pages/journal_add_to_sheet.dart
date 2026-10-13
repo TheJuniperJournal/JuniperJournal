@@ -51,8 +51,8 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
       _filtered = q.isEmpty
           ? _allProjects
           : _allProjects
-              .where((p) => p.projectName.toLowerCase().contains(q))
-              .toList();
+                .where((p) => p.projectName.toLowerCase().contains(q))
+                .toList();
     });
   }
 
@@ -61,9 +61,10 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
     setState(() => _isCreating = true);
 
     final nextNumber =
-        (await _projectsRepo.getJournalEntries(projectId: project.id))
-                ?.length ??
-            0;
+        (await _projectsRepo.getJournalEntries(
+          projectId: project.id,
+        ))?.length ??
+        0;
 
     final created = await _projectsRepo.createJournalEntry(
       projectId: project.id,
@@ -145,8 +146,11 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
                     padding: const EdgeInsets.only(left: 16),
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close,
-                          size: 22, color: AppColors.primary),
+                      child: const Icon(
+                        Icons.close,
+                        size: 22,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -163,8 +167,11 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
                 decoration: InputDecoration(
                   hintText: 'Search projects',
                   hintStyle: TextStyle(color: Colors.grey.shade400),
-                  prefixIcon:
-                      Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey.shade400,
+                    size: 20,
+                  ),
                   filled: true,
                   fillColor: Colors.grey.shade100,
                   isDense: true,
@@ -183,68 +190,78 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.5,
               ),
-              child: _isLoading
-                  ? const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : ListView(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.only(bottom: 8),
-                      children: [
-                        if (_filtered.isNotEmpty)
-                          Padding(
-                            padding:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                            child: Text(
-                              'Recent Projects',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade600,
+              child: Material(
+                color: Colors.transparent,
+                child: _isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.only(bottom: 8),
+                        children: [
+                          if (_filtered.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                              child: Text(
+                                'Recent Projects',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
                             ),
-                          ),
-                        ..._filtered.map((p) => _ProjectRow(
+                          ..._filtered.map(
+                            (p) => _ProjectRow(
                               project: p,
                               isLoading: _isCreating,
                               onTap: () => _addToProject(p),
-                            )),
-                        if (_filtered.isEmpty && !_isLoading)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            child: Text(
-                              'No projects found.',
-                              style: TextStyle(color: Colors.grey.shade500),
                             ),
                           ),
+                          if (_filtered.isEmpty && !_isLoading)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                'No projects found.',
+                                style: TextStyle(color: Colors.grey.shade500),
+                              ),
+                            ),
 
-                        // Create Project row
-                        ListTile(
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
-                          leading: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
+                          // Create Project row
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
                             ),
-                            child: const Icon(Icons.add,
-                                color: Colors.white, size: 22),
-                          ),
-                          title: const Text(
-                            'Create Project',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 22,
+                              ),
                             ),
+                            title: const Text(
+                              'Create Project',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            onTap: _createProject,
                           ),
-                          onTap: _createProject,
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+              ),
             ),
           ],
         ),

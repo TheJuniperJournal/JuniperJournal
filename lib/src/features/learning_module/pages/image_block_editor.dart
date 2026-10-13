@@ -66,10 +66,21 @@ class ImageBlockEditorScreen extends StatefulWidget {
   final String moduleId;
   final ImageBlockData? initialData;
 
+  /// Whether to show the Assessment section. Assessment belongs to the Learning
+  /// module; it is hidden when this editor is reused for generic Evidence
+  /// (e.g. Prototyping Build/Test logs).
+  final bool showAssessment;
+
+  /// Whether to show the Inquiry Lens selector. Like Assessment, it belongs to
+  /// the Learning module and is hidden for generic Evidence content blocks.
+  final bool showInquiryLens;
+
   const ImageBlockEditorScreen({
     super.key,
     required this.moduleId,
     this.initialData,
+    this.showAssessment = true,
+    this.showInquiryLens = true,
   });
 
   @override
@@ -242,7 +253,7 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
   }
 
   void _saveBlock() {
-    if (!_assessment.isValid) {
+    if (widget.showAssessment && !_assessment.isValid) {
       setState(() => _showValidation = true);
       return;
     }
@@ -321,22 +332,26 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
                           maxLines: 2,
                           hintText: 'Write a caption...',
                         ),
-                        const SizedBox(height: 20),
-                        InquiryLensSelector(
-                          data: _inquiryLensData,
-                          onChanged: (value) =>
-                              setState(() => _inquiryLensData = value),
-                        ),
-                        const SizedBox(height: 20),
-                        _FieldLabel(label: 'Assessment', optional: true),
-                        const SizedBox(height: 11),
-                        AssessmentBlockSection(
-                          value: _assessment,
-                          showValidation: _showValidation,
-                          onChanged: (value) {
-                            setState(() => _assessment = value);
-                          },
-                        ),
+                        if (widget.showInquiryLens) ...[
+                          const SizedBox(height: 20),
+                          InquiryLensSelector(
+                            data: _inquiryLensData,
+                            onChanged: (value) =>
+                                setState(() => _inquiryLensData = value),
+                          ),
+                        ],
+                        if (widget.showAssessment) ...[
+                          const SizedBox(height: 20),
+                          _FieldLabel(label: 'Assessment', optional: true),
+                          const SizedBox(height: 11),
+                          AssessmentBlockSection(
+                            value: _assessment,
+                            showValidation: _showValidation,
+                            onChanged: (value) {
+                              setState(() => _assessment = value);
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 26),
                         Center(
                           child: SizedBox(

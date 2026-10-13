@@ -11,7 +11,6 @@ import 'package:juniper_journal/src/backend/db/repositories/friends_repo.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/backend/db/repositories/chat_repo.dart';
 import 'package:juniper_journal/src/features/chat/chat.dart';
-import 'package:juniper_journal/src/features/learning_module/learning_module.dart';
 import 'package:juniper_journal/src/features/project/project.dart';
 import 'package:juniper_journal/src/features/home_page/home_page.dart';
 import 'package:juniper_journal/src/features/community/community.dart';
@@ -404,15 +403,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     if (!mounted) return;
                     _refreshProjects();
                   },
-                  onLearningModuleTap: () async {
-                    Navigator.pop(ctx);
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CreateTemplateScreen(),
-                      ),
-                    );
-                  },
                 ),
               ),
             ),
@@ -765,7 +755,6 @@ class _CreateMenuDialog extends StatelessWidget {
     required this.onCommunityTap,
     required this.onJournalTap,
     required this.onProjectTap,
-    required this.onLearningModuleTap,
   });
 
   static const _primary = Color(0xFF5DB075);
@@ -775,7 +764,6 @@ class _CreateMenuDialog extends StatelessWidget {
   final VoidCallback onCommunityTap;
   final VoidCallback onJournalTap;
   final VoidCallback onProjectTap;
-  final VoidCallback onLearningModuleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -859,7 +847,7 @@ class _CreateMenuDialog extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: 51,
+            left: 99,
             top: 183.982421875,
             child: _CreateMenuOption(
               assetPath: 'assets/create_menu/new_project.svg',
@@ -868,17 +856,6 @@ class _CreateMenuDialog extends StatelessWidget {
               labelWidth: 69,
               iconSize: const Size(23.3835506439209, 23.460201263427734),
               onTap: onProjectTap,
-            ),
-          ),
-          Positioned(
-            left: 151,
-            top: 183.982421875,
-            child: _CreateMenuOption(
-              label: 'Learning\nModule',
-              labelGap: 9.05911636352539,
-              labelWidth: 68,
-              onTap: onLearningModuleTap,
-              iconBuilder: const _LearningModuleIcon(),
             ),
           ),
         ],
@@ -945,62 +922,6 @@ class _CreateMenuOption extends StatelessWidget {
                 color: _CreateMenuDialog._primary,
                 letterSpacing: 0.5,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LearningModuleIcon extends StatelessWidget {
-  const _LearningModuleIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 39.484375,
-      height: 25.71484375,
-      child: Stack(
-        children: [
-          Positioned(
-            left: 13.0390625,
-            top: 9.572265625,
-            width: 2.392857074737549,
-            height: 2.392857074737549,
-            child: SvgPicture.asset(
-              'assets/create_menu/learning_module_cube_dot.svg',
-              fit: BoxFit.fill,
-            ),
-          ),
-          Positioned(
-            left: 10.64453125,
-            top: 7.1787109375,
-            width: 16.75,
-            height: 19.14285659790039,
-            child: SvgPicture.asset(
-              'assets/create_menu/learning_module_cube.svg',
-              fit: BoxFit.fill,
-            ),
-          ),
-          Positioned(
-            left: 22.609375,
-            top: 0,
-            width: 16.75,
-            height: 19.14285659790039,
-            child: SvgPicture.asset(
-              'assets/create_menu/learning_module_cube.svg',
-              fit: BoxFit.fill,
-            ),
-          ),
-          Positioned(
-            left: -0.125,
-            top: 0,
-            width: 16.75,
-            height: 19.14285659790039,
-            child: SvgPicture.asset(
-              'assets/create_menu/learning_module_cube.svg',
-              fit: BoxFit.fill,
             ),
           ),
         ],

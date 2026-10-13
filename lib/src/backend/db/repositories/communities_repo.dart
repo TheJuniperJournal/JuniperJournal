@@ -52,10 +52,10 @@ class CommunitiesRepo {
       });
 
       // 3. Create the group conversation (RPC adds all accepted members)
-      await _client.rpc('create_community_conversation', params: {
-        'p_community_id': community.id,
-        'p_group_name': name,
-      });
+      await _client.rpc(
+        'create_community_conversation',
+        params: {'p_community_id': community.id, 'p_group_name': name},
+      );
 
       // 4. Invite additional members (pending)
       for (final userId in memberIds) {
@@ -106,10 +106,29 @@ class CommunitiesRepo {
           .eq('status', 'accepted');
 
       return List<Map<String, dynamic>>.from(rows)
-          .map((r) => Community.fromMap(r['communities'] as Map<String, dynamic>))
+          .map(
+            (r) => Community.fromMap(r['communities'] as Map<String, dynamic>),
+          )
           .toList();
     } catch (e, st) {
       debugPrint('getUserCommunities error: $e\n$st');
+      return [];
+    }
+  }
+
+  /// Returns all communities created in the app.
+  Future<List<Community>> getAllCommunities() async {
+    try {
+      final rows = await _client
+          .from('communities')
+          .select()
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(
+        rows,
+      ).map(Community.fromMap).toList();
+    } catch (e, st) {
+      debugPrint('getAllCommunities error: $e\n$st');
       return [];
     }
   }
@@ -124,9 +143,9 @@ class CommunitiesRepo {
           .eq('community_id', communityId)
           .eq('status', 'accepted');
 
-      final memberIds = List<Map<String, dynamic>>.from(memberRows)
-          .map((r) => r['user_id'].toString())
-          .toList();
+      final memberIds = List<Map<String, dynamic>>.from(
+        memberRows,
+      ).map((r) => r['user_id'].toString()).toList();
 
       if (memberIds.isEmpty) return [];
 
@@ -138,9 +157,9 @@ class CommunitiesRepo {
           .inFilter('user_id', memberIds)
           .order('created_at', ascending: false);
 
-      return List<Map<String, dynamic>>.from(projectRows)
-          .map(Project.fromMap)
-          .toList();
+      return List<Map<String, dynamic>>.from(
+        projectRows,
+      ).map(Project.fromMap).toList();
     } catch (e, st) {
       debugPrint('getCommunityProjects error: $e\n$st');
       return [];
@@ -186,8 +205,7 @@ class CommunitiesRepo {
   // ── Members (owner view) ────────────────────────────────────────────────────
 
   /// All accepted + pending members for a community (owner use).
-  Future<List<CommunityMember>> getCommunityMembers(
-      String communityId) async {
+  Future<List<CommunityMember>> getCommunityMembers(String communityId) async {
     try {
       // Fetch member rows without the ambiguous profiles join
       final rows = await _client
@@ -209,7 +227,7 @@ class CommunitiesRepo {
 
       final profileMap = {
         for (final p in List<Map<String, dynamic>>.from(profileRows))
-          p['id'].toString(): p
+          p['id'].toString(): p,
       };
 
       return members.map((r) {
@@ -342,10 +360,10 @@ class CommunitiesRepo {
             memberRow['communities'] as Map<String, dynamic>? ?? {};
         final convId = community['conversation_id']?.toString();
         if (convId != null) {
-          await _client.rpc('add_to_group_conversation', params: {
-            'p_conversation_id': convId,
-            'p_user_id': currentUserId,
-          });
+          await _client.rpc(
+            'add_to_group_conversation',
+            params: {'p_conversation_id': convId, 'p_user_id': currentUserId},
+          );
         }
       } else {
         await _client
@@ -396,7 +414,9 @@ class CommunitiesRepo {
     try {
       final rows = await _client
           .from('bulletin_posts')
-          .select('id, community_id, user_id, title, category, body, created_at, image_urls')
+          .select(
+            'id, community_id, user_id, title, category, body, created_at, image_urls',
+          )
           .eq('community_id', communityId)
           .order('created_at', ascending: false);
 
@@ -420,7 +440,10 @@ class CommunitiesRepo {
       };
 
       // Fetch comment counts
-      final postIds = posts.map((r) => r['id']?.toString()).whereType<String>().toList();
+      final postIds = posts
+          .map((r) => r['id']?.toString())
+          .whereType<String>()
+          .toList();
       Map<String, int> commentCounts = {};
       if (postIds.isNotEmpty) {
         try {
@@ -436,9 +459,12 @@ class CommunitiesRepo {
       }
 
       return posts
-          .map((r) => BulletinPost.fromMap(
-                {...r, 'comment_count': commentCounts[r['id']?.toString()] ?? 0},
-                profile: profileById[r['user_id']?.toString()]))
+          .map(
+            (r) => BulletinPost.fromMap({
+              ...r,
+              'comment_count': commentCounts[r['id']?.toString()] ?? 0,
+            }, profile: profileById[r['user_id']?.toString()]),
+          )
           .toList();
     } catch (e, st) {
       debugPrint('getBulletinPosts error: $e\n$st');
@@ -518,8 +544,12 @@ class CommunitiesRepo {
       };
 
       return comments
-          .map((r) => BulletinComment.fromMap(r,
-              profile: profileById[r['user_id']?.toString()]))
+          .map(
+            (r) => BulletinComment.fromMap(
+              r,
+              profile: profileById[r['user_id']?.toString()],
+            ),
+          )
           .toList();
     } catch (e, st) {
       debugPrint('getBulletinComments error: $e\n$st');
@@ -536,11 +566,7 @@ class CommunitiesRepo {
     try {
       final row = await _client
           .from('bulletin_post_comments')
-          .insert({
-            'post_id': postId,
-            'user_id': user.id,
-            'body': body,
-          })
+          .insert({'post_id': postId, 'user_id': user.id, 'body': body})
           .select()
           .single();
 

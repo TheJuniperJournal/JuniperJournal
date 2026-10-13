@@ -104,6 +104,43 @@ class StorageService {
     return UploadedStorageFile(path: filePath, signedUrl: signedUrl);
   }
 
+  Future<UploadedStorageFile> uploadFile(
+    XFile file, {
+    required String bucketName,
+    required String folder,
+  }) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final extension = file.name.contains('.')
+        ? file.name.split('.').last.toLowerCase()
+        : 'bin';
+    final safeName = file.name
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'[^\w\-.]'), '');
+    final fallbackName = safeName.isEmpty ? 'attachment.$extension' : safeName;
+    final fileName = '${timestamp}_$fallbackName';
+    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
+    final bytes = await file.readAsBytes();
+
+    await _client.storage
+        .from(bucketName)
+        .uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: _getFileContentType(extension),
+            upsert: false,
+          ),
+        );
+
+    final publicUrl = _client.storage.from(bucketName).getPublicUrl(filePath);
+    return UploadedStorageFile(
+      path: filePath,
+      signedUrl: '',
+      publicUrl: publicUrl,
+      fileName: file.name,
+    );
+  }
+
   Future<String> createSignedUrl(
     String path, {
     required String bucketName,
@@ -174,6 +211,28 @@ class StorageService {
       case 'mp4':
       default:
         return 'video/mp4';
+    }
+  }
+
+  String _getFileContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'txt':
+        return 'text/plain';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+      case 'heic':
+        return _getContentType(extension);
+      default:
+        return 'application/octet-stream';
     }
   }
 }

@@ -79,6 +79,7 @@ class ProjectsRepo {
     String? difficulty,
     String? projectScale,
     String? visibility,
+    String? projectImageUrl,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Not signed in');
@@ -101,6 +102,7 @@ class ProjectsRepo {
             'difficulty': difficulty,
             'project_scale': projectScale,
             'visibility': visibility,
+            'project_image_url': projectImageUrl,
           })
           .select()
           .single();
