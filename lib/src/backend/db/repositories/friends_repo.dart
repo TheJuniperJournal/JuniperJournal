@@ -270,17 +270,22 @@ class FriendsRepo {
     final currentUserId = _client.auth.currentUser?.id;
     if (currentUserId == null) return [];
 
+    return getVisibleFriendsForUser(currentUserId);
+  }
+
+  /// Uses existing row-level access: never broadens visibility of friendships.
+  Future<List<UserProfile>?> getVisibleFriendsForUser(String userId) async {
     try {
       final outgoing = await _client
           .from(table)
           .select('addressee_id, created_at')
-          .eq('requester_id', currentUserId)
+          .eq('requester_id', userId)
           .eq('status', 'accepted');
 
       final incoming = await _client
           .from(table)
           .select('requester_id, created_at')
-          .eq('addressee_id', currentUserId)
+          .eq('addressee_id', userId)
           .eq('status', 'accepted');
 
       final friendIds = <String>{
@@ -299,7 +304,9 @@ class FriendsRepo {
           .select('id, display_name, username, avatar_url')
           .inFilter('id', friendIds);
 
-      return List<Map<String, dynamic>>.from(profiles).map(UserProfile.fromMap).toList();
+      return List<Map<String, dynamic>>.from(
+        profiles,
+      ).map(UserProfile.fromMap).toList();
     } catch (e, st) {
       debugPrint('getFriends error: $e\n$st');
       return null;

@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
@@ -123,7 +126,11 @@ class _ActivityScreen extends State<ActivityScreen> {
       );
 
       if (mounted) {
-        showTopSnackBar(context, success ? 'Document saved successfully!' : 'Failed to save document', isError: !success);
+        showTopSnackBar(
+          context,
+          success ? 'Document saved successfully!' : 'Failed to save document',
+          isError: !success,
+        );
       }
     } catch (e) {
       debugPrint('Error saving document: $e');
@@ -156,7 +163,10 @@ class _ActivityScreen extends State<ActivityScreen> {
     } else if (perfExpectations is String && perfExpectations.isNotEmpty) {
       if (perfExpectations.startsWith('[') && perfExpectations.endsWith(']')) {
         try {
-          final cleanString = perfExpectations.substring(1, perfExpectations.length - 1);
+          final cleanString = perfExpectations.substring(
+            1,
+            perfExpectations.length - 1,
+          );
           return cleanString
               .split(',')
               .map((s) => s.trim().replaceAll('"', '').replaceAll("'", ''))
@@ -269,9 +279,7 @@ class _ActivityScreen extends State<ActivityScreen> {
     _controller!.replaceText(index + 1, 0, '\n');
 
     // Move cursor after the image
-    _controller!.updateSelection(
-      TextSelection.collapsed(offset: index + 2),
-    );
+    _controller!.updateSelection(TextSelection.collapsed(offset: index + 2));
   }
 
   /// Shows a dialog to configure and insert a table
@@ -280,24 +288,32 @@ class _ActivityScreen extends State<ActivityScreen> {
 
     // Save the current cursor position
     final savedSelection = _controller!.selection;
-    final savedIndex = savedSelection.isValid && savedSelection.extentOffset >= 0
+    final savedIndex =
+        savedSelection.isValid && savedSelection.extentOffset >= 0
         ? savedSelection.extentOffset
         : _controller!.document.length - 1;
 
     final rowsController = TextEditingController(text: '3');
     final colsController = TextEditingController(text: '3');
 
-    final result = await showDialog<Map<String, int>>(
+    final result = await showAppDialog<Map<String, int>>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Insert Table'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Table dimensions:', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Table dimensions:',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: rowsController,
@@ -305,7 +321,10 @@ class _ActivityScreen extends State<ActivityScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Rows',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -315,7 +334,10 @@ class _ActivityScreen extends State<ActivityScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Columns',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ],
@@ -468,7 +490,10 @@ class _ActivityScreen extends State<ActivityScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Math.tex(
               latex,
-              textStyle: const TextStyle(fontSize: 18),
+              textStyle: const TextStyle(
+                fontFamily: AppTypography.headingFamily,
+                fontSize: AppTypography.sectionTitleSize,
+              ),
               mathStyle: MathStyle.display,
               onErrorFallback: (FlutterMathException exception) {
                 // Fallback to showing the raw LaTeX if rendering fails
@@ -492,14 +517,18 @@ class _ActivityScreen extends State<ActivityScreen> {
       if (imageUrl != null && imageUrl.startsWith('table://')) {
         try {
           // Extract and decode the table data
-          final encodedTable = imageUrl.substring(8); // Remove 'table://' prefix
+          final encodedTable = imageUrl.substring(
+            8,
+          ); // Remove 'table://' prefix
           final tableJson = utf8.decode(base64Decode(encodedTable));
           final tableData = jsonDecode(tableJson) as Map<String, dynamic>;
 
           final rows = tableData['rows'] as int;
           final cols = tableData['cols'] as int;
           final cells = (tableData['cells'] as List)
-              .map((row) => (row as List).map((cell) => cell.toString()).toList())
+              .map(
+                (row) => (row as List).map((cell) => cell.toString()).toList(),
+              )
               .toList();
 
           // Render editable table
@@ -518,7 +547,9 @@ class _ActivityScreen extends State<ActivityScreen> {
                 'cells': cells,
               };
 
-              final newEncodedTable = base64Encode(utf8.encode(jsonEncode(updatedTableData)));
+              final newEncodedTable = base64Encode(
+                utf8.encode(jsonEncode(updatedTableData)),
+              );
               final newTableUrl = 'table://$newEncodedTable';
 
               // Find and replace the old embed with the updated one
@@ -554,7 +585,11 @@ class _ActivityScreen extends State<ActivityScreen> {
 
     // If there's a selection, format the selected text
     if (selection.isValid && !selection.isCollapsed) {
-      _controller!.formatText(selection.start, selection.end - selection.start, attribute);
+      _controller!.formatText(
+        selection.start,
+        selection.end - selection.start,
+        attribute,
+      );
     } else {
       // If no selection, toggle the attribute for future typing
       // Get the current style at cursor position
@@ -578,7 +613,6 @@ class _ActivityScreen extends State<ActivityScreen> {
 
   /// Shows a dialog to input a LaTeX math equation
   Future<void> _insertMathEquation() async {
-    
     if (_controller == null) {
       debugPrint('Controller is null, returning');
       return;
@@ -586,16 +620,21 @@ class _ActivityScreen extends State<ActivityScreen> {
 
     // Save the current cursor position BEFORE opening the dialog
     final savedSelection = _controller!.selection;
-    final savedIndex = savedSelection.isValid && savedSelection.extentOffset >= 0
+    final savedIndex =
+        savedSelection.isValid && savedSelection.extentOffset >= 0
         ? savedSelection.extentOffset
         : _controller!.document.length - 1;
-    
+
     final TextEditingController latexController = TextEditingController();
-    
-    final result = await showDialog<String>(
+
+    final result = await showAppDialog<String>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Insert Math Equation'),
           content: SingleChildScrollView(
             child: Column(
@@ -604,16 +643,23 @@ class _ActivityScreen extends State<ActivityScreen> {
               children: [
                 const Text(
                   'Enter LaTeX equation:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: latexController,
                   autofocus: true,
                   decoration: const InputDecoration(
-                    hintText: r'E = mc^2',
+                    hintText: '',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 12,
+                    ),
                   ),
                   maxLines: 3,
                 ),
@@ -621,18 +667,26 @@ class _ActivityScreen extends State<ActivityScreen> {
                 Text(
                   'Examples:',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
                     color: Colors.grey[700],
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  r'• E = mc^2' '\n'
-                  r'• \frac{a}{b}' '\n'
-                  r'• x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}' '\n'
+                  r'• E = mc^2'
+                  '\n'
+                  r'• \frac{a}{b}'
+                  '\n'
+                  r'• x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}'
+                  '\n'
                   r'• \int_0^1 x^2 dx',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
@@ -661,7 +715,6 @@ class _ActivityScreen extends State<ActivityScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
-
       if (!mounted) {
         debugPrint('Widget not mounted after dialog, aborting');
         return;
@@ -672,14 +725,11 @@ class _ActivityScreen extends State<ActivityScreen> {
         return;
       }
 
-
       // Insert directly - no callbacks needed
       _insertMathIntoDocument(result, savedIndex);
-
     } else {
       debugPrint('Result was null or empty, not inserting');
     }
-
   }
 
   /// Remove the MathEmbed class definition and use this instead:
@@ -737,7 +787,6 @@ class _ActivityScreen extends State<ActivityScreen> {
       if (mounted) {
         showTopSnackBar(context, 'Math equation inserted!');
       }
-
     } catch (e, stackTrace) {
       debugPrint('!!! ERROR in _insertMathIntoDocument: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -764,11 +813,17 @@ class _ActivityScreen extends State<ActivityScreen> {
               children: [
                 // App bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(CupertinoIcons.back, color: AppColors.iconPrimary),
+                        icon: const Icon(
+                          CupertinoIcons.back,
+                          color: AppColors.iconPrimary,
+                        ),
                         onPressed: () => Navigator.of(context).pop(),
                         tooltip: 'Back',
                       ),
@@ -780,8 +835,9 @@ class _ActivityScreen extends State<ActivityScreen> {
                             Text(
                               moduleName,
                               style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
+                                fontFamily: AppTypography.headingFamily,
+                                fontSize: AppTypography.sectionTitleSize,
+                                fontWeight: FontWeight.w600,
                                 color: AppColors.darkText,
                               ),
                             ),
@@ -789,7 +845,8 @@ class _ActivityScreen extends State<ActivityScreen> {
                             Text(
                               formattedDate,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.helperSize,
                                 color: AppColors.lightGrey,
                               ),
                             ),
@@ -807,13 +864,14 @@ class _ActivityScreen extends State<ActivityScreen> {
                           } else if (value == 'save_continue') {
                             final navigator = Navigator.of(context);
                             await _saveDocument();
-                            navigator.push(
-                                MaterialPageRoute(
-                                  builder: (context) => AssessmentScreen(
-                                    module: _freshModuleData ?? widget.module,
-                                  ),
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AssessmentScreen(
+                                  module: _freshModuleData ?? widget.module,
                                 ),
-                              );
+                              ),
+                            );
                           }
                         },
                         itemBuilder: (BuildContext context) => [
@@ -821,7 +879,11 @@ class _ActivityScreen extends State<ActivityScreen> {
                             value: 'save',
                             child: Row(
                               children: [
-                                Icon(Icons.save_outlined, size: 20, color: AppColors.darkText),
+                                Icon(
+                                  Icons.save_outlined,
+                                  size: 20,
+                                  color: AppColors.darkText,
+                                ),
                                 SizedBox(width: 12),
                                 Text('Save'),
                               ],
@@ -831,7 +893,11 @@ class _ActivityScreen extends State<ActivityScreen> {
                             value: 'save_continue',
                             child: Row(
                               children: [
-                                Icon(Icons.arrow_forward, size: 20, color: AppColors.primary),
+                                Icon(
+                                  Icons.arrow_forward,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
                                 SizedBox(width: 12),
                                 Text('Save & Continue'),
                               ],
@@ -869,11 +935,17 @@ class _ActivityScreen extends State<ActivityScreen> {
                                 runSpacing: 8,
                                 children: performanceExpectations.map((tag) {
                                   return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: AppColors.tagBackground,
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: AppColors.tagBorder, width: 1),
+                                      border: Border.all(
+                                        color: AppColors.tagBorder,
+                                        width: 1,
+                                      ),
                                     ),
                                     child: Text(
                                       tag,
@@ -888,7 +960,7 @@ class _ActivityScreen extends State<ActivityScreen> {
                                     ),
                                   );
                                 }).toList(),
-                            ),
+                              ),
                           ],
                         ],
                       ),
@@ -919,11 +991,17 @@ class _ActivityScreen extends State<ActivityScreen> {
                           },
                           child: Container(
                             color: AppColors.white,
-                            padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                            ),
                             child: FleatherEditor(
                               controller: _controller!,
                               focusNode: _focusNode,
-                              padding: const EdgeInsets.only(bottom: 120), // Extra space to scroll past toolbar
+                              padding: const EdgeInsets.only(
+                                bottom: 120,
+                              ), // Extra space to scroll past toolbar
                               autofocus: false,
                               embedBuilder: _embedBuilder,
                             ),
@@ -968,9 +1046,10 @@ class _ActivityScreen extends State<ActivityScreen> {
             color: AppColors.primary,
           ),
           style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
             color: AppColors.primary,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontSize: AppTypography.helperSize,
+            fontWeight: FontWeight.w400,
             letterSpacing: 0.5,
           ),
           dropdownColor: AppColors.accent.withValues(alpha: 0.5),
@@ -980,9 +1059,10 @@ class _ActivityScreen extends State<ActivityScreen> {
               child: Text(
                 'TITLE',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -992,9 +1072,10 @@ class _ActivityScreen extends State<ActivityScreen> {
               child: Text(
                 'ANCHORING PHENOMENON',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1004,9 +1085,10 @@ class _ActivityScreen extends State<ActivityScreen> {
               child: Text(
                 'OBJECTIVE',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1016,9 +1098,10 @@ class _ActivityScreen extends State<ActivityScreen> {
               child: Text(
                 'LEARNING',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1028,9 +1111,10 @@ class _ActivityScreen extends State<ActivityScreen> {
               child: Text(
                 'CONCEPT EXPLORATION',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1040,9 +1124,10 @@ class _ActivityScreen extends State<ActivityScreen> {
               child: Text(
                 'ACTIVITY',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1050,43 +1135,42 @@ class _ActivityScreen extends State<ActivityScreen> {
           ],
           onChanged: (value) {
             if (value == 'TITLE') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => CreateTemplateScreen(
-                    existingModule: widget.module,
-                  ),
+                  builder: (context) =>
+                      CreateTemplateScreen(existingModule: widget.module),
                 ),
               );
             } else if (value == 'ANCHORING PHENOMENON') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => AnchoringPhenomenon(
-                    existingModule: widget.module,
-                  ),
+                  builder: (context) =>
+                      AnchoringPhenomenon(existingModule: widget.module),
                 ),
               );
             } else if (value == 'OBJECTIVE') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => LearningObjectiveScreen(
-                    module: widget.module,
-                  ),
+                  builder: (context) =>
+                      LearningObjectiveScreen(module: widget.module),
                 ),
               );
             } else if (value == 'LEARNING') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => ThreeDLearning(
-                    module: widget.module,
-                  ),
+                  builder: (context) => ThreeDLearning(module: widget.module),
                 ),
               );
             } else if (value == 'CONCEPT EXPLORATION') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => ConceptExplorationScreen(
-                    module: widget.module,
-                  ),
+                  builder: (context) =>
+                      ConceptExplorationScreen(module: widget.module),
                 ),
               );
             }
@@ -1126,27 +1210,24 @@ class _EditableTableState extends State<_EditableTable> {
     // Create Fleather controllers for each cell
     _controllers = List.generate(
       widget.rows,
-      (row) => List.generate(
-        widget.cols,
-        (col) {
-          // Try to parse existing cell data as Fleather JSON, or create empty doc
-          try {
-            final cellData = widget.initialCells[row][col];
-            if (cellData.isNotEmpty) {
-              final doc = ParchmentDocument.fromJson(jsonDecode(cellData));
-              return FleatherController(document: doc);
-            }
-          } catch (e) {
-            // If not valid JSON, treat as plain text
-            final cellData = widget.initialCells[row][col];
-            if (cellData.isNotEmpty) {
-              final doc = ParchmentDocument()..insert(0, cellData);
-              return FleatherController(document: doc);
-            }
+      (row) => List.generate(widget.cols, (col) {
+        // Try to parse existing cell data as Fleather JSON, or create empty doc
+        try {
+          final cellData = widget.initialCells[row][col];
+          if (cellData.isNotEmpty) {
+            final doc = ParchmentDocument.fromJson(jsonDecode(cellData));
+            return FleatherController(document: doc);
           }
-          return FleatherController();
-        },
-      ),
+        } catch (e) {
+          // If not valid JSON, treat as plain text
+          final cellData = widget.initialCells[row][col];
+          if (cellData.isNotEmpty) {
+            final doc = ParchmentDocument()..insert(0, cellData);
+            return FleatherController(document: doc);
+          }
+        }
+        return FleatherController();
+      }),
     );
 
     _focusNodes = List.generate(
@@ -1189,10 +1270,7 @@ class _EditableTableState extends State<_EditableTable> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Table(
-        border: TableBorder.all(
-          color: Colors.grey[400]!,
-          width: 1.0,
-        ),
+        border: TableBorder.all(color: Colors.grey[400]!, width: 1.0),
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: List.generate(widget.rows, (rowIndex) {
           return TableRow(
@@ -1203,7 +1281,10 @@ class _EditableTableState extends State<_EditableTable> {
                 child: FleatherEditor(
                   controller: _controllers[rowIndex][colIndex],
                   focusNode: _focusNodes[rowIndex][colIndex],
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
                 ),
               );
             }),

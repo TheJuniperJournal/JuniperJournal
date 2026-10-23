@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:juniper_journal/src/backend/db/models/achievement.dart';
 import 'package:juniper_journal/src/backend/db/supabase_database.dart';
@@ -5,7 +6,7 @@ import 'package:juniper_journal/src/backend/db/supabase_database.dart';
 class AchievementsRepo {
   static const _table = 'achievements';
 
-  get _client => SupabaseDatabase.instance.client;
+  SupabaseClient get _client => SupabaseDatabase.instance.client;
 
   // ── Read ──────────────────────────────────────────────────────────────────
 
@@ -26,9 +27,9 @@ class AchievementsRepo {
           .order('occurred_at', ascending: false)
           .limit(limit);
 
-      return List<Map<String, dynamic>>.from(rows)
-          .map(Achievement.fromMap)
-          .toList();
+      return List<Map<String, dynamic>>.from(
+        rows,
+      ).map(Achievement.fromMap).toList();
     } catch (e, st) {
       debugPrint('getCurrentUserAchievements error: $e\n$st');
       return null;

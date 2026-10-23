@@ -1,4 +1,7 @@
-import 'dart:io';
+import 'package:juniper_journal/src/shared/widgets/optional_field_label.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import '../../../shared/widgets/picked_image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:juniper_journal/src/backend/db/models/bulletin_post.dart';
@@ -21,11 +24,7 @@ class BulletinPostForm extends StatefulWidget {
   final String communityId;
   final BulletinPost? editPost;
 
-  const BulletinPostForm({
-    super.key,
-    required this.communityId,
-    this.editPost,
-  });
+  const BulletinPostForm({super.key, required this.communityId, this.editPost});
 
   @override
   State<BulletinPostForm> createState() => _BulletinPostFormState();
@@ -143,11 +142,7 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
         centerTitle: true,
         title: Text(
           _isEditing ? 'Edit Post' : 'Forum Post',
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+          style: AppTypography.pageTitle,
         ),
       ),
       body: SingleChildScrollView(
@@ -159,41 +154,57 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
             const Text(
               'Post Title',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _titleCtrl,
-              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
-                hintText: 'Design Help',
-                hintStyle:
-                    const TextStyle(color: AppColors.hintText, fontSize: 15),
+                constraints: const BoxConstraints(minHeight: 64),
+                hintText: '',
+                hintStyle: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.hintText,
+                  fontSize: AppTypography.bodySize,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.border, width: 1),
+                  borderSide: const BorderSide(
+                    color: AppColors.border,
+                    width: 1,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.border,
+                    width: 1,
+                  ),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 14,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // ── Post Category ─────────────────────────────────────────────
             const Text(
               'Post Category',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -213,84 +224,103 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
                 ),
                 child: Column(
                   children: _kCategories
-                      .map((cat) => InkWell(
-                            onTap: () => setState(() {
-                              _category = cat;
-                              _categoryOpen = false;
-                            }),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              child: Text(
-                                cat,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: cat == _category
-                                      ? AppColors.primary
-                                      : AppColors.primary
-                                          .withValues(alpha: 0.75),
-                                  fontWeight: cat == _category
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                ),
+                      .map(
+                        (cat) => InkWell(
+                          onTap: () => setState(() {
+                            _category = cat;
+                            _categoryOpen = false;
+                          }),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: AppTypography.bodySize,
+                                color: cat == _category
+                                    ? AppColors.primary
+                                    : AppColors.primary.withValues(alpha: 0.75),
+                                fontWeight: cat == _category
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
                               ),
                             ),
-                          ))
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // ── Body ──────────────────────────────────────────────────────
             const Text(
               'Your Question or Idea',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _bodyCtrl,
-              minLines: 6,
-              maxLines: 12,
+              minLines: 5,
+              maxLines: null,
               style: const TextStyle(
-                  fontSize: 15, color: AppColors.textPrimary, height: 1.5),
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: AppColors.textPrimary,
+                height: 1.5,
+              ),
               decoration: InputDecoration(
-                hintText: 'I need help with...',
-                hintStyle:
-                    const TextStyle(color: AppColors.hintText, fontSize: 15),
+                hintText: '',
+                hintStyle: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.hintText,
+                  fontSize: AppTypography.bodySize,
+                ),
                 alignLabelWithHint: true,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
-                      color: AppColors.borderLight, width: 1),
+                    color: AppColors.borderLight,
+                    width: 1,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderLight,
+                    width: 1,
+                  ),
                 ),
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 16,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // ── Photos ────────────────────────────────────────────────────
-            const Text(
+            const OptionalFieldLabel(
               'Photos (optional)',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 10),
             _buildPhotoGrid(),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppMetrics.sectionGap),
 
             // ── Post button ───────────────────────────────────────────────
             SizedBox(
@@ -303,16 +333,22 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 child: _isPosting
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(_isEditing ? 'Save Changes' : 'Post'),
               ),
@@ -339,7 +375,7 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
         // New images (picked from device)
         for (final xfile in _newImages)
           _PhotoThumbnail(
-            imageProvider: FileImage(File(xfile.path)),
+            preview: PickedImagePreview(file: xfile),
             onRemove: () => setState(() => _newImages.remove(xfile)),
           ),
         // Add button
@@ -353,10 +389,14 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
                 color: AppColors.primaryTint,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3)),
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
               ),
-              child: const Icon(Icons.add_photo_alternate_outlined,
-                  color: AppColors.primary, size: 28),
+              child: const Icon(
+                Icons.add_photo_alternate_outlined,
+                color: AppColors.primary,
+                size: 28,
+              ),
             ),
           ),
       ],
@@ -367,11 +407,13 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
 // ── _PhotoThumbnail ───────────────────────────────────────────────────────────
 
 class _PhotoThumbnail extends StatelessWidget {
-  final ImageProvider imageProvider;
+  final ImageProvider? imageProvider;
+  final Widget? preview;
   final VoidCallback onRemove;
 
   const _PhotoThumbnail({
-    required this.imageProvider,
+    this.imageProvider,
+    this.preview,
     required this.onRemove,
   });
 
@@ -381,11 +423,10 @@ class _PhotoThumbnail extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image(
-            image: imageProvider,
+          child: SizedBox(
             width: 80,
             height: 80,
-            fit: BoxFit.cover,
+            child: preview ?? Image(image: imageProvider!, fit: BoxFit.cover),
           ),
         ),
         Positioned(
@@ -400,8 +441,7 @@ class _PhotoThumbnail extends StatelessWidget {
                 color: Colors.black54,
                 shape: BoxShape.circle,
               ),
-              child:
-                  const Icon(Icons.close, size: 12, color: Colors.white),
+              child: const Icon(Icons.close, size: 12, color: Colors.white),
             ),
           ),
         ),
@@ -440,16 +480,15 @@ class _CategoryPill extends StatelessWidget {
               child: Text(
                 value,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
                   fontWeight: FontWeight.w500,
                   color: AppColors.primary,
                 ),
               ),
             ),
             Icon(
-              isOpen
-                  ? Icons.keyboard_arrow_up
-                  : Icons.keyboard_arrow_down,
+              isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
               color: AppColors.primary,
               size: 20,
             ),

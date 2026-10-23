@@ -1,3 +1,6 @@
+import '../../../shared/widgets/page_refresh_state.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
@@ -17,6 +20,14 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) PageRefreshState.remember(context, {'kind': 'signup'});
+    });
+  }
+
   int _step = 0;
   int _prevStep = 0;
 
@@ -276,56 +287,142 @@ class _SignupScreenState extends State<SignupScreen> {
           elevation: 0,
         ),
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 4),
-                _StepDots(current: _step, total: 4),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 280),
-                    transitionBuilder: (child, animation) {
-                      final isForward = _step > _prevStep;
-                      final incomingOffset = Offset(
-                        isForward ? 1.0 : -1.0,
-                        0.0,
-                      );
-                      final outgoingOffset = Offset(
-                        isForward ? -1.0 : 1.0,
-                        0.0,
-                      );
-                      final isIncoming = child.key == ValueKey(_step);
-                      final offset = isIncoming
-                          ? incomingOffset
-                          : outgoingOffset;
-                      return SlideTransition(
-                        position: Tween<Offset>(begin: offset, end: Offset.zero)
-                            .animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOut,
-                              ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final desktop = constraints.maxWidth >= 900;
+              final form = Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 4),
+                    _StepDots(current: _step, total: 4),
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 280),
+                        transitionBuilder: (child, animation) {
+                          final isForward = _step > _prevStep;
+                          final incomingOffset = Offset(
+                            isForward ? 1.0 : -1.0,
+                            0.0,
+                          );
+                          final outgoingOffset = Offset(
+                            isForward ? -1.0 : 1.0,
+                            0.0,
+                          );
+                          final isIncoming = child.key == ValueKey(_step);
+                          final offset = isIncoming
+                              ? incomingOffset
+                              : outgoingOffset;
+                          return SlideTransition(
+                            position:
+                                Tween<Offset>(
+                                  begin: offset,
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeOut,
+                                  ),
+                                ),
+                            child: child,
+                          );
+                        },
+                        layoutBuilder: (currentChild, previousChildren) =>
+                            Stack(
+                              alignment: Alignment.topLeft,
+                              children: [
+                                ...previousChildren,
+                                if (currentChild != null) currentChild,
+                              ],
                             ),
-                        child: child,
-                      );
-                    },
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      alignment: Alignment.topLeft,
-                      children: [
-                        ...previousChildren,
-                        if (currentChild != null) currentChild,
-                      ],
+                        child: KeyedSubtree(
+                          key: ValueKey(_step),
+                          child: SingleChildScrollView(
+                            child: _buildCurrentStep(),
+                          ),
+                        ),
+                      ),
                     ),
-                    child: KeyedSubtree(
-                      key: ValueKey(_step),
-                      child: SingleChildScrollView(child: _buildCurrentStep()),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              );
+              final artwork = Image.asset(
+                'assets/auth_flower_face.png',
+                key: const ValueKey('signup-floral-artwork'),
+                fit: BoxFit.contain,
+                excludeFromSemantics: true,
+              );
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1440),
+                  child: desktop
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 48,
+                            vertical: 24,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: SizedBox(
+                                  height: (constraints.maxHeight - 48).clamp(
+                                    300.0,
+                                    680.0,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Expanded(child: artwork),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'Learn. Create. Grow.',
+                                        style: TextStyle(
+                                          color: Color(0xFF204C35),
+                                          fontSize: 14,
+                                          letterSpacing: .8,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 64),
+                              Expanded(
+                                flex: 4,
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 468,
+                                    ),
+                                    child: form,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            if (constraints.maxHeight >= 600) ...[
+                              SizedBox(height: 140, child: artwork),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Learn. Create. Grow.',
+                                style: TextStyle(
+                                  color: Color(0xFF204C35),
+                                  fontSize: 14,
+                                  letterSpacing: .8,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            Expanded(child: form),
+                          ],
+                        ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -358,7 +455,7 @@ class _SignupScreenState extends State<SignupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _StepHeading(title: "What's your email?"),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppMetrics.sectionGap),
           TextFormField(
             controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
@@ -383,7 +480,11 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 8),
             RichText(
               text: TextSpan(
-                style: const TextStyle(fontSize: 13, color: AppColors.error),
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.error,
+                ),
                 children: [
                   TextSpan(text: _emailError),
                   const TextSpan(text: '  '),
@@ -400,14 +501,14 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 32),
+          const SizedBox(height: AppMetrics.sectionGap),
           SubmitButton(
             label: 'Next',
             isLoading: _emailChecking,
             onPressed: _onStep0Next,
             backgroundColor: AppColors.primary,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppMetrics.fieldGap),
           _LoginLink(),
         ],
       ),
@@ -425,7 +526,7 @@ class _SignupScreenState extends State<SignupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _StepHeading(title: 'Create a password'),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppMetrics.sectionGap),
           TextFormField(
             controller: _passwordCtrl,
             obscureText: _obscurePassword,
@@ -469,7 +570,7 @@ class _SignupScreenState extends State<SignupScreen> {
               return null;
             },
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppMetrics.sectionGap),
           SubmitButton(
             label: 'Next',
             isLoading: false,
@@ -492,7 +593,7 @@ class _SignupScreenState extends State<SignupScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _StepHeading(title: 'Set up your profile'),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppMetrics.sectionGap),
           TextFormField(
             controller: _firstNameCtrl,
             decoration: authInputDecoration('First name'),
@@ -537,7 +638,7 @@ class _SignupScreenState extends State<SignupScreen> {
             available: _usernameAvailable,
             hasInput: _usernameCtrl.text.trim().length >= 3,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppMetrics.sectionGap),
           SubmitButton(
             label: 'Next',
             isLoading: false,
@@ -558,7 +659,7 @@ class _SignupScreenState extends State<SignupScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StepHeading(title: 'When were you born?'),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppMetrics.sectionGap),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           shape: RoundedRectangleBorder(
@@ -570,7 +671,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 ? _formatBirthday(_birthday!)
                 : 'Select your birthday',
             style: TextStyle(
-              color: _birthday != null ? AppColors.textPrimary : AppColors.hintText,
+              color: _birthday != null
+                  ? AppColors.textPrimary
+                  : AppColors.hintText,
             ),
           ),
           trailing: const Icon(Icons.calendar_today_outlined, size: 20),
@@ -579,9 +682,13 @@ class _SignupScreenState extends State<SignupScreen> {
         const SizedBox(height: 12),
         const Text(
           'We use your birthday to help keep younger users safe.',
-          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.helperSize,
+            color: AppColors.textSecondary,
+          ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppMetrics.sectionGap),
         SubmitButton(
           label: 'Create Account',
           isLoading: _isSubmitting,
@@ -636,8 +743,9 @@ class _StepHeading extends StatelessWidget {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 26,
-        fontWeight: FontWeight.w700,
+        fontFamily: AppTypography.headingFamily,
+        fontSize: AppTypography.displaySize,
+        fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       ),
     );
@@ -692,11 +800,19 @@ class _UsernameStatus extends StatelessWidget {
         padding: EdgeInsets.only(top: 8, left: 4),
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline, color: AppColors.primary, size: 16),
+            Icon(
+              Icons.check_circle_outline,
+              color: AppColors.primary,
+              size: 16,
+            ),
             SizedBox(width: 4),
             Text(
               'Available',
-              style: TextStyle(color: AppColors.primary, fontSize: 12),
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                color: AppColors.primary,
+                fontSize: AppTypography.helperSize,
+              ),
             ),
           ],
         ),
@@ -708,7 +824,11 @@ class _UsernameStatus extends StatelessWidget {
         padding: EdgeInsets.only(top: 8, left: 4),
         child: Text(
           'Already taken',
-          style: TextStyle(color: AppColors.error, fontSize: 12),
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            color: AppColors.error,
+            fontSize: AppTypography.helperSize,
+          ),
         ),
       );
     }
@@ -720,8 +840,9 @@ class _UsernameStatus extends StatelessWidget {
 class _LoginLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         const Text('Already have an account?  '),
         GestureDetector(

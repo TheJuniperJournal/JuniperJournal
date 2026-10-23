@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/features/community/pages/challenge_setup_form.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
@@ -46,21 +49,25 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: const Text(
           'Design Challenge Types',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+          style: AppTypography.pageTitle,
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close, size: 22, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.close,
+              size: 22,
+              color: AppColors.textSecondary,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -73,16 +80,18 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
             const Text(
               'Choose a Design Challenge Type.',
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.headingFamily,
+                fontSize: AppTypography.sectionTitleSize,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
             Expanded(
               child: ListView.separated(
                 itemCount: _types.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppMetrics.labelGap),
                 itemBuilder: (_, i) {
                   final t = _types[i];
                   final isSelected = _selected == t.value;
@@ -110,8 +119,11 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(t.icon,
-                                size: 22, color: AppColors.primaryDark),
+                            child: Icon(
+                              t.icon,
+                              size: 22,
+                              color: AppColors.primaryDark,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -121,8 +133,9 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
                                 Text(
                                   t.label,
                                   style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.bodySize,
+                                    fontWeight: FontWeight.w500,
                                     color: AppColors.primaryDark,
                                   ),
                                 ),
@@ -130,7 +143,8 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
                                 Text(
                                   t.description,
                                   style: const TextStyle(
-                                    fontSize: 13,
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.bodySize,
                                     color: AppColors.primaryDark,
                                     height: 1.4,
                                   ),
@@ -152,24 +166,28 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
               child: ElevatedButton(
                 onPressed: _selected == null
                     ? null
-                    : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChallengeSetupForm(
-                              communityId: widget.communityId,
-                              type: _selected!,
-                            ),
+                    : () => pushAppRoute(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChallengeSetupForm(
+                            communityId: widget.communityId,
+                            type: _selected!,
                           ),
                         ),
+                      ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   disabledBackgroundColor: AppColors.primaryTint,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 child: const Text('Next'),
               ),

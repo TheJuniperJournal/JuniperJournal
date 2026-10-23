@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 import 'package:intl/intl.dart';
@@ -66,23 +70,20 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
       'Materials and Their Properties',
       'Iteration and Improvement Processes',
       'Sustainable Innovation and Practices',
-
     ],
     'Energy & Systems': [
       'Energy Sources and Forms',
       'Energy Transfer and Transformation',
       'Renewable and Nonrenewable Resources',
       'Efficiency and Conservation of Energy',
-      'Energy Flow in Natural and Engineered Systems'
-
+      'Energy Flow in Natural and Engineered Systems',
     ],
     'Community & The Built Environment': [
       'Sustainable Communities and Urban Planning',
       'Green Building and Infrastructure',
       'Transportation and Mobility Systems',
       'Public Space Design and Equity',
-      'Interaction Between Human and Natural Environments'
-
+      'Interaction Between Human and Natural Environments',
     ],
   };
 
@@ -320,7 +321,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
     required String? current,
     required ValueChanged<String> onPicked,
   }) async {
-    final picked = await showModalBottomSheet<String>(
+    final picked = await showAppModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -353,8 +354,9 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                     child: Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -373,7 +375,9 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                         title: Text(
                           o,
                           style: TextStyle(
-                            color: AppColors.textPrimary.withValues(alpha: selected ? 1.0 : 0.95),
+                            color: AppColors.textPrimary.withValues(
+                              alpha: selected ? 1.0 : 0.95,
+                            ),
                           ),
                         ),
                         trailing: selected
@@ -454,16 +458,18 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
             Text(
               moduleName,
               style: const TextStyle(
+                fontFamily: AppTypography.headingFamily,
                 color: AppColors.textPrimary,
-                fontSize: 20,
+                fontSize: AppTypography.pageTitleSize,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
               formattedDate,
               style: const TextStyle(
+                fontFamily: AppTypography.headingFamily,
                 color: AppColors.textSecondary,
-                fontSize: 14,
+                fontSize: AppTypography.pageTitleSize,
               ),
             ),
           ],
@@ -479,7 +485,10 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.accent,
                     borderRadius: BorderRadius.circular(20),
@@ -493,9 +502,10 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                         size: 16,
                       ),
                       style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        fontSize: AppTypography.bodySize,
                       ),
                       dropdownColor: AppColors.accent.withValues(alpha: 0.5),
                       items: const [
@@ -505,7 +515,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                             'TITLE',
                             style: TextStyle(
                               color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -515,7 +525,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                             'ANCHORING PHENOMENON',
                             style: TextStyle(
                               color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -525,7 +535,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                             'OBJECTIVE',
                             style: TextStyle(
                               color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -535,15 +545,18 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                             'LEARNING',
                             style: TextStyle(
                               color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                       ],
                       onChanged: (value) {
                         if (value == 'TITLE') {
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          Navigator.of(context).push(
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
+                          pushAppRoute(
+                            context,
                             MaterialPageRoute(
                               builder: (context) => CreateTemplateScreen(
                                 existingModule: widget.module,
@@ -551,8 +564,11 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                             ),
                           );
                         } else if (value == 'ANCHORING PHENOMENON') {
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          Navigator.of(context).push(
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
+                          pushAppRoute(
+                            context,
                             MaterialPageRoute(
                               builder: (context) => AnchoringPhenomenon(
                                 existingModule: widget.module,
@@ -568,7 +584,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppMetrics.fieldGap),
 
               // -------- DCI --------
               const _SectionHeader('Disciplinary Core Ideas (DCI)'),
@@ -598,7 +614,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
               ),
 
               // -------- SEP --------
-              const SizedBox(height: 22),
+              const SizedBox(height: AppMetrics.fieldGap),
               const _SectionHeader('Science and Engineering Practices (SEP)'),
               ..._sep.asMap().entries.map(
                 (e) => Padding(
@@ -624,7 +640,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
               ),
 
               // -------- CCC --------
-              const SizedBox(height: 22),
+              const SizedBox(height: AppMetrics.fieldGap),
               const _SectionHeader('Cross Cutting Concepts (CCC)'),
               ..._ccc.asMap().entries.map(
                 (e) => Padding(
@@ -650,7 +666,7 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
               ),
 
               // Complete button
-              const SizedBox(height: 24),
+              const SizedBox(height: AppMetrics.fieldGap),
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
@@ -677,12 +693,20 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
 
                       // Validation: Check that SEP and CCC have at least one selection
                       if (sepData.isEmpty) {
-                        showTopSnackBar(context, 'Please select at least one Science and Engineering Practice (SEP)', isError: true);
+                        showTopSnackBar(
+                          context,
+                          'Please select at least one Science and Engineering Practice (SEP)',
+                          isError: true,
+                        );
                         return;
                       }
 
                       if (cccData.isEmpty) {
-                        showTopSnackBar(context, 'Please select at least one Cross Cutting Concept (CCC)', isError: true);
+                        showTopSnackBar(
+                          context,
+                          'Please select at least one Cross Cutting Concept (CCC)',
+                          isError: true,
+                        );
                         return;
                       }
 
@@ -705,18 +729,26 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                       );
 
                       if (dciSuccess && sepSuccess && cccSuccess) {
-                        navigator.push(
+                        pushAppRoute(
+                          context,
                           MaterialPageRoute(
-                            builder: (context) => ConceptExplorationScreen(
-                              module: widget.module,
-                            ),
+                            builder: (context) =>
+                                ConceptExplorationScreen(module: widget.module),
                           ),
                         );
                       } else {
-                        showTopSnackBar(context, 'Failed to save some data. Please try again.', isError: true);
+                        showTopSnackBar(
+                          context,
+                          'Failed to save some data. Please try again.',
+                          isError: true,
+                        );
                       }
                     } catch (e) {
-                      showTopSnackBar(context, 'Error saving module data', isError: true);
+                      showTopSnackBar(
+                        context,
+                        'Error saving module data',
+                        isError: true,
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -729,13 +761,14 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                   child: const Text(
                     'Complete',
                     style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontWeight: FontWeight.w500,
+                      fontSize: AppTypography.buttonSize,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: AppMetrics.sectionGap),
             ],
           ),
         ),
@@ -757,9 +790,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: AppColors.textPrimary,
-          fontSize: 16.5,
-          fontWeight: FontWeight.w600,
+          fontSize: AppTypography.bodySize,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -769,9 +803,7 @@ class _SectionHeader extends StatelessWidget {
 class _NonEditablePill extends StatelessWidget {
   final String label;
 
-  const _NonEditablePill({
-    required this.label,
-  });
+  const _NonEditablePill({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -792,9 +824,10 @@ class _NonEditablePill extends StatelessWidget {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: AppColors.blue,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -849,9 +882,10 @@ class _RoundedChoicePill extends StatelessWidget {
                   label,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: AppColors.blue,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

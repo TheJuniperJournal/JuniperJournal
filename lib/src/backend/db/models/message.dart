@@ -32,16 +32,18 @@ class Message {
   }
 
   factory Message.fromMap(Map<String, dynamic> map) => Message(
-        id: map['id']?.toString() ?? '',
-        conversationId: map['conversation_id']?.toString() ?? '',
-        senderId: map['sender_id']?.toString() ?? '',
-        senderDisplayName: map['sender_display_name']?.toString(),
-        senderUsername: map['sender_username']?.toString(),
-        senderAvatarUrl: map['sender_avatar_url']?.toString(),
-        content: map['content']?.toString() ?? '',
-        createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now(),
-        readAt: map['read_at'] != null
-            ? DateTime.tryParse(map['read_at'].toString())
-            : null,
-      );
+    id: map['id']?.toString() ?? '',
+    conversationId: map['conversation_id']?.toString() ?? '',
+    senderId: map['sender_id']?.toString() ?? '',
+    senderDisplayName: map['sender_display_name']?.toString(),
+    senderUsername: map['sender_username']?.toString(),
+    senderAvatarUrl: map['sender_avatar_url']?.toString(),
+    content: map['content']?.toString() ?? '',
+    createdAt:
+        DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+        DateTime.now(),
+    readAt: map['read_at'] != null
+        ? DateTime.tryParse(map['read_at'].toString())
+        : null,
+  );
 }

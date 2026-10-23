@@ -1,10 +1,19 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/db/repositories/challenges_repo.dart';
 import 'package:juniper_journal/src/features/community/pages/challenge_creator_dashboard.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
-const _kMetrics = ['Energy', 'Waste', 'Water', 'Biological Growth', 'Educational Impact'];
+const _kMetrics = [
+  'Energy',
+  'Waste',
+  'Water',
+  'Biological Growth',
+  'Educational Impact',
+];
 const _kPatterns = ['Behavior', 'Regeneration', 'Reduction', 'Substitution'];
 const _kCommunityPatterns = ['Capacity Building'];
 
@@ -39,8 +48,7 @@ class ChallengeRequirementsForm extends StatefulWidget {
       _ChallengeRequirementsFormState();
 }
 
-class _ChallengeRequirementsFormState
-    extends State<ChallengeRequirementsForm> {
+class _ChallengeRequirementsFormState extends State<ChallengeRequirementsForm> {
   final _repo = ChallengesRepo();
   final _linkCtrl = TextEditingController();
 
@@ -64,7 +72,7 @@ class _ChallengeRequirementsFormState
   }
 
   Future<void> _confirmExit() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
@@ -73,12 +81,14 @@ class _ChallengeRequirementsFormState
         content: const Text('Your progress will be lost.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Exit')),
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Exit'),
+          ),
         ],
       ),
     );
@@ -121,8 +131,9 @@ class _ChallengeRequirementsFormState
       requiredMetrics: _selectedMetrics.toList(),
       requiredPatterns: _selectedPatterns.toList(),
       minGroupMembers: _minGroupMembers,
-      externalLink:
-          _linkCtrl.text.trim().isEmpty ? null : _linkCtrl.text.trim(),
+      externalLink: _linkCtrl.text.trim().isEmpty
+          ? null
+          : _linkCtrl.text.trim(),
     );
 
     if (!mounted) return;
@@ -131,8 +142,7 @@ class _ChallengeRequirementsFormState
     // Replace entire creation stack with dashboard
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) =>
-            ChallengeCreatorDashboard(challengeId: challenge.id),
+        builder: (_) => ChallengeCreatorDashboard(challengeId: challenge.id),
       ),
       (route) => route.isFirst,
     );
@@ -146,22 +156,22 @@ class _ChallengeRequirementsFormState
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left,
-              size: 28, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: const Text(
-          'Set Requirements',
-          style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary),
-        ),
+        title: const Text('Set Requirements', style: AppTypography.pageTitle),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close,
-                size: 22, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.close,
+              size: 22,
+              color: AppColors.textSecondary,
+            ),
             onPressed: _confirmExit,
           ),
         ],
@@ -176,19 +186,34 @@ class _ChallengeRequirementsFormState
               'Required Journal Entries',
               Row(
                 children: [
-                  _stepperBtn(Icons.remove,
-                      () => setState(() => _journalEntries = (_journalEntries - 1).clamp(0, 99))),
+                  _stepperBtn(
+                    Icons.remove,
+                    () => setState(
+                      () =>
+                          _journalEntries = (_journalEntries - 1).clamp(0, 99),
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Text('$_journalEntries',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(
+                    '$_journalEntries',
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  _stepperBtn(Icons.add,
-                      () => setState(() => _journalEntries = (_journalEntries + 1).clamp(0, 99))),
+                  _stepperBtn(
+                    Icons.add,
+                    () => setState(
+                      () =>
+                          _journalEntries = (_journalEntries + 1).clamp(0, 99),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // Measurement required toggle
             _rowField(
@@ -199,7 +224,7 @@ class _ChallengeRequirementsFormState
                 activeColor: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // Community Impact: min group members
             if (_isCommunityImpact) ...[
@@ -207,38 +232,57 @@ class _ChallengeRequirementsFormState
                 'Minimum Group Members Required',
                 Row(
                   children: [
-                    _stepperBtn(Icons.remove,
-                        () => setState(() => _minGroupMembers = (_minGroupMembers - 1).clamp(1, 50))),
+                    _stepperBtn(
+                      Icons.remove,
+                      () => setState(
+                        () => _minGroupMembers = (_minGroupMembers - 1).clamp(
+                          1,
+                          50,
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Text('$_minGroupMembers',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text(
+                      '$_minGroupMembers',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    _stepperBtn(Icons.add,
-                        () => setState(() => _minGroupMembers = (_minGroupMembers + 1).clamp(1, 50))),
+                    _stepperBtn(
+                      Icons.add,
+                      () => setState(
+                        () => _minGroupMembers = (_minGroupMembers + 1).clamp(
+                          1,
+                          50,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppMetrics.fieldGap),
             ],
 
             // Required metrics
             _sectionLabel('Required Metrics (Multi-Select)'),
             const SizedBox(height: 10),
             _pillGrid(_kMetrics, _selectedMetrics),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // Required pattern (Pattern Change → select 1; Community Impact → select from list)
             if (_isPatternChange) ...[
               _sectionLabel('Required Pattern (Select 1)'),
               const SizedBox(height: 10),
               _pillGrid(_patternOptions, _selectedPatterns, maxSelect: 1),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppMetrics.fieldGap),
             ] else if (_isCommunityImpact) ...[
               _sectionLabel('Required Patterns'),
               const SizedBox(height: 10),
               _pillGrid(_patternOptions, _selectedPatterns),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppMetrics.fieldGap),
             ],
 
             // External link
@@ -246,34 +290,50 @@ class _ChallengeRequirementsFormState
               children: [
                 _sectionLabel('Insert External Link'),
                 const SizedBox(width: 8),
-                const Icon(Icons.link, size: 18, color: AppColors.textSecondary),
+                const Icon(
+                  Icons.link,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
               ],
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _linkCtrl,
               keyboardType: TextInputType.url,
-              style:
-                  const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
-                hintText: 'https://',
-                hintStyle:
-                    const TextStyle(color: AppColors.hintText, fontSize: 14),
+                hintText: '',
+                hintStyle: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.hintText,
+                  fontSize: AppTypography.bodySize,
+                ),
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 9,
+                  vertical: 12,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.borderLight, width: 1),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderLight,
+                    width: 1,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderLight,
+                    width: 1,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: AppMetrics.journalSectionGap),
 
             SizedBox(
               width: double.infinity,
@@ -285,16 +345,23 @@ class _ChallengeRequirementsFormState
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 child: _saving
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Save'),
               ),
             ),
@@ -305,40 +372,50 @@ class _ChallengeRequirementsFormState
   }
 
   Widget _rowField(String label, Widget trailing) => Row(
-        children: [
-          Expanded(
-              child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary))),
-          trailing,
-        ],
-      );
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ),
+      trailing,
+    ],
+  );
 
   Widget _sectionLabel(String text) => Text(
-        text,
-        style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary),
-      );
+    text,
+    style: const TextStyle(
+      fontFamily: AppTypography.bodyFamily,
+      fontSize: AppTypography.bodySize,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textPrimary,
+    ),
+  );
 
   Widget _stepperBtn(IconData icon, VoidCallback onTap) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.primary),
-          ),
-          child: Icon(icon, size: 16, color: AppColors.primary),
-        ),
-      );
+    onTap: onTap,
+    child: Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Icon(icon, size: 16, color: AppColors.primary),
+    ),
+  );
 
-  Widget _pillGrid(List<String> options, Set<String> selected,
-      {int? maxSelect}) {
+  Widget _pillGrid(
+    List<String> options,
+    Set<String> selected, {
+    int? maxSelect,
+  }) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -367,8 +444,9 @@ class _ChallengeRequirementsFormState
             child: Text(
               o.toUpperCase(),
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                fontWeight: FontWeight.w400,
                 color: isSelected ? Colors.white : AppColors.textSecondary,
                 letterSpacing: 0.5,
               ),

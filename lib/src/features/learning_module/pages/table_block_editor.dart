@@ -1,5 +1,11 @@
+import '../../../shared/widgets/evidence_cell_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:juniper_journal/src/features/learning_module/pages/assessment_block.dart';
 import 'package:juniper_journal/src/features/learning_module/pages/inquiry_lens_selector.dart';
@@ -16,21 +22,21 @@ class TableBlockData {
   const TableBlockData({
     this.title = '',
     this.columns = const [],
-    this.rowCount = 4,
+    this.rowCount = 1,
     this.rows = const [],
     this.inquiryLens = 'None',
     this.inquiryLensData = const InquiryLensData(),
     this.assessment = const AssessmentBlockData(),
   });
 
-  factory TableBlockData.initial() {
-    const columns = [
-      TableColumnData(id: 'col-date', name: 'Date', orderIndex: 0),
-      TableColumnData(id: 'col-height', name: 'Plant Height', orderIndex: 1),
-      TableColumnData(id: 'col-leaf-count', name: 'Leaf Count', orderIndex: 2),
-    ];
-    return const TableBlockData(columns: columns, rowCount: 4);
-  }
+  factory TableBlockData.initial() => const TableBlockData(
+    columns: [
+      TableColumnData(id: 'col-1', name: 'Column 1', orderIndex: 0),
+      TableColumnData(id: 'col-2', name: 'Column 2', orderIndex: 1),
+      TableColumnData(id: 'col-3', name: 'Column 3', orderIndex: 2),
+    ],
+    rowCount: 3,
+  );
 
   String get cardSubtitle {
     if (title.trim().isNotEmpty) return title.trim();
@@ -75,11 +81,12 @@ class TableBlockData {
         : <Map<String, String>>[];
     return TableBlockData(
       title: json['title']?.toString() ?? '',
-      columns: columns.isEmpty ? TableBlockData.initial().columns : [...columns]
-        ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex)),
+      columns: [
+        ...(columns.isEmpty ? TableBlockData.initial().columns : columns),
+      ]..sort((a, b) => a.orderIndex.compareTo(b.orderIndex)),
       rowCount:
           int.tryParse(json['row_count']?.toString() ?? '') ??
-          (rows.isEmpty ? 4 : rows.length),
+          (rows.isEmpty ? 1 : rows.length),
       rows: rows,
       inquiryLens: json['inquiry_lens']?.toString() ?? 'None',
       inquiryLensData: InquiryLensData.fromJson(
@@ -150,7 +157,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
   late List<TableColumnData> _columns;
   late List<TextEditingController> _columnControllers;
   late List<Map<String, String>> _rows;
-  int _rowCount = 4;
+  int _rowCount = 1;
   InquiryLensData _inquiryLensData = const InquiryLensData();
   AssessmentBlockData _assessment = const AssessmentBlockData();
   bool _showValidation = false;
@@ -217,23 +224,14 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
         (controller) => controller.text.trim().isNotEmpty,
       );
 
-  bool get _hasValidCells {
-    final digitOnly = RegExp(r'^\d+$');
-    for (final row in _rows) {
-      for (final column in _columns) {
-        final value = row[column.id] ?? '';
-        if (!digitOnly.hasMatch(value)) return false;
-      }
-    }
-    return true;
-  }
+  bool get _hasValidCells =>
+      _rows.any((row) => row.values.any((value) => value.trim().isNotEmpty));
 
   bool get _canSave =>
       _hasValidColumns &&
       _rowCount >= _minRows &&
       _rowCount <= _maxRows &&
       _hasValidCells &&
-      _assessment.isValid &&
       !_saving;
 
   void _addColumn() {
@@ -341,7 +339,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
     required String title,
     required String message,
   }) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
@@ -394,7 +392,12 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -405,7 +408,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _FieldLabel(label: 'Content'),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _FieldLabel(label: 'Title', optional: true),
                         const SizedBox(height: 10),
                         _TitleField(controller: _titleController),
@@ -429,7 +432,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                                 : _addColumn,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppMetrics.fieldGap),
                         const _FieldLabel(label: 'Rows'),
                         const SizedBox(height: 8),
                         Row(
@@ -444,7 +447,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                               'rows',
                               style: TextStyle(
                                 color: Color(0xB3000000),
-                                fontSize: 12,
+                                fontSize: AppTypography.helperSize,
                               ),
                             ),
                           ],
@@ -460,7 +463,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                           },
                           onDeleteRow: _removeRow,
                         ),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: AppMetrics.fieldGap),
                         Center(
                           child: _OutlineActionButton(
                             label: '+ Add Row',
@@ -469,29 +472,16 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                           ),
                         ),
                         const SizedBox(height: 29),
-                        InquiryLensSelector(
-                          data: _inquiryLensData,
-                          onChanged: (value) =>
-                              setState(() => _inquiryLensData = value),
-                        ),
-                        const SizedBox(height: 20),
-                        _FieldLabel(label: 'Assessment', optional: true),
-                        const SizedBox(height: 11),
-                        AssessmentBlockSection(
-                          value: _assessment,
-                          showValidation: _showValidation,
-                          onChanged: (value) {
-                            setState(() => _assessment = value);
-                          },
-                        ),
+
                         if (_showValidation && !_canSave) ...[
                           const SizedBox(height: 9),
                           const Text(
-                            'Complete column names and enter digits in every table cell.',
+                            'Name each column and enter at least one table value.',
                             style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: _error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -499,7 +489,7 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                         Center(
                           child: SizedBox(
                             width: 130,
-                            height: 32,
+                            height: 48,
                             child: ElevatedButton(
                               onPressed: _canSave ? _saveBlock : null,
                               style: ElevatedButton.styleFrom(
@@ -518,8 +508,9 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
                                     ? 'Saving...'
                                     : (_isEditing ? 'Save' : 'Add Block'),
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -539,53 +530,11 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
-
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 28,
-            child: Text(
-              'Table Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF1F2024),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 25,
-            top: 23,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 20,
-                height: 24,
-                child: CustomPaint(painter: _BackChevronPainter()),
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(height: 1, thickness: 1, color: Color(0xFFD1D1D1)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Table Block', onBack: onBack);
 }
 
 class _FieldLabel extends StatelessWidget {
@@ -600,17 +549,19 @@ class _FieldLabel extends StatelessWidget {
       TextSpan(
         text: label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _TableBlockEditorScreenState._text,
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.bodySize,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
             const TextSpan(
               text: ' (optional)',
               style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _TableBlockEditorScreenState._muted,
-                fontSize: 12,
+                fontSize: AppTypography.helperSize,
               ),
             ),
         ],
@@ -627,18 +578,25 @@ class _TitleField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 64,
       child: Stack(
         children: [
           SizedBox(
-            height: 34,
+            height: 64,
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: 100,
               decoration: InputDecoration(
                 counterText: '',
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                  horizontal: 9,
                   vertical: 8,
                 ),
                 enabledBorder: OutlineInputBorder(
@@ -654,17 +612,13 @@ class _TitleField extends StatelessWidget {
                   ),
                 ),
               ),
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+              ),
             ),
           ),
-          Positioned(
-            right: 2,
-            top: 38,
-            child: Text(
-              '${controller.text.length}/100',
-              style: const TextStyle(fontSize: 8, color: Colors.black),
-            ),
-          ),
+          Positioned(right: 2, top: 38, child: const SizedBox.shrink()),
         ],
       ),
     );
@@ -752,6 +706,13 @@ class _ColumnRow extends StatelessWidget {
           const SizedBox(width: 31),
           Expanded(
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: 40,
               decoration: InputDecoration(
@@ -773,9 +734,10 @@ class _ColumnRow extends StatelessWidget {
                     : InputBorder.none,
               ),
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _TableBlockEditorScreenState._text,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -826,7 +788,7 @@ class _RowStepper extends StatelessWidget {
                 '$value',
                 style: const TextStyle(
                   color: Color(0xFF323639),
-                  fontSize: 14,
+                  fontSize: AppTypography.bodySize,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -894,12 +856,10 @@ class _TableGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gridWidth =
-        columns.indexed.fold<double>(
-          0,
-          (width, entry) => width + (entry.$1 == 0 ? 72 : 102),
-        ) +
-        69;
+    final available =
+        JournalPageLayout.widthFor(context, mobileWidth: 393) - 42;
+    final cellWidth = ((available - 48) / columns.length).clamp(140.0, 320.0);
+    final gridWidth = cellWidth * columns.length + 48;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SizedBox(
@@ -908,8 +868,8 @@ class _TableGrid extends StatelessWidget {
           border: TableBorder.all(color: const Color(0xFFC9C9C9)),
           columnWidths: {
             for (var index = 0; index < columns.length; index++)
-              index: FixedColumnWidth(index == 0 ? 72 : 102),
-            columns.length: const FixedColumnWidth(69),
+              index: FixedColumnWidth(cellWidth),
+            columns.length: const FixedColumnWidth(48),
           },
           children: [
             TableRow(
@@ -930,11 +890,7 @@ class _TableGrid extends StatelessWidget {
                     _EditableCell(
                       key: ValueKey('$rowIndex-${column.id}'),
                       initialValue: rows[rowIndex][column.id] ?? '',
-                      showError:
-                          showValidation &&
-                          !RegExp(
-                            r'^\d+$',
-                          ).hasMatch(rows[rowIndex][column.id] ?? ''),
+                      showError: showValidation && false,
                       onChanged: (value) {
                         onCellChanged(rowIndex, column.id, value);
                       },
@@ -968,9 +924,10 @@ class _HeaderCell extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: Colors.black,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontFamily: AppTypography.bodyFamily,
+            color: AppColors.textPrimary,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -1004,6 +961,13 @@ class _EditableCellState extends State<_EditableCell> {
   }
 
   @override
+  void didUpdateWidget(covariant _EditableCell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_controller.text != widget.initialValue)
+      _controller.text = widget.initialValue;
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -1012,20 +976,11 @@ class _EditableCellState extends State<_EditableCell> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 32,
+      constraints: const BoxConstraints(minHeight: 48),
       color: widget.showError ? const Color(0xFFFFEEEE) : Colors.white,
       alignment: Alignment.center,
-      child: TextField(
+      child: EvidenceCellField(
         controller: _controller,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: EdgeInsets.zero,
-        ),
-        style: const TextStyle(fontSize: 14, color: Colors.black),
         onChanged: widget.onChanged,
       ),
     );
@@ -1040,7 +995,7 @@ class _DeleteRowCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 32,
+      height: 48,
       child: Center(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -1071,7 +1026,7 @@ class _OutlineActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
-      height: 33,
+      height: 44,
       child: OutlinedButton(
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
@@ -1089,7 +1044,11 @@ class _OutlineActionButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.buttonSize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -1134,9 +1093,10 @@ class _DropdownField extends StatelessWidget {
               child: Text(
                 displayValue,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _TableBlockEditorScreenState._text,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -1154,26 +1114,4 @@ class _DropdownField extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BackChevronPainter extends CustomPainter {
-  const _BackChevronPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _TableBlockEditorScreenState._green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path()
-      ..moveTo(size.width * 0.75, 2)
-      ..lineTo(size.width * 0.2, size.height / 2)
-      ..lineTo(size.width * 0.75, size.height - 2);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

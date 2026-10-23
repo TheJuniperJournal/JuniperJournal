@@ -1,9 +1,13 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:juniper_journal/src/backend/db/repositories/learning_module_repo.dart';
 import 'package:juniper_journal/src/features/learning_module/learning_module.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
-
 
 class Assessment extends StatefulWidget {
   final Map<String, dynamic> module;
@@ -79,7 +83,9 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       case QuestionType.mcGrid:
       case QuestionType.cbGrid:
         baseData['gridRows'] = model.gridRows.map((ctrl) => ctrl.text).toList();
-        baseData['gridColumns'] = model.gridCols.map((ctrl) => ctrl.text).toList();
+        baseData['gridColumns'] = model.gridCols
+            .map((ctrl) => ctrl.text)
+            .toList();
         break;
       default:
         // shortAnswer, paragraph, fileUpload, date, time don't need extra data
@@ -148,7 +154,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
         automaticallyImplyLeading: false,
         title: const Text(
           'Basics of Climate Change',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+          style: AppTypography.pageTitle,
         ),
         actions: [
           Padding(
@@ -161,11 +167,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
                   // Then navigate to Summary
                   if (context.mounted) {
-                    Navigator.of(context).push(
+                    pushAppRoute(
+                      context,
                       MaterialPageRoute(
-                        builder: (context) => Summary(
-                          module: widget.module,
-                        ),
+                        builder: (context) => Summary(module: widget.module),
                       ),
                     );
                   }
@@ -173,7 +178,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
                 child: const Text(
                   'Done',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.primary,
                   ),
                 ),
@@ -184,52 +189,66 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            _buildTag('ASSESSMENT'),
-            _buildTag('ANALYZE: ENVIRONMENTAL SUSTAINABILITY', filled: true),
-            _circleAdd(onTap: () => _addQuestion()),
-          ]),
-          const SizedBox(height: 20),
-          for (int i = 0; i < _questions.length; i++) ...[
-            QuestionCard(
-              index: i,
-              model: _questions[i],
-              onAddBelow: () => _addQuestionLike(i), // duplicates current format
-              onRemove: () => _removeQuestion(i),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildTag('ASSESSMENT'),
+                _buildTag(
+                  'ANALYZE: ENVIRONMENTAL SUSTAINABILITY',
+                  filled: true,
+                ),
+                _circleAdd(onTap: () => _addQuestion()),
+              ],
             ),
-            if (i != _questions.length - 1) const SizedBox(height: 16),
+            const SizedBox(height: AppMetrics.fieldGap),
+            for (int i = 0; i < _questions.length; i++) ...[
+              QuestionCard(
+                index: i,
+                model: _questions[i],
+                onAddBelow: () =>
+                    _addQuestionLike(i), // duplicates current format
+                onRemove: () => _removeQuestion(i),
+              ),
+              if (i != _questions.length - 1) const SizedBox(height: 16),
+            ],
           ],
-        ]),
+        ),
       ),
     );
   }
 
   Widget _buildTag(String text, {bool filled = false}) => Container(
-        decoration: BoxDecoration(
-          color: filled ? AppColors.primary : AppColors.primaryTint,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Text(
-          text.toUpperCase(),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: filled ? Colors.white : Colors.black87,
-          ),
-        ),
-      );
+    decoration: BoxDecoration(
+      color: filled ? AppColors.primary : AppColors.primaryTint,
+      borderRadius: BorderRadius.circular(24),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    child: Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        fontFamily: AppTypography.bodyFamily,
+        fontSize: AppTypography.helperSize,
+        fontWeight: FontWeight.w400,
+        color: filled ? Colors.white : Colors.black87,
+      ),
+    ),
+  );
 
   Widget _circleAdd({required VoidCallback onTap}) => Container(
-        decoration:
-            const BoxDecoration(color: AppColors.primaryTint, shape: BoxShape.circle),
-        child: IconButton(
-          tooltip: 'Add question',
-          icon: const Icon(Icons.add, color: AppColors.primary),
-          onPressed: onTap,
-        ),
-      );
+    decoration: const BoxDecoration(
+      color: AppColors.primaryTint,
+      shape: BoxShape.circle,
+    ),
+    child: IconButton(
+      tooltip: 'Add question',
+      icon: const Icon(Icons.add, color: AppColors.primary),
+      onPressed: onTap,
+    ),
+  );
 }
 
 /* ===========================
@@ -327,30 +346,30 @@ class QuestionModel {
 
   // Default constructor: Multiple choice with one option
   QuestionModel()
-      : type = QuestionType.multipleChoice,
-        options = [TextEditingController(text: 'Option 1')],
-        correctAnswers = [false],
-        gridRows = [TextEditingController(text: 'Row 1')],
-        gridCols = [
-          TextEditingController(text: 'Very good'),
-          TextEditingController(text: 'Good'),
-        ],
-        scaleMin = 1,
-        scaleMax = 5,
-        scaleValue = 3; // midpoint
+    : type = QuestionType.multipleChoice,
+      options = [TextEditingController(text: 'Option 1')],
+      correctAnswers = [false],
+      gridRows = [TextEditingController(text: 'Row 1')],
+      gridCols = [
+        TextEditingController(text: 'Very good'),
+        TextEditingController(text: 'Good'),
+      ],
+      scaleMin = 1,
+      scaleMax = 5,
+      scaleValue = 3; // midpoint
 
   // Create a fresh model with the SAME TYPE (for duplicating format)
   QuestionModel.forType(this.type)
-      : options = [TextEditingController(text: 'Option 1')],
-        correctAnswers = [false],
-        gridRows = [TextEditingController(text: 'Row 1')],
-        gridCols = [
-          TextEditingController(text: 'Col 1'),
-          TextEditingController(text: 'Col 2')
-        ],
-        scaleMin = 1,
-        scaleMax = 5,
-        scaleValue = 3; // midpoint
+    : options = [TextEditingController(text: 'Option 1')],
+      correctAnswers = [false],
+      gridRows = [TextEditingController(text: 'Row 1')],
+      gridCols = [
+        TextEditingController(text: 'Col 1'),
+        TextEditingController(text: 'Col 2'),
+      ],
+      scaleMin = 1,
+      scaleMax = 5,
+      scaleValue = 3; // midpoint
 
   void dispose() {
     questionCtrl.dispose();
@@ -414,62 +433,78 @@ class _QuestionCardState extends State<QuestionCard> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child:
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCE9DF),
-                      borderRadius: BorderRadius.circular(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCE9DF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Q${widget.index + 1}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _typePill(m),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'Remove question',
+                        onPressed: widget.onRemove,
+                        icon: SvgPicture.asset(
+                          'assets/learning_module/learning_objective_trash.svg',
+                          width: 14,
+                          height: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: m.questionCtrl,
+                    minLines: 5,
+                    maxLines: null,
+                    decoration: InputDecoration(
+                      hintText: '',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Colors.black12),
+                      ),
                     ),
-                    child: Text('Q${widget.index + 1}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, color: Colors.black87)),
                   ),
-                  const SizedBox(width: 8),
-                  _typePill(m),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'Remove question',
-                    onPressed: widget.onRemove,
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: m.questionCtrl,
-                  minLines: 1,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Question text',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.black12),
+                  const SizedBox(height: 16),
+                  _answerArea(m),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: widget.onAddBelow, // duplicates current format
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add another question'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _answerArea(m),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: widget.onAddBelow, // duplicates current format
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add another question'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                    ),
-                  ),
-                ),
-              ]),
+                ],
+              ),
             ),
           ),
         ],
@@ -478,56 +513,64 @@ class _QuestionCardState extends State<QuestionCard> {
   }
 
   Widget _typePill(QuestionModel m) => InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () async {
-          final chosen = await showModalBottomSheet<QuestionType>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.white,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            builder: (ctx) => _TypePickerSheet(selected: m.type),
-          );
-          if (chosen != null) setState(() => m.type = chosen);
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.black12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(questionTypeIcon(m.type), size: 14, color: AppColors.primary),
-            const SizedBox(width: 6),
-            Text(questionTypeLabel(m.type),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, size: 18),
-          ]),
+    borderRadius: BorderRadius.circular(20),
+    onTap: () async {
+      final chosen = await showAppModalBottomSheet<QuestionType>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
+        builder: (ctx) => _TypePickerSheet(selected: m.type),
       );
+      if (chosen != null) setState(() => m.type = chosen);
+    },
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(questionTypeIcon(m.type), size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            questionTypeLabel(m.type),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down, size: 18),
+        ],
+      ),
+    ),
+  );
 
   Widget _answerArea(QuestionModel m) {
     switch (m.type) {
       case QuestionType.shortAnswer:
         return _shortOrParagraph(hint: 'Short answer');
       case QuestionType.paragraph:
-        return _shortOrParagraph(hint: 'Long answer', minLines: 4);
+        return _shortOrParagraph(hint: 'Long answer', minLines: 5);
       case QuestionType.multipleChoice:
         return _optionsList(m, choiceIcon: Icons.radio_button_unchecked);
       case QuestionType.checkboxes:
         return _optionsList(m, choiceIcon: Icons.check_box_outline_blank);
       case QuestionType.dropdown:
-        return _optionsList(m,
-            choiceIcon: Icons.arrow_drop_down_circle_outlined,
-            showTrailingPlus: false);
+        return _optionsList(
+          m,
+          choiceIcon: Icons.arrow_drop_down_circle_outlined,
+          showTrailingPlus: false,
+        );
       case QuestionType.fileUpload:
         return OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.cloud_upload_outlined),
-            label: const Text('Add file'));
+          onPressed: () {},
+          icon: const Icon(Icons.cloud_upload_outlined),
+          label: const Text('Add file'),
+        );
       case QuestionType.linearScale:
         return _linearScale(m); // now draggable
       case QuestionType.mcGrid:
@@ -541,15 +584,18 @@ class _QuestionCardState extends State<QuestionCard> {
     }
   }
 
-  Widget _shortOrParagraph({required String hint, int minLines = 1}) => TextField(
+  Widget _shortOrParagraph({required String hint, int minLines = 1}) =>
+      TextField(
         minLines: minLines,
-        maxLines: minLines == 1 ? 1 : 8,
+        maxLines: minLines == 1 ? 1 : null,
         decoration: InputDecoration(
-          hintText: hint,
+          hintText: '',
           filled: true,
           fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 9,
+            vertical: 10,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Colors.black12),
@@ -558,75 +604,87 @@ class _QuestionCardState extends State<QuestionCard> {
       );
 
   /// Options list with per-row "+" (insert new below), remove, and bottom "Add Option".
-  Widget _optionsList(QuestionModel m,
-      {required IconData choiceIcon, bool showTrailingPlus = true}) {
+  Widget _optionsList(
+    QuestionModel m, {
+    required IconData choiceIcon,
+    bool showTrailingPlus = true,
+  }) {
     // Ensure correctAnswers list is initialized and in sync with options list
     if (m.correctAnswers.length != m.options.length) {
-      m.correctAnswers = List.generate(m.options.length, (i) =>
-        i < m.correctAnswers.length ? m.correctAnswers[i] : false);
+      m.correctAnswers = List.generate(
+        m.options.length,
+        (i) => i < m.correctAnswers.length ? m.correctAnswers[i] : false,
+      );
     }
 
     final children = <Widget>[];
 
     for (int i = 0; i < m.options.length; i++) {
-
-      children.add(Row(children: [
-        Icon(choiceIcon, color: Colors.black54),
-        const SizedBox(width: 10),
-        Expanded(
-          child: TextField(
-            controller: m.options[i],
-            decoration: const InputDecoration(
-              hintText: 'Option',
-              isDense: true,
-              border: UnderlineInputBorder(),
+      children.add(
+        Row(
+          children: [
+            Icon(choiceIcon, color: Colors.black54),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: m.options[i],
+                decoration: const InputDecoration(
+                  hintText: '',
+                  isDense: true,
+                  border: UnderlineInputBorder(),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            // Star icon to mark correct answer
+            IconButton(
+              tooltip: m.correctAnswers[i]
+                  ? 'Marked as correct'
+                  : 'Mark as correct',
+              icon: Icon(
+                m.correctAnswers[i] ? Icons.star : Icons.star_border,
+                color: m.correctAnswers[i]
+                    ? const Color(0xFFFFB800)
+                    : Colors.black38,
+              ),
+              onPressed: () => setState(() {
+                // For multiple choice, only one answer can be correct
+                if (m.type == QuestionType.multipleChoice) {
+                  // Unmark all others and mark only this one
+                  for (int j = 0; j < m.correctAnswers.length; j++) {
+                    m.correctAnswers[j] = (j == i);
+                  }
+                } else {
+                  // For checkboxes and dropdown, allow multiple correct answers
+                  m.correctAnswers[i] = !m.correctAnswers[i];
+                }
+              }),
+            ),
+            if (showTrailingPlus)
+              IconButton(
+                tooltip: 'Add option',
+                icon: const Icon(Icons.add_box_outlined, color: Colors.black54),
+                onPressed: () => setState(() {
+                  m.options.insert(i + 1, TextEditingController());
+                  m.correctAnswers.insert(i + 1, false);
+                }),
+              ),
+            if (m.options.length > 1) ...[
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: 'Remove option',
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => setState(() {
+                  m.options.removeAt(i);
+                  if (i < m.correctAnswers.length) {
+                    m.correctAnswers.removeAt(i);
+                  }
+                }),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(width: 10),
-        // Star icon to mark correct answer
-        IconButton(
-          tooltip: m.correctAnswers[i] ? 'Marked as correct' : 'Mark as correct',
-          icon: Icon(
-            m.correctAnswers[i] ? Icons.star : Icons.star_border,
-            color: m.correctAnswers[i] ? const Color(0xFFFFB800) : Colors.black38,
-          ),
-          onPressed: () => setState(() {
-            // For multiple choice, only one answer can be correct
-            if (m.type == QuestionType.multipleChoice) {
-              // Unmark all others and mark only this one
-              for (int j = 0; j < m.correctAnswers.length; j++) {
-                m.correctAnswers[j] = (j == i);
-              }
-            } else {
-              // For checkboxes and dropdown, allow multiple correct answers
-              m.correctAnswers[i] = !m.correctAnswers[i];
-            }
-          }),
-        ),
-        if (showTrailingPlus)
-          IconButton(
-            tooltip: 'Add option',
-            icon: const Icon(Icons.add_box_outlined, color: Colors.black54),
-            onPressed: () => setState(() {
-              m.options.insert(i + 1, TextEditingController());
-              m.correctAnswers.insert(i + 1, false);
-            }),
-          ),
-        if (m.options.length > 1) ...[
-          const SizedBox(width: 6),
-          IconButton(
-            tooltip: 'Remove option',
-            icon: const Icon(Icons.close, size: 18),
-            onPressed: () => setState(() {
-              m.options.removeAt(i);
-              if (i < m.correctAnswers.length) {
-                m.correctAnswers.removeAt(i);
-              }
-            }),
-          ),
-        ]
-      ]));
+      );
 
       if (i != m.options.length - 1) {
         children.add(const SizedBox(height: 12));
@@ -635,82 +693,97 @@ class _QuestionCardState extends State<QuestionCard> {
 
     children
       ..add(const SizedBox(height: 12))
-      ..add(Row(children: [
-        Icon(choiceIcon, color: Colors.black26),
-        const SizedBox(width: 10),
-        TextButton.icon(
-          onPressed: () => setState(() {
-            m.options.add(TextEditingController());
-            m.correctAnswers.add(false);
-          }),
-          icon: const Icon(Icons.add, color: AppColors.primary),
-          label: const Text('Add Option',
-              style: TextStyle(color: AppColors.primary)),
+      ..add(
+        Row(
+          children: [
+            Icon(choiceIcon, color: Colors.black26),
+            const SizedBox(width: 10),
+            TextButton.icon(
+              onPressed: () => setState(() {
+                m.options.add(TextEditingController());
+                m.correctAnswers.add(false);
+              }),
+              icon: const Icon(Icons.add, color: AppColors.primary),
+              label: const Text(
+                'Add Option',
+                style: TextStyle(color: AppColors.primary),
+              ),
+            ),
+            const Spacer(),
+          ],
         ),
-        const Spacer(),
-      ]));
+      );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
   }
 
   // ================== DRAGGABLE LINEAR SCALE ==================
   Widget _linearScale(QuestionModel m) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
         children: [
-          Row(children: [
-            const Text('Min'),
-            const SizedBox(width: 8),
-            _miniNumberField(
-              value: m.scaleMin,
-              onChanged: (v) => setState(() {
-                m.scaleMin = v;
-                if (m.scaleMin >= m.scaleMax) m.scaleMax = m.scaleMin + 1;
-                if (m.scaleValue < m.scaleMin) m.scaleValue = m.scaleMin;
-              }),
-            ),
-            const SizedBox(width: 16),
-            const Text('Max'),
-            const SizedBox(width: 8),
-            _miniNumberField(
-              value: m.scaleMax,
-              onChanged: (v) => setState(() {
-                m.scaleMax = v;
-                if (m.scaleMax <= m.scaleMin) m.scaleMin = m.scaleMax - 1;
-                if (m.scaleValue > m.scaleMax) m.scaleValue = m.scaleMax;
-              }),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(m.scaleMin.toStringAsFixed(0)),
-              Expanded(
-                child: Slider(
-                  value: m.scaleValue.clamp(m.scaleMin, m.scaleMax),
-                  min: m.scaleMin,
-                  max: m.scaleMax,
-                  divisions:
-                      (m.scaleMax - m.scaleMin).round().clamp(1, 1000),
-                  label: m.scaleValue.toStringAsFixed(0),
-                  onChanged: (v) =>
-                      setState(() => m.scaleValue = v.roundToDouble()),
-                ),
-              ),
-              Text(m.scaleMax.toStringAsFixed(0)),
-            ],
+          const Text('Min'),
+          const SizedBox(width: 8),
+          _miniNumberField(
+            value: m.scaleMin,
+            onChanged: (v) => setState(() {
+              m.scaleMin = v;
+              if (m.scaleMin >= m.scaleMax) m.scaleMax = m.scaleMin + 1;
+              if (m.scaleValue < m.scaleMin) m.scaleValue = m.scaleMin;
+            }),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Selected: ${m.scaleValue.toStringAsFixed(0)}',
-              style: const TextStyle(color: Colors.black54),
-            ),
+          const SizedBox(width: 16),
+          const Text('Max'),
+          const SizedBox(width: 8),
+          _miniNumberField(
+            value: m.scaleMax,
+            onChanged: (v) => setState(() {
+              m.scaleMax = v;
+              if (m.scaleMax <= m.scaleMin) m.scaleMin = m.scaleMax - 1;
+              if (m.scaleValue > m.scaleMax) m.scaleValue = m.scaleMax;
+            }),
           ),
         ],
-      );
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Text(m.scaleMin.toStringAsFixed(0)),
+          Expanded(
+            child: Slider(
+              value: m.scaleValue.clamp(m.scaleMin, m.scaleMax),
+              min: m.scaleMin,
+              max: m.scaleMax,
+              divisions: (m.scaleMax - m.scaleMin).round().clamp(1, 1000),
+              label: m.scaleValue.toStringAsFixed(0),
+              onChanged: (v) =>
+                  setState(() => m.scaleValue = v.roundToDouble()),
+            ),
+          ),
+          Text(m.scaleMax.toStringAsFixed(0)),
+        ],
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Selected: ${m.scaleValue.toStringAsFixed(0)}',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
+    ],
+  );
 
-  Widget _miniNumberField(
-      {required double value, required ValueChanged<double> onChanged}) {
+  Widget _miniNumberField({
+    required double value,
+    required ValueChanged<double> onChanged,
+  }) {
     final ctrl = TextEditingController(text: value.toStringAsFixed(0));
     return SizedBox(
       width: 48,
@@ -718,8 +791,10 @@ class _QuestionCardState extends State<QuestionCard> {
         controller: ctrl,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        decoration:
-            const InputDecoration(isDense: true, border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: OutlineInputBorder(),
+        ),
         onSubmitted: (s) {
           final v = double.tryParse(s);
           if (v != null) onChanged(v);
@@ -750,9 +825,15 @@ class _QuestionCardState extends State<QuestionCard> {
         }),
         TextButton.icon(
           onPressed: () => setState(
-              () => m.gridCols.add(TextEditingController(text: 'Col ${m.gridCols.length + 1}'))),
+            () => m.gridCols.add(
+              TextEditingController(text: 'Col ${m.gridCols.length + 1}'),
+            ),
+          ),
           icon: const Icon(Icons.add, color: AppColors.primary),
-          label: const Text('Add column', style: TextStyle(color: AppColors.primary)),
+          label: const Text(
+            'Add column',
+            style: TextStyle(color: AppColors.primary),
+          ),
         ),
         const SizedBox(height: 10),
 
@@ -768,9 +849,15 @@ class _QuestionCardState extends State<QuestionCard> {
         }),
         TextButton.icon(
           onPressed: () => setState(
-              () => m.gridRows.add(TextEditingController(text: 'Row ${m.gridRows.length + 1}'))),
+            () => m.gridRows.add(
+              TextEditingController(text: 'Row ${m.gridRows.length + 1}'),
+            ),
+          ),
           icon: const Icon(Icons.add, color: AppColors.primary),
-          label: const Text('Add row', style: TextStyle(color: AppColors.primary)),
+          label: const Text(
+            'Add row',
+            style: TextStyle(color: AppColors.primary),
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -793,8 +880,10 @@ class _QuestionCardState extends State<QuestionCard> {
                   children: [
                     Container(
                       color: isAlt ? stripGrey : Colors.white,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -804,7 +893,8 @@ class _QuestionCardState extends State<QuestionCard> {
                             child: Text(
                               m.gridRows[rIndex].text,
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.bodySize,
                                 color: Colors.black87,
                               ),
                             ),
@@ -846,10 +936,7 @@ class _QuestionCardState extends State<QuestionCard> {
         children: [
           const SizedBox(
             width: 220,
-            child: Text(
-              '',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            child: Text('', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
           ...List.generate(cols.length, (i) {
             return Expanded(
@@ -858,8 +945,9 @@ class _QuestionCardState extends State<QuestionCard> {
                   cols[i].text,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
+                    fontFamily: AppTypography.headingFamily,
                     fontWeight: FontWeight.w600,
-                    fontSize: 18,
+                    fontSize: AppTypography.sectionTitleSize,
                     color: Colors.black87,
                   ),
                 ),
@@ -885,7 +973,7 @@ class _QuestionCardState extends State<QuestionCard> {
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
-                hintText: hint,
+                hintText: '',
                 isDense: true,
                 border: const UnderlineInputBorder(),
               ),
@@ -894,7 +982,11 @@ class _QuestionCardState extends State<QuestionCard> {
           const SizedBox(width: 6),
           IconButton(
             tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
+            icon: SvgPicture.asset(
+              'assets/learning_module/learning_objective_trash.svg',
+              width: 14,
+              height: 16,
+            ),
             onPressed: onDelete,
           ),
         ],
@@ -903,33 +995,46 @@ class _QuestionCardState extends State<QuestionCard> {
   }
 
   Widget _datePicker(QuestionModel m) => OutlinedButton.icon(
-        onPressed: () async {
-          final now = DateTime.now();
-          final picked = await showDatePicker(
-            context: context,
-            firstDate: DateTime(now.year - 5),
-            lastDate: DateTime(now.year + 5),
-            initialDate: now,
-          );
-          if (picked != null) setState(() => m.date = picked);
-        },
-        icon: const Icon(Icons.calendar_today_outlined),
-        label: Text(m.date == null ? 'Select date' : _fmtDate(m.date!)),
+    onPressed: () async {
+      final now = DateTime.now();
+      final picked = await showDatePicker(
+        context: context,
+        firstDate: DateTime(now.year - 5),
+        lastDate: DateTime(now.year + 5),
+        initialDate: now,
       );
+      if (picked != null) setState(() => m.date = picked);
+    },
+    icon: const Icon(Icons.calendar_today_outlined),
+    label: Text(m.date == null ? 'Select date' : _fmtDate(m.date!)),
+  );
 
   Widget _timePicker(QuestionModel m) => OutlinedButton.icon(
-        onPressed: () async {
-          final picked =
-              await showTimePicker(context: context, initialTime: TimeOfDay.now());
-          if (picked != null) setState(() => m.time = picked);
-        },
-        icon: const Icon(Icons.access_time),
-        label: Text(m.time == null ? 'Select time' : m.time!.format(context)),
+    onPressed: () async {
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
       );
+      if (picked != null) setState(() => m.time = picked);
+    },
+    icon: const Icon(Icons.access_time),
+    label: Text(m.time == null ? 'Select time' : m.time!.format(context)),
+  );
 
   String _fmtDate(DateTime d) {
     const m = [
-      'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${m[d.month - 1]} ${d.day}, ${d.year}';
   }
@@ -960,7 +1065,11 @@ class _TypePickerSheet extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
                 'Assessment Form Types',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontFamily: AppTypography.headingFamily,
+                  fontSize: AppTypography.sectionTitleSize,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             Expanded(
@@ -974,7 +1083,10 @@ class _TypePickerSheet extends StatelessWidget {
                   return Material(
                     color: isSel ? const Color(0xFFDCE9DF) : Colors.white,
                     child: ListTile(
-                      leading: Icon(questionTypeIcon(it), color: Colors.black87),
+                      leading: Icon(
+                        questionTypeIcon(it),
+                        color: Colors.black87,
+                      ),
                       title: Text(questionTypeLabel(it)),
                       onTap: () => Navigator.pop(ctx, it),
                     ),

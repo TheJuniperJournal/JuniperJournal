@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
+import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/db/models/bulletin_comment.dart';
 import 'package:juniper_journal/src/backend/db/repositories/communities_repo.dart';
@@ -24,7 +28,7 @@ class BulletinCommentsSheet extends StatefulWidget {
 
 class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
   final _repo = CommunitiesRepo();
-  final _bodyCtrl = TextEditingController();
+  final _bodyCtrl = ConversationController();
   final _scrollCtrl = ScrollController();
   List<BulletinComment> _comments = [];
   bool _loading = true;
@@ -51,6 +55,9 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
     if (!mounted) return;
     setState(() {
       _comments = comments;
+      for (final c in comments) {
+        _bodyCtrl.remember(c.userId, c.authorLabel, c.authorUsername);
+      }
       _loading = false;
     });
   }
@@ -61,7 +68,7 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
     setState(() => _posting = true);
     final comment = await _repo.addBulletinComment(
       postId: widget.postId,
-      body: body,
+      body: _bodyCtrl.payload,
     );
     if (!mounted) return;
     setState(() => _posting = false);
@@ -95,35 +102,25 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
-          Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 8),
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
             child: Row(
               children: [
                 const Text(
                   'Comments',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.textPrimary,
                   ),
                 ),
                 const Spacer(),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, size: 20, color: Colors.black54),
+                IconButton(
+                  tooltip: 'Close comments',
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.close, color: Colors.black54),
                 ),
               ],
             ),
@@ -141,24 +138,33 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
                     child: CircularProgressIndicator(),
                   )
                 : _comments.isEmpty
-                    ? const Center(
-                        heightFactor: 3,
-                        child: Text(
-                          'No comments yet. Be the first!',
-                          style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 14),
-                        ),
-                      )
-                    : ListView.separated(
-                        controller: _scrollCtrl,
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                        itemCount: _comments.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
-                        itemBuilder: (_, i) =>
-                            _CommentTile(comment: _comments[i]),
+                ? const Center(
+                    heightFactor: 3,
+                    child: Text(
+                      'No comments yet. Be the first!',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: AppColors.textSecondary,
+                        fontSize: AppTypography.bodySize,
                       ),
+                    ),
+                  )
+                : ListView.separated(
+                    controller: _scrollCtrl,
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    itemCount: _comments.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppMetrics.labelGap),
+                    itemBuilder: (_, i) => _CommentTile(
+                      comment: _comments[i],
+                      onReply: () => _bodyCtrl.replyTo(
+                        _comments[i].id,
+                        _comments[i].authorLabel,
+                        _comments[i].body,
+                      ),
+                    ),
+                  ),
           ),
 
           const Divider(height: 1, color: AppColors.divider),
@@ -170,27 +176,44 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                  child: TextField(
+                  child: ConversationComposer(
                     controller: _bodyCtrl,
-                    minLines: 1,
-                    maxLines: 4,
-                    style: const TextStyle(
-                        fontSize: 14, color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Add a comment…',
-                      hintStyle: const TextStyle(
-                          color: AppColors.hintText, fontSize: 14),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(
-                            color: AppColors.border, width: 1),
+                    child: TextField(
+                      controller: _bodyCtrl,
+                      focusNode: _bodyCtrl.focusNode,
+                      enabled: !_posting,
+                      minLines: 5,
+                      maxLines: null,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        color: AppColors.textPrimary,
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 1.5),
+                      decoration: InputDecoration(
+                        hintText: '',
+                        hintStyle: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.hintText,
+                          fontSize: AppTypography.helperSize,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 10,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(
+                            color: AppColors.border,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(
+                            color: AppColors.border,
+                            width: 1,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -209,7 +232,9 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
                         ? const Padding(
                             padding: EdgeInsets.all(10),
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.send, color: Colors.white, size: 18),
                   ),
@@ -228,7 +253,8 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
 class _CommentTile extends StatelessWidget {
   final BulletinComment comment;
 
-  const _CommentTile({required this.comment});
+  final VoidCallback onReply;
+  const _CommentTile({required this.comment, required this.onReply});
 
   @override
   Widget build(BuildContext context) {
@@ -242,8 +268,11 @@ class _CommentTile extends StatelessWidget {
               ? NetworkImage(comment.authorAvatarUrl!)
               : null,
           child: (comment.authorAvatarUrl?.trim().isNotEmpty != true)
-              ? const Icon(Icons.person_outline,
-                  size: 14, color: AppColors.primary)
+              ? const Icon(
+                  Icons.person_outline,
+                  size: 14,
+                  color: AppColors.primary,
+                )
               : null,
         ),
         const SizedBox(width: 10),
@@ -254,22 +283,29 @@ class _CommentTile extends StatelessWidget {
               Text(
                 comment.authorLabel,
                 style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
+              ConversationBody(
                 comment.body,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
                   color: AppColors.textSecondary,
                   height: 1.4,
                 ),
               ),
+              TextButton(onPressed: onReply, child: const Text('Reply')),
             ],
           ),
+        ),
+        FlowerReactionButton(
+          target: FlowerTarget.communityComment,
+          targetId: comment.id,
         ),
       ],
     );

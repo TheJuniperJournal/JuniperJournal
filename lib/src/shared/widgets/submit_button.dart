@@ -1,3 +1,5 @@
+import '../styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 
 class SubmitButton extends StatelessWidget {
@@ -5,6 +7,7 @@ class SubmitButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback? onPressed;
   final Color backgroundColor;
+  final Color? foregroundColor;
   final double height;
   final BorderRadius borderRadius;
 
@@ -14,8 +17,11 @@ class SubmitButton extends StatelessWidget {
     required this.isLoading,
     required this.onPressed,
     required this.backgroundColor,
-    this.height = 48,
-    this.borderRadius = const BorderRadius.all(Radius.circular(10)),
+    this.foregroundColor,
+    this.height = AppMetrics.primaryButtonHeight,
+    this.borderRadius = const BorderRadius.all(
+      Radius.circular(AppMetrics.cornerRadius),
+    ),
   });
 
   @override
@@ -27,6 +33,7 @@ class SubmitButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
+          foregroundColor: foregroundColor,
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
         ),
         child: AnimatedSwitcher(
@@ -45,8 +52,9 @@ class SubmitButton extends StatelessWidget {
                   label,
                   key: const ValueKey('text'),
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
         ),

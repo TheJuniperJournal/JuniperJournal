@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:juniper_journal/src/backend/db/models/comment.dart';
 import 'package:juniper_journal/src/backend/db/supabase_database.dart';
@@ -6,7 +7,7 @@ class CommentsRepo {
   static const _table = 'project_comments';
   static const _profilesTable = 'profiles';
 
-  get _client => SupabaseDatabase.instance.client;
+  SupabaseClient get _client => SupabaseDatabase.instance.client;
 
   Future<List<Comment>?> getComments({required String projectId}) async {
     try {

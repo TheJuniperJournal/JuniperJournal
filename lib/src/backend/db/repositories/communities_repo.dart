@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:juniper_journal/src/backend/db/models/bulletin_comment.dart';
 import 'package:juniper_journal/src/backend/db/models/bulletin_post.dart';
@@ -9,7 +10,35 @@ import 'package:juniper_journal/src/backend/db/supabase_database.dart';
 import 'package:juniper_journal/src/backend/storage/storage_service.dart';
 
 class CommunitiesRepo {
-  get _client => SupabaseDatabase.instance.client;
+  SupabaseClient get _client => SupabaseDatabase.instance.client;
+
+  Future<bool> isAcceptedCommunityMember(String communityId) async {
+    final user = _client.auth.currentUser?.id;
+    if (user == null) return false;
+    try {
+      final row = await _client
+          .from('community_members')
+          .select('id')
+          .eq('community_id', communityId)
+          .eq('user_id', user)
+          .eq('status', 'accepted')
+          .maybeSingle();
+      return row != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Public summary contains administrators and aggregate counts, never a roster.
+  Future<Map<String, dynamic>> getPublicCommunityProfile(
+    String communityId,
+  ) async => Map<String, dynamic>.from(
+    await _client.rpc(
+          'public_community_profile',
+          params: {'p_community_id': communityId},
+        )
+        as Map,
+  );
 
   // ── Create ──────────────────────────────────────────────────────────────────
 
@@ -136,6 +165,16 @@ class CommunitiesRepo {
   /// Returns all accepted members' projects for a community.
   Future<List<Project>> getCommunityProjects(String communityId) async {
     try {
+      if (_client.auth.currentUser == null) {
+        final rows = await _client
+            .from('project_documentation')
+            .select()
+            .ilike('visibility', 'public')
+            .contains('community_links', [
+              {'id': communityId},
+            ]);
+        return [for (final row in rows) Project.fromMap(row)];
+      }
       // Get accepted member user IDs
       final memberRows = await _client
           .from('community_members')
@@ -147,19 +186,24 @@ class CommunitiesRepo {
         memberRows,
       ).map((r) => r['user_id'].toString()).toList();
 
-      if (memberIds.isEmpty) return [];
-
-      final projectRows = await _client
-          .from('projects')
-          .select(
-            'id, user_id, project_name, problem_statement, tags, project_image_url, created_at, likes, difficulty',
-          )
-          .inFilter('user_id', memberIds)
-          .order('created_at', ascending: false);
-
-      return List<Map<String, dynamic>>.from(
-        projectRows,
-      ).map(Project.fromMap).toList();
+      final linkedRows = await _client
+          .from('project_documentation')
+          .select()
+          .contains('community_links', [
+            {'id': communityId},
+          ]);
+      final memberProjectRows = memberIds.isEmpty
+          ? <dynamic>[]
+          : await _client
+                .from('project_documentation')
+                .select()
+                .inFilter('user_id', memberIds);
+      final byId = <String, Project>{};
+      for (final row in [...memberProjectRows, ...linkedRows]) {
+        final project = Project.fromMap(Map<String, dynamic>.from(row));
+        byId[project.id] = project;
+      }
+      return byId.values.toList();
     } catch (e, st) {
       debugPrint('getCommunityProjects error: $e\n$st');
       return [];

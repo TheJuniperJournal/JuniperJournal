@@ -28,12 +28,12 @@ class CommunityInvite {
   }
 
   factory CommunityInvite.fromMap(Map<String, dynamic> map) => CommunityInvite(
-        id: map['id']?.toString() ?? '',
-        communityId: map['community_id']?.toString() ?? '',
-        communityName: map['community_name']?.toString() ?? '',
-        communityImageUrl: map['community_image_url']?.toString(),
-        inviterDisplayName: map['inviter_display_name']?.toString(),
-        inviterUsername: map['inviter_username']?.toString(),
-        status: map['status']?.toString() ?? 'pending',
-      );
+    id: map['id']?.toString() ?? '',
+    communityId: map['community_id']?.toString() ?? '',
+    communityName: map['community_name']?.toString() ?? '',
+    communityImageUrl: map['community_image_url']?.toString(),
+    inviterDisplayName: map['inviter_display_name']?.toString(),
+    inviterUsername: map['inviter_username']?.toString(),
+    status: map['status']?.toString() ?? 'pending',
+  );
 }

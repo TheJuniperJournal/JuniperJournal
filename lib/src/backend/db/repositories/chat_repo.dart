@@ -14,13 +14,13 @@ class ChatRepo {
         _client.rpc('get_group_dms'),
       ]);
 
-      final dms = List<Map<String, dynamic>>.from(results[0] as List)
-          .map(ConversationPreview.fromMap)
-          .toList();
+      final dms = List<Map<String, dynamic>>.from(
+        results[0] as List,
+      ).map(ConversationPreview.fromMap).toList();
 
-      final groups = List<Map<String, dynamic>>.from(results[1] as List)
-          .map(ConversationPreview.fromGroupDmMap)
-          .toList();
+      final groups = List<Map<String, dynamic>>.from(
+        results[1] as List,
+      ).map(ConversationPreview.fromGroupDmMap).toList();
 
       final merged = [...dms, ...groups];
       merged.sort((a, b) {
@@ -40,10 +40,10 @@ class ChatRepo {
     required List<String> memberIds,
   }) async {
     try {
-      final data = await _client.rpc('create_group_dm', params: {
-        'p_name': name,
-        'p_member_ids': memberIds,
-      });
+      final data = await _client.rpc(
+        'create_group_dm',
+        params: {'p_name': name, 'p_member_ids': memberIds},
+      );
       return data?.toString();
     } catch (e, st) {
       debugPrint('createGroupDm error: $e\n$st');
@@ -51,10 +51,30 @@ class ChatRepo {
     }
   }
 
+  Future<bool> renameGroupDm({
+    required String conversationId,
+    required String name,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed.length > 80) return false;
+    try {
+      await _client.rpc(
+        'rename_group_dm',
+        params: {'p_conversation_id': conversationId, 'p_name': trimmed},
+      );
+      return true;
+    } catch (e) {
+      debugPrint('renameGroupDm error: $e');
+      return false;
+    }
+  }
+
   Future<String?> getOrCreateDm(String otherUserId) async {
     try {
-      final data = await _client
-          .rpc('get_or_create_dm', params: {'other_user_id': otherUserId});
+      final data = await _client.rpc(
+        'get_or_create_dm',
+        params: {'other_user_id': otherUserId},
+      );
       return data?.toString();
     } catch (e, st) {
       debugPrint('getOrCreateDm error: $e\n$st');
@@ -68,9 +88,9 @@ class ChatRepo {
         'get_conversation_messages',
         params: {'conv_id': conversationId},
       );
-      return List<Map<String, dynamic>>.from(data as List)
-          .map(Message.fromMap)
-          .toList();
+      return List<Map<String, dynamic>>.from(
+        data as List,
+      ).map(Message.fromMap).toList();
     } catch (e, st) {
       debugPrint('getMessages error: $e\n$st');
       return null;
@@ -149,9 +169,9 @@ class ChatRepo {
         'get_community_messages',
         params: {'p_conv_id': conversationId},
       );
-      return List<Map<String, dynamic>>.from(data as List)
-          .map(Message.fromMap)
-          .toList();
+      return List<Map<String, dynamic>>.from(
+        data as List,
+      ).map(Message.fromMap).toList();
     } catch (e, st) {
       debugPrint('getCommunityMessages error: $e\n$st');
       return null;

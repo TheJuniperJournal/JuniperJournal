@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 
@@ -55,8 +56,10 @@ class _TopSnackBarWidgetState extends State<_TopSnackBarWidget>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _slide = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
 
     _controller.forward();
@@ -91,13 +94,21 @@ class _TopSnackBarWidgetState extends State<_TopSnackBarWidget>
           opacity: _fade,
           child: SafeArea(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16, topPad - MediaQuery.of(context).padding.top, 16, 0),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                topPad - MediaQuery.of(context).padding.top,
+                16,
+                0,
+              ),
               child: GestureDetector(
                 onTap: _dismiss,
                 child: Material(
                   color: Colors.transparent,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: color,
                       borderRadius: BorderRadius.circular(14),
@@ -112,7 +123,9 @@ class _TopSnackBarWidgetState extends State<_TopSnackBarWidget>
                     child: Row(
                       children: [
                         Icon(
-                          widget.isError ? Icons.error_outline : Icons.check_circle_outline,
+                          widget.isError
+                              ? Icons.error_outline
+                              : Icons.check_circle_outline,
                           color: Colors.white,
                           size: 20,
                         ),
@@ -121,8 +134,9 @@ class _TopSnackBarWidgetState extends State<_TopSnackBarWidget>
                           child: Text(
                             widget.message,
                             style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: AppTypography.bodySize,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

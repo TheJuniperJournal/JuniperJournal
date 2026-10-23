@@ -104,9 +104,20 @@ class InputValidator {
   }
 
   static String? tags(List<String> value) {
-    if (value.length > kTagsMaxCount) return 'Maximum $kTagsMaxCount tags allowed';
+    if (value.length > kTagsMaxCount) {
+      return 'Maximum $kTagsMaxCount tags allowed';
+    }
     for (final tag in value) {
-      if (tag.trim().length > kTagMaxLen) {
+      // Legacy project tags store subject and topic as "subject|topic".
+      // Apply the normal limit to each component, not their combined length.
+      final parts = tag.trim().split('|');
+      final structured =
+          parts.length == 2 &&
+          parts.every(
+            (part) =>
+                part.trim().isNotEmpty && part.trim().length <= kTagMaxLen,
+          );
+      if (!structured && tag.trim().length > kTagMaxLen) {
         return 'Each tag must be at most $kTagMaxLen characters';
       }
     }
@@ -114,7 +125,8 @@ class InputValidator {
   }
 
   static String? searchQuery(String value) {
-    if (value.trim().length > kSearchQueryMaxLen) return 'Search query is too long';
+    if (value.trim().length > kSearchQueryMaxLen)
+      return 'Search query is too long';
     return null;
   }
 }

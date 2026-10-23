@@ -1,0 +1,154 @@
+import '../../features/site/pages/site_information_page.dart';
+import 'package:flutter/material.dart';
+import '../../backend/db/repositories/projects_repo.dart';
+import '../../features/home_page/pages/public_explore.dart';
+import '../../features/home_page/pages/login.dart';
+import '../../features/home_page/pages/signup.dart';
+import 'browser_history_stub.dart'
+    if (dart.library.html) 'browser_history_web.dart';
+import 'page_refresh_state.dart';
+import 'page_url.dart';
+import 'journal_draft_session.dart';
+
+/// Owns browser history separately from Navigator's temporary popup routes.
+class WebNavigationHost extends StatefulWidget {
+  const WebNavigationHost({
+    super.key,
+    this.initialLocation = "/",
+    required this.navigatorKey,
+    required this.initialPage,
+    required this.observers,
+  });
+  final String initialLocation;
+  final GlobalKey<NavigatorState> navigatorKey;
+  final Widget initialPage;
+  final List<NavigatorObserver> observers;
+  @override
+  State<WebNavigationHost> createState() => _WebNavigationHostState();
+}
+
+class _WebNavigationHostState extends State<WebNavigationHost> {
+  final _history = BrowserHistory();
+  late final _observer = _PageObserver(this);
+  bool _opening = false;
+  bool _pendingDestination = false;
+  int _request = 0;
+  @override
+  void initState() {
+    super.initState();
+    _opening = true;
+    PageRefreshState.onDestinationChanged = _remember;
+    final initial = widget.initialLocation;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _history.listen(_openLocation);
+      if (!mounted) return;
+      // Bootstrap already resolved initialPage from this URL. Reopening it here
+      // replaces the first visible page and starts its data requests twice.
+      _opening = false;
+      if (PageUrl.decode(initial) != null) {
+        _history.write(initial, replace: true);
+      } else {
+        _changed(_observer.top, replace: true);
+      }
+    });
+  }
+
+  void _remember(Map<String, dynamic> data) {
+    final path = PageUrl.encode(data);
+    // Builds can register the next page before Navigator reports its push.
+    // Only section changes within the current destination may replace history.
+    if (_opening) return;
+    if (_pendingDestination) {
+      _pendingDestination = false;
+      _history.write(path);
+    } else if (Uri.parse(path).path == Uri.parse(_history.location).path) {
+      _history.write(path, replace: true);
+    }
+  }
+
+  Future<void> _openLocation(String location) async {
+    final request = ++_request;
+    final nav = widget.navigatorKey.currentState;
+    if (nav == null) return;
+    _opening = true;
+    if (!await JournalDraftGuard.leaveCurrent(nav)) {
+      _opening = false;
+      return;
+    }
+    Widget? page;
+    try {
+      final data = PageUrl.decode(location);
+      page = data == null
+          ? const PublicExploreScreen()
+          : await PageRefreshState.restore(data, ProjectsRepo());
+    } catch (_) {}
+    if (!mounted || request != _request) return;
+    page ??= const Scaffold(
+      body: Center(
+        child: Text('This page is unavailable or you do not have access.'),
+      ),
+    );
+    nav.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => page!),
+      (_) => false,
+    );
+    _history.write(location, replace: true);
+    _opening = false;
+  }
+
+  void _changed(Route<dynamic>? route, {bool replace = false}) {
+    if (_opening || route is! PageRoute) return;
+    final data = PageRefreshState.instance.describeRoute(route);
+    _pendingDestination = data == null;
+    if (data != null) _history.write(PageUrl.encode(data), replace: replace);
+  }
+
+  Route<dynamic> _route(RouteSettings settings) => MaterialPageRoute(
+    settings: settings,
+    builder: (_) => switch (settings.name) {
+      '/login' => const LoginScreen(),
+      '/signup' => const SignupScreen(),
+      '/explore' => const PublicExploreScreen(),
+      '/about' ||
+      '/support' ||
+      '/privacy' ||
+      '/safety' => SiteInformationPage(page: settings.name!.substring(1)),
+      _ => widget.initialPage,
+    },
+  );
+  @override
+  Widget build(BuildContext context) => Navigator(
+    key: widget.navigatorKey,
+    reportsRouteUpdateToEngine: false,
+    observers: [...widget.observers, _observer],
+    onGenerateRoute: _route,
+    onGenerateInitialRoutes: (_, __) => [
+      _route(const RouteSettings(name: '/')),
+    ],
+  );
+  @override
+  void dispose() {
+    PageRefreshState.onDestinationChanged = null;
+    _history.dispose();
+    super.dispose();
+  }
+}
+
+class _PageObserver extends NavigatorObserver {
+  _PageObserver(this.host);
+  final _WebNavigationHostState host;
+  Route<dynamic>? top;
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    top = route;
+    host._changed(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      host._changed(newRoute, replace: true);
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is PageRoute) host._changed(previousRoute);
+  }
+}

@@ -1,35 +1,40 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:juniper_journal/src/backend/db/models/project.dart';
 import 'package:juniper_journal/src/backend/db/models/user_profile.dart';
 import 'package:juniper_journal/src/backend/db/repositories/friends_repo.dart';
-import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/backend/db/repositories/users_repo.dart';
-import 'package:juniper_journal/src/features/project/project.dart';
+import 'public_user_profile.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
-enum SearchScope { projects, friends }
+enum SearchScope { friends, users }
 
 class HomeSearchScreen extends StatefulWidget {
-  const HomeSearchScreen({super.key});
+  const HomeSearchScreen({
+    super.key,
+    this.initialScope = SearchScope.users,
+    this.usersRepo,
+    this.friendsRepo,
+  });
+  final UsersRepo? usersRepo;
+  final FriendsRepo? friendsRepo;
+  final SearchScope initialScope;
 
   @override
   State<HomeSearchScreen> createState() => _HomeSearchScreenState();
 }
 
 class _HomeSearchScreenState extends State<HomeSearchScreen> {
-  final _projectsRepo = ProjectsRepo();
-  final _usersRepo = UsersRepo();
-  final _friendsRepo = FriendsRepo();
+  late final _usersRepo = widget.usersRepo ?? UsersRepo();
+  late final _friendsRepo = widget.friendsRepo ?? FriendsRepo();
   final _queryController = TextEditingController();
   Timer? _friendsSearchDebounce;
 
-  SearchScope _scope = SearchScope.projects;
-  bool _isLoading = true;
-  List<Project> _projects = const [];
+  late SearchScope _scope = widget.initialScope;
   bool _isFriendsLoading = false;
   final Map<String, bool> _actionLoadingByUserId = {};
   String? _friendsErrorMessage;
@@ -41,7 +46,7 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
     super.initState();
     _queryController.addListener(_onQueryChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _loadProjects();
+      if (mounted) _searchFriends();
     });
   }
 
@@ -56,29 +61,17 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
   void _onQueryChanged() {
     if (!mounted) return;
     setState(() {});
-    if (_scope == SearchScope.friends) {
-      _friendsSearchDebounce?.cancel();
-      _friendsSearchDebounce = Timer(
-        const Duration(milliseconds: 250),
-        _searchFriends,
-      );
-    }
-  }
-
-  Future<void> _loadProjects() async {
-    setState(() => _isLoading = true);
-    final rows = await _projectsRepo.getCurrentUserProjects();
-    if (!mounted) return;
-
-    setState(() {
-      _projects = rows ?? const <Project>[];
-      _isLoading = false;
-    });
+    _friendsSearchDebounce?.cancel();
+    _friendsSearchDebounce = Timer(
+      const Duration(milliseconds: 250),
+      _searchFriends,
+    );
   }
 
   Future<void> _searchFriends() async {
     final query = _queryController.text.trim();
-    if (query.isEmpty) {
+    final scope = _scope;
+    if (query.isEmpty && scope == SearchScope.users) {
       setState(() {
         _friends = const [];
         _isFriendsLoading = false;
@@ -92,8 +85,17 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
       _friendsErrorMessage = null;
     });
 
-    final users = await _usersRepo.searchPublicUsers(query: query);
-    if (!mounted) return;
+    final users = scope == SearchScope.friends
+        ? (await _friendsRepo.getFriends())
+              ?.where(
+                (user) => '${user.resolvedDisplayName} ${user.username ?? ''}'
+                    .toLowerCase()
+                    .contains(query.toLowerCase()),
+              )
+              .toList()
+        : await _usersRepo.searchPublicUsers(query: query);
+    if (!mounted || scope != _scope || query != _queryController.text.trim())
+      return;
 
     if (users == null) {
       setState(() {
@@ -107,7 +109,8 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
 
     final ids = users.map((u) => u.id).where((id) => id.isNotEmpty).toList();
     final statuses = await _friendsRepo.getRelationshipStatuses(ids);
-    if (!mounted) return;
+    if (!mounted || scope != _scope || query != _queryController.text.trim())
+      return;
 
     setState(() {
       _friends = users;
@@ -116,21 +119,8 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
     });
   }
 
-  List<Project> _filteredProjects() {
-    final query = _queryController.text.trim().toLowerCase();
-    if (query.isEmpty) return _projects;
-
-    return _projects.where((project) {
-      final name = project.projectName.toLowerCase();
-      final tags = project.tags.map((e) => e.toLowerCase()).join(' ');
-      return name.contains(query) || tags.contains(query);
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final projects = _filteredProjects();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -144,14 +134,7 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Search',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: const Text('Search', style: AppTypography.pageTitle),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -162,9 +145,9 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
               child: TextField(
                 controller: _queryController,
                 decoration: InputDecoration(
-                  hintText: _scope == SearchScope.projects
-                      ? 'Search projects by name or tag'
-                      : 'Search friends',
+                  hintText: _scope == SearchScope.friends
+                      ? 'Search your friends'
+                      : 'Search users by name or username',
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -177,9 +160,9 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
               child: CupertinoSlidingSegmentedControl<SearchScope>(
                 groupValue: _scope,
                 children: const {
-                  SearchScope.projects: Padding(
+                  SearchScope.users: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Text('Projects'),
+                    child: Text('Users'),
                   ),
                   SearchScope.friends: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -189,87 +172,12 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
                 onValueChanged: (value) {
                   if (value == null) return;
                   setState(() => _scope = value);
-                  if (value == SearchScope.friends) {
-                    _searchFriends();
-                  }
+                  _searchFriends();
                 },
               ),
             ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: _scope == SearchScope.projects
-                  ? (_isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : (projects.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                    'No matching projects',
-                                    style: TextStyle(color: Colors.black54),
-                                  ),
-                                )
-                              : ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    0,
-                                    16,
-                                    24,
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    final project = projects[index];
-                                    final projectName = project.projectName.isNotEmpty
-                                        ? project.projectName
-                                        : 'Untitled Project';
-                                    final projectId = project.id;
-                                    final tags = project.tags;
-
-                                    return ListTile(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      tileColor: Colors.white,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                      leading: CircleAvatar(
-                                        backgroundColor: const Color(
-                                          0xFFE6F2E9,
-                                        ),
-                                        child: const Icon(
-                                          Icons.folder_outlined,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        projectName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      subtitle: tags.isEmpty
-                                          ? const Text('No tags')
-                                          : Text(tags.join(' • ')),
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => ProjectDashboard(
-                                              projectId: projectId,
-                                              projectName: projectName,
-                                              tags: tags,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(height: 10),
-                                  itemCount: projects.length,
-                                )))
-                  : _buildFriendsResults(),
-            ),
+            const SizedBox(height: AppMetrics.labelGap),
+            Expanded(child: _buildFriendsResults()),
           ],
         ),
       ),
@@ -278,11 +186,14 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
 
   Widget _buildFriendsResults() {
     final query = _queryController.text.trim();
-    if (query.isEmpty) {
+    if (query.isEmpty && _scope == SearchScope.users) {
       return const Center(
         child: Text(
-          'Search for friends by name or username.',
-          style: TextStyle(color: Colors.black54),
+          'Search for users by name or username.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w400,
+          ),
         ),
       );
     }
@@ -298,7 +209,10 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
           child: Text(
             _friendsErrorMessage!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.black54),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
       );
@@ -307,8 +221,11 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
     if (_friends.isEmpty) {
       return Center(
         child: Text(
-          'No friends found for "$query".',
-          style: const TextStyle(color: Colors.black54),
+          'No users found for "$query".',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w400,
+          ),
         ),
       );
     }
@@ -317,8 +234,7 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       itemBuilder: (context, index) {
         final user = _friends[index];
-        final displayName =
-            user.displayName ?? user.username ?? 'Unknown User';
+        final displayName = user.displayName ?? user.username ?? 'Unknown User';
         final username = user.username;
         final avatarUrl = user.avatarUrl;
         final status = _friendStatuses[user.id] ?? 'none';
@@ -341,6 +257,7 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
                 ? const Icon(Icons.person_outline, color: AppColors.primary)
                 : null,
           ),
+          onTap: () => openUserProfile(context, user.id),
           title: Text(
             displayName,
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -348,10 +265,7 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
           subtitle: (username != null && username.isNotEmpty)
               ? Text('@$username')
               : const Text('Public profile'),
-          trailing: _buildFriendActionButton(
-            userId: user.id,
-            status: status,
-          ),
+          trailing: _buildFriendActionButton(userId: user.id, status: status),
         );
       },
       separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -446,8 +360,9 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
   Future<void> _declineRequest(String requesterId) async {
     if (requesterId.isEmpty) return;
     setState(() => _actionLoadingByUserId[requesterId] = true);
-    final ok =
-        await _friendsRepo.declineFriendRequest(requesterId: requesterId);
+    final ok = await _friendsRepo.declineFriendRequest(
+      requesterId: requesterId,
+    );
     if (!mounted) return;
 
     setState(() => _actionLoadingByUserId.remove(requesterId));

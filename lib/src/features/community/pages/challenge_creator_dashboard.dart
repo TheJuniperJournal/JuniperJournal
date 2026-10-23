@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:juniper_journal/src/backend/db/models/challenge_participant.dart';
@@ -56,21 +60,24 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
   }
 
   Future<void> _launch() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Launch Challenge?'),
         content: const Text(
-            'This will make the challenge visible to all community members. You can still edit settings after launching.'),
+          'This will make the challenge visible to all community members. You can still edit settings after launching.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Launch')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Launch'),
+          ),
         ],
       ),
     );
@@ -88,21 +95,24 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
   }
 
   Future<void> _unsubmitParticipant(ChallengeParticipant p) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Mark as Not Submitted?'),
         content: Text(
-            '${p.resolvedName}\'s submission will be reset. They can resubmit before the deadline.'),
+          '${p.resolvedName}\'s submission will be reset. They can resubmit before the deadline.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Reset')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reset'),
+          ),
         ],
       ),
     );
@@ -113,13 +123,17 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
       showTopSnackBar(context, 'Submission reset');
       _load();
     } else {
-      showTopSnackBar(context, 'Failed to reset. Please try again.', isError: true);
+      showTopSnackBar(
+        context,
+        'Failed to reset. Please try again.',
+        isError: true,
+      );
     }
   }
 
   Future<void> _viewParticipantProject(ChallengeParticipant p) async {
     if (p.projectId == null) return;
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
         builder: (_) => ProjectDashboard(
@@ -135,11 +149,11 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
 
   Future<void> _openSettings() async {
     if (_challenge == null) return;
-    final updated = await Navigator.push<bool>(
+    final updated = await pushAppRoute<bool>(
       context,
       MaterialPageRoute(
-          builder: (_) =>
-              ChallengeSettingsForm(challenge: _challenge!)),
+        builder: (_) => ChallengeSettingsForm(challenge: _challenge!),
+      ),
     );
     if (updated == true) _load();
   }
@@ -154,9 +168,13 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
         leadingWidth: 72,
         leading: TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Done',
-              style: TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w600)),
+          child: const Text(
+            'Done',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         centerTitle: true,
         title: Container(
@@ -168,17 +186,20 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
           child: const Text(
             'DESIGN DASHBOARD',
             style: TextStyle(
+              fontFamily: AppTypography.headingFamily,
               color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontSize: AppTypography.pageTitleSize,
+              fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
             ),
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined,
-                color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: AppColors.textPrimary,
+            ),
             onPressed: _openSettings,
           ),
         ],
@@ -193,9 +214,10 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                 // Tabs
                 Container(
                   decoration: const BoxDecoration(
-                      border: Border(
-                          bottom:
-                              BorderSide(color: AppColors.divider, width: 1))),
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.divider, width: 1),
+                    ),
+                  ),
                   child: TabBar(
                     controller: _tabCtrl!,
                     labelColor: AppColors.primary,
@@ -203,7 +225,10 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                     indicatorColor: AppColors.primary,
                     indicatorWeight: 2,
                     labelStyle: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600),
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
+                    ),
                     tabs: const [
                       Tab(text: 'Overview'),
                       Tab(text: 'Submissions'),
@@ -214,10 +239,7 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                 Expanded(
                   child: TabBarView(
                     controller: _tabCtrl!,
-                    children: [
-                      _buildOverviewTab(),
-                      _buildSubmissionsTab(),
-                    ],
+                    children: [_buildOverviewTab(), _buildSubmissionsTab()],
                   ),
                 ),
               ],
@@ -235,7 +257,9 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
           color: AppColors.primaryTint,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.3), width: 1),
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
@@ -244,7 +268,11 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
             const Expanded(
               child: Text(
                 'This challenge is a draft — only you can see it.',
-                style: TextStyle(fontSize: 13, color: AppColors.primaryDark),
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.primaryDark,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -257,9 +285,13 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   textStyle: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w700),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                 ),
                 child: _launching
@@ -267,7 +299,10 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Launch'),
               ),
             ),
@@ -285,22 +320,32 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline,
-              size: 18, color: AppColors.primary),
+          const Icon(
+            Icons.check_circle_outline,
+            size: 18,
+            color: AppColors.primary,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               c.isActive ? 'Challenge is live' : 'Challenge has ended',
               style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryDark,
-                  fontWeight: FontWeight.w600),
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: AppColors.primaryDark,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           if (c.dateRange.isNotEmpty)
-            Text(c.dateRange,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary)),
+            Text(
+              c.dateRange,
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                color: AppColors.textSecondary,
+              ),
+            ),
         ],
       ),
     );
@@ -317,11 +362,13 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
           onTap: () async {
             if (_challenge == null) return;
             // Navigate to an edit view of requirements
-            await Navigator.push(
+            await pushAppRoute(
               context,
               MaterialPageRoute(
                 builder: (_) => _EditRequirementsWrapper(
-                    challenge: _challenge!, repo: _repo),
+                  challenge: _challenge!,
+                  repo: _repo,
+                ),
               ),
             );
             _load();
@@ -334,11 +381,10 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
           subtitle: _fundingSummary(),
           onTap: () async {
             if (_challenge == null) return;
-            await Navigator.push(
+            await pushAppRoute(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    ChallengeFundingForm(challenge: _challenge!),
+                builder: (_) => ChallengeFundingForm(challenge: _challenge!),
               ),
             );
             _load();
@@ -351,9 +397,14 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
   Widget _buildSubmissionsTab() {
     if (_participants.isEmpty) {
       return const Center(
-        child: Text('No participants yet.',
-            style:
-                TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+        child: Text(
+          'No participants yet.',
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            color: AppColors.textSecondary,
+            fontSize: AppTypography.bodySize,
+          ),
+        ),
       );
     }
     return ListView.separated(
@@ -377,8 +428,11 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                       ? NetworkImage(p.avatarUrl!)
                       : null,
                   child: (p.avatarUrl?.isNotEmpty != true)
-                      ? const Icon(Icons.person_outline,
-                          size: 18, color: AppColors.primary)
+                      ? const Icon(
+                          Icons.person_outline,
+                          size: 18,
+                          color: AppColors.primary,
+                        )
                       : null,
                 ),
                 const SizedBox(width: 12),
@@ -390,8 +444,11 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                       Text(
                         p.resolvedName,
                         style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary),
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -399,7 +456,8 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                             ? p.projectName!
                             : 'No project linked',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
                           color: hasProject
                               ? AppColors.textSecondary
                               : AppColors.hintText,
@@ -417,17 +475,21 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                       const Text(
                         'Submitted',
                         style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary),
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
+                        ),
                       ),
                       if (p.submittedAt != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           DateFormat('MMM d').format(p.submittedAt!),
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary),
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.helperSize,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ],
@@ -435,19 +497,28 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                   const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () => _unsubmitParticipant(p),
-                    child: const Icon(Icons.close,
-                        size: 18, color: AppColors.textSecondary),
+                    child: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ] else ...[
                   const Text(
                     'Pending',
                     style: TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary),
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   if (hasProject)
-                    const Icon(Icons.chevron_right,
-                        size: 18, color: AppColors.textSecondary)
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    )
                   else
                     const SizedBox(width: 18),
                 ],
@@ -489,8 +560,7 @@ class _EditRequirementsWrapper extends StatefulWidget {
   final DesignChallenge challenge;
   final ChallengesRepo repo;
 
-  const _EditRequirementsWrapper(
-      {required this.challenge, required this.repo});
+  const _EditRequirementsWrapper({required this.challenge, required this.repo});
 
   @override
   State<_EditRequirementsWrapper> createState() =>
@@ -507,9 +577,18 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
   bool _saving = false;
 
   static const _kMetrics = [
-    'Energy', 'Waste', 'Water', 'Biological Growth', 'Educational Impact'
+    'Energy',
+    'Waste',
+    'Water',
+    'Biological Growth',
+    'Educational Impact',
   ];
-  static const _kPatterns = ['Behavior', 'Regeneration', 'Reduction', 'Substitution'];
+  static const _kPatterns = [
+    'Behavior',
+    'Regeneration',
+    'Reduction',
+    'Substitution',
+  ];
   static const _kCommunityPatterns = ['Capacity Building'];
 
   bool get _isPatternChange => widget.challenge.type == 'pattern_change';
@@ -544,8 +623,9 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
       requiredMetrics: _selectedMetrics.toList(),
       requiredPatterns: _selectedPatterns.toList(),
       minGroupMembers: _minGroupMembers,
-      externalLink:
-          _linkCtrl.text.trim().isEmpty ? null : _linkCtrl.text.trim(),
+      externalLink: _linkCtrl.text.trim().isEmpty
+          ? null
+          : _linkCtrl.text.trim(),
     );
     if (!mounted) return;
     setState(() => _saving = false);
@@ -564,25 +644,31 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left,
-              size: 28, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: const Text('Requirements',
-            style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
+        title: const Text('Requirements', style: AppTypography.pageTitle),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _rowField('Required Journal Entries',
-                _stepper(_journalEntries, 0, 99, (v) => setState(() => _journalEntries = v))),
-            const SizedBox(height: 20),
+            _rowField(
+              'Required Journal Entries',
+              _stepper(
+                _journalEntries,
+                0,
+                99,
+                (v) => setState(() => _journalEntries = v),
+              ),
+            ),
+            const SizedBox(height: AppMetrics.fieldGap),
             _rowField(
               'Measurement Required',
               Switch(
@@ -591,57 +677,85 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
                 activeColor: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
             if (_isCommunityImpact) ...[
               _rowField(
                 'Minimum Group Members Required',
-                _stepper(_minGroupMembers, 1, 50, (v) => setState(() => _minGroupMembers = v)),
+                _stepper(
+                  _minGroupMembers,
+                  1,
+                  50,
+                  (v) => setState(() => _minGroupMembers = v),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppMetrics.fieldGap),
             ],
             _sectionLabel('Required Metrics (Multi-Select)'),
             const SizedBox(height: 10),
             _pillGrid(_kMetrics, _selectedMetrics),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
             if (_isPatternChange || _isCommunityImpact) ...[
-              _sectionLabel(_isPatternChange
-                  ? 'Required Pattern (Select 1)'
-                  : 'Required Patterns'),
+              _sectionLabel(
+                _isPatternChange
+                    ? 'Required Pattern (Select 1)'
+                    : 'Required Patterns',
+              ),
               const SizedBox(height: 10),
-              _pillGrid(_patternOptions, _selectedPatterns,
-                  maxSelect: _isPatternChange ? 1 : null),
-              const SizedBox(height: 20),
+              _pillGrid(
+                _patternOptions,
+                _selectedPatterns,
+                maxSelect: _isPatternChange ? 1 : null,
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
             ],
-            Row(children: [
-              _sectionLabel('Insert External Link'),
-              const SizedBox(width: 8),
-              const Icon(Icons.link, size: 18, color: AppColors.textSecondary),
-            ]),
+            Row(
+              children: [
+                _sectionLabel('Insert External Link'),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.link,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
             TextField(
               controller: _linkCtrl,
               keyboardType: TextInputType.url,
               style: const TextStyle(
-                  fontSize: 14, color: AppColors.textPrimary),
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
-                hintText: 'https://',
+                hintText: '',
                 hintStyle: const TextStyle(
-                    color: AppColors.hintText, fontSize: 14),
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.hintText,
+                  fontSize: AppTypography.helperSize,
+                ),
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 9,
+                  vertical: 12,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
-                      color: AppColors.borderLight, width: 1),
+                    color: AppColors.borderLight,
+                    width: 1,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
-                      color: AppColors.primary, width: 1.5),
+                    color: AppColors.borderLight,
+                    width: 1,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: AppMetrics.journalSectionGap),
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -652,16 +766,23 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 child: _saving
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Save'),
               ),
             ),
@@ -672,52 +793,68 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
   }
 
   Widget _rowField(String label, Widget trailing) => Row(
-        children: [
-          Expanded(
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
           ),
-          trailing,
-        ],
-      );
+        ),
+      ),
+      trailing,
+    ],
+  );
 
-  Widget _sectionLabel(String text) => Text(text,
-      style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary));
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: const TextStyle(
+      fontFamily: AppTypography.bodyFamily,
+      fontSize: AppTypography.bodySize,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textPrimary,
+    ),
+  );
 
   Widget _stepper(int value, int min, int max, void Function(int) onChanged) =>
       Row(
         children: [
-          _stepBtn(Icons.remove,
-              () => onChanged((value - 1).clamp(min, max))),
+          _stepBtn(Icons.remove, () => onChanged((value - 1).clamp(min, max))),
           const SizedBox(width: 12),
-          Text('$value',
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(
+            '$value',
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(width: 12),
           _stepBtn(Icons.add, () => onChanged((value + 1).clamp(min, max))),
         ],
       );
 
   Widget _stepBtn(IconData icon, VoidCallback onTap) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary)),
-          child: Icon(icon, size: 16, color: AppColors.primary),
-        ),
-      );
+    onTap: onTap,
+    child: Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Icon(icon, size: 16, color: AppColors.primary),
+    ),
+  );
 
-  Widget _pillGrid(List<String> options, Set<String> selected,
-      {int? maxSelect}) {
+  Widget _pillGrid(
+    List<String> options,
+    Set<String> selected, {
+    int? maxSelect,
+  }) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -735,24 +872,21 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
             }
           }),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.primary : Colors.white,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.borderLight,
+                color: isSelected ? AppColors.primary : AppColors.borderLight,
               ),
             ),
             child: Text(
               o.toUpperCase(),
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color:
-                    isSelected ? Colors.white : AppColors.textSecondary,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                fontWeight: FontWeight.w400,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -812,24 +946,35 @@ class _DashboardTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   if (subtitle.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
-                      child: Text(subtitle,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary)),
+                      child: Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.helperSize,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right,
-                size: 20, color: AppColors.textSecondary),
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),

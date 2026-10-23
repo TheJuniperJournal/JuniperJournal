@@ -1,6 +1,36 @@
+import '../../../shared/widgets/project_photo_dialog.dart';
+import '../../../shared/widgets/page_refresh_state.dart';
+import 'impact_log.dart';
+import '../widgets/project_activity_feed.dart';
+import '../../../backend/db/models/project_activity_event.dart';
+import '../services/project_activity.dart';
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import '../../../shared/widgets/desktop_content_width.dart';
+import '../../../shared/widgets/persistent_desktop_shell.dart';
+import '../../../shared/widgets/app_scroll_behavior.dart';
+import '../utils/project_impact_totals.dart';
+import '../../../backend/db/models/impact_entry.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'journal_entry_view.dart';
+import '../../../backend/db/repositories/project_bulletin_repo.dart';
+import '../../../shared/widgets/modal_actions.dart';
+import '../../../services/media_service.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../shared/widgets/app_tab_transition.dart';
+import '../utils/journal_completion.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import '../../../shared/widgets/progress_tracker.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import '../../../backend/auth/auth_service.dart';
+import '../../../backend/db/models/project.dart';
+import '../../../shared/widgets/confirm_project_deletion.dart';
+import 'project_collaboration_tab.dart';
+import 'journal_entry_editor.dart';
+import '../../home_page/pages/home.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'create_project.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:intl/intl.dart';
 import 'package:juniper_journal/src/backend/db/models/journal_entry.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/features/project/pages/materials_cost.dart';
@@ -10,6 +40,13 @@ import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
 class ProjectDashboard extends StatefulWidget {
+  final bool openSettingsOnLoad;
+  final ProjectDashboardSection initialSection;
+  final JournalEntry? initialJournalEntry;
+  final String? initialPostId, initialCommentId, initialEventId;
+  final CollaborationSection initialCollaborationSection;
+  final ProjectBulletinRepo? bulletinRepo;
+  final bool openMaterialsOnLoad;
   final String projectId;
   final String projectName;
   final List<String> tags;
@@ -20,6 +57,15 @@ class ProjectDashboard extends StatefulWidget {
 
   const ProjectDashboard({
     super.key,
+    this.openSettingsOnLoad = false,
+    this.initialSection = ProjectDashboardSection.overview,
+    this.initialJournalEntry,
+    this.initialPostId,
+    this.initialCommentId,
+    this.initialEventId,
+    this.initialCollaborationSection = CollaborationSection.bulletin,
+    this.bulletinRepo,
+    this.openMaterialsOnLoad = false,
     required this.projectId,
     required this.projectName,
     required this.tags,
@@ -47,66 +93,178 @@ class ProjectObjectiveSummary {
   final String description;
 }
 
-enum _DashboardTab { overview, development, timeline }
+enum ProjectDashboardSection { overview, development, collaboration, timeline }
 
 class _ProjectDashboardState extends State<ProjectDashboard> {
   static const _green = Color(0xFF5DB075);
   static const _text = Color(0xFF1C1C1C);
-  static const _canvasWidth = 402.0;
+  double get _canvasWidth =>
+      (DesktopContentWidth.of(context) == null &&
+                  MediaQuery.sizeOf(context).width >= 1000
+              ? AppMetrics.publicContentWidth
+              : JournalPageLayout.widthFor(context, mobileWidth: 402))
+          .clamp(0.0, AppMetrics.publicContentWidth);
+  double get _sectionInset => (_canvasWidth - _sectionWidth) / 2;
+  double get _sectionWidth =>
+      (_canvasWidth - 44).clamp(0.0, AppMetrics.publicContentWidth - 44);
 
   late final ProjectsRepo _projectsRepo;
   late String _projectName;
   late List<String> _tags;
+  late List<ProjectObjectiveSummary> _learningObjectives;
   String? _imageUrl;
+  bool _canEditCover = false;
+  bool _participant = false;
+  String _description = '';
+  bool _uploadingCover = false;
   String? _difficulty;
   String? _projectScale;
+  List<ImpactEntry> _impacts = const [];
+  ProjectImpactTotals get _impactTotals => ProjectImpactTotals(_impacts);
+  double get _impactTotal => _impactTotals.ecoPoints;
+  double _categoryPoints(String metric) => _impactTotals.pointsFor(metric);
   double _materialsTotal = 0;
   int _materialsCount = 0;
   DevelopmentSummary _developmentSummary = DevelopmentSummary.empty();
   bool _isLoading = true;
-  _DashboardTab _selectedTab = _DashboardTab.overview;
+  bool _loadFailed = false;
+  int _settingsRevision = 0;
+  int _collaborationRevision = 0;
+  String? _activityEventId, _activityPostId;
+  CollaborationSection? _activityCollaborationSection;
+  int _activityNavigationRevision = 0;
+  bool _openingSettings = false;
+  bool _projectDeleted = false;
+  ProjectDashboardSection _selectedTab = ProjectDashboardSection.overview;
+  final Set<ProjectDashboardSection> _visitedTabs = {
+    ProjectDashboardSection.overview,
+  };
 
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialSection;
+    _visitedTabs.add(widget.initialSection);
     _projectsRepo = widget.projectsRepo ?? ProjectsRepo();
     _projectName = widget.projectName;
     _tags = List<String>.from(widget.tags);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _loadProject();
+    _learningObjectives = List.of(widget.learningObjectives);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _loadProject();
+      if (mounted && widget.openSettingsOnLoad) await _openSettings();
+      if (!mounted || _loadFailed) return;
+      if (widget.initialJournalEntry != null) {
+        final project = await _projectsRepo.getProjectById(widget.projectId);
+        if (!mounted || project == null) return;
+        await pushAppRoute(
+          context,
+          MaterialPageRoute(
+            builder: (_) => JournalEntryView(
+              entry: widget.initialJournalEntry!,
+              project: project,
+              projectsRepo: _projectsRepo,
+            ),
+          ),
+        );
+        if (mounted) await _loadProject();
+      } else if (_participant && widget.openMaterialsOnLoad) {
+        await pushAppRoute(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MaterialsCostPage(
+              projectId: widget.projectId,
+              projectName: _projectName,
+              tags: _tags,
+              projectsRepo: _projectsRepo,
+              isOwner: _canEditCover,
+              readOnly: !_canEditCover,
+            ),
+          ),
+        );
+        if (mounted) await _loadProject();
+      }
     });
   }
 
   Future<void> _loadProject() async {
-    final project = await _projectsRepo.getProjectById(widget.projectId);
-    final materials = await _projectsRepo.getMaterialsCost(widget.projectId);
-    final entries = await _projectsRepo.getJournalEntries(
-      projectId: widget.projectId,
-    );
-    if (!mounted) return;
+    try {
+      final results = await Future.wait([
+        _projectsRepo.getProjectById(widget.projectId),
+        _projectsRepo.getMaterialsCost(widget.projectId),
+        _projectsRepo.getJournalEntries(projectId: widget.projectId),
+        _projectsRepo.getImpactEntries(projectId: widget.projectId),
+      ]);
+      final project = results[0] as Project?;
+      if (project == null) throw StateError('Project unavailable');
+      final participant = await _projectsRepo.canViewInternalProjectLogs(
+        widget.projectId,
+      );
+      var canEditCover =
+          participant && project.userId == _projectsRepo.currentUserId;
+      if (!canEditCover) {
+        try {
+          canEditCover = await _projectsRepo.canManageProject(widget.projectId);
+        } catch (_) {}
+      }
+      final materials = results[1] as List<Map<String, dynamic>>?;
+      final entries = results[2] as List<JournalEntry>?;
+      if (!mounted) return;
 
-    setState(() {
-      if (project != null) {
+      setState(() {
         _projectName = project.projectName.isNotEmpty
             ? project.projectName
             : _projectName;
-        _tags = project.tags.isNotEmpty ? project.tags : _tags;
+        _tags = List<String>.from(project.tags);
+        _learningObjectives = project.learningObjectives
+            .map(
+              (item) => ProjectObjectiveSummary(
+                action: item['action']?.toString() ?? '',
+                subject: item['subject']?.toString() ?? '',
+                description: item['description']?.toString() ?? '',
+              ),
+            )
+            .toList();
         _imageUrl = project.imageUrl;
+        _description = project.problemStatement?.trim() ?? '';
+        _canEditCover = canEditCover;
         _difficulty = project.difficulty;
         _projectScale = project.projectScale;
-      }
-      _updateMaterialsSummary(materials ?? const []);
-      _developmentSummary = DevelopmentSummary.fromEntries(entries ?? const []);
-      _isLoading = false;
-    });
+
+        _participant = participant;
+        if (!participant && _selectedTab == ProjectDashboardSection.timeline) {
+          _selectedTab = ProjectDashboardSection.overview;
+          _visitedTabs.remove(ProjectDashboardSection.timeline);
+          _visitedTabs.add(ProjectDashboardSection.overview);
+        }
+        _impacts = (results[3] as List<ImpactEntry>?) ?? const [];
+        _updateMaterialsSummary(materials ?? const []);
+        _developmentSummary = DevelopmentSummary.fromEntries(
+          entries ?? const [],
+        );
+        _isLoading = false;
+        _loadFailed = false;
+      });
+    } catch (e) {
+      debugPrint('Project dashboard load: $e');
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+          _loadFailed = true;
+        });
+    }
   }
 
   Future<void> _reloadDevelopmentSummary() async {
+    final impacts = await _projectsRepo.getImpactEntries(
+      projectId: widget.projectId,
+    );
     final entries = await _projectsRepo.getJournalEntries(
       projectId: widget.projectId,
     );
     if (!mounted) return;
     setState(() {
+      _impacts = impacts ?? _impacts;
       _developmentSummary = DevelopmentSummary.fromEntries(entries ?? const []);
     });
   }
@@ -123,70 +281,246 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     return _tags.first.split('|').first.trim();
   }
 
+  // Keep a full section gap after wrapped or enlarged project names.
+  double get _overviewContentOffset {
+    final title = TextPainter(
+      text: TextSpan(
+        text: _projectName,
+        style: const TextStyle(
+          fontFamily: AppTypography.headingFamily,
+          fontSize: AppTypography.displaySize,
+          height: 1.2,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: _sectionWidth);
+    final offset = (title.height + 24 - 60).clamp(0.0, double.infinity);
+    title.dispose();
+    if (_description.isEmpty) return offset;
+    final description = TextPainter(
+      text: TextSpan(
+        text: _description,
+        style: const TextStyle(fontSize: 15, height: 1.5),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: _sectionWidth.clamp(0.0, 720.0));
+    final extra = description.height + 18;
+    description.dispose();
+    return offset + extra;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ProjectActivityScope(
+    projectId: widget.projectId,
+    repo: _projectsRepo,
+    child: ProjectWorkspaceChrome(
+      child: AppTabStack(
+        index: _selectedTab.index,
+        duration: const Duration(milliseconds: 280),
+        sizing: StackFit.expand,
+        children: [
+          for (final tab in ProjectDashboardSection.values)
+            _visitedTabs.contains(tab)
+                ? _buildTab(tab)
+                : const SizedBox.shrink(),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildTab(ProjectDashboardSection tab) {
+    PageRefreshState.remember(context, {
+      'kind': 'project',
+      'project': widget.projectId,
+      'section': _selectedTab.index,
+    });
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _canvasWidth),
+            constraints: BoxConstraints(maxWidth: _canvasWidth),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
+                : _loadFailed
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Could not load this project.'),
+                        TextButton(
+                          onPressed: _loadProject,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : tab == ProjectDashboardSection.collaboration
+                ? _buildCollaborationCanvas(context)
                 : SingleChildScrollView(
-                    child: switch (_selectedTab) {
-                      _DashboardTab.timeline => SizedBox(
+                    primary: false,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
                         width: _canvasWidth,
-                        height: 852,
-                        child: Stack(
-                          children: [
-                            _buildHeader(context),
-                            _buildTabs(),
-                            ProjectTimelineTab(
-                              projectId: widget.projectId,
-                              isOwner: widget.isOwner,
-                              projectsRepo: _projectsRepo,
+                        child: switch (tab) {
+                          ProjectDashboardSection.collaboration =>
+                            const SizedBox.shrink(),
+                          ProjectDashboardSection.timeline => SizedBox(
+                            width: _canvasWidth,
+                            height: 852,
+                            child: Stack(
+                              children: [
+                                _buildHeader(context),
+                                _buildTabs(),
+                                ProjectTimelineTab(
+                                  key: ValueKey(
+                                    'timeline-$_settingsRevision-$_activityNavigationRevision',
+                                  ),
+                                  initialEventId:
+                                      _activityEventId ?? widget.initialEventId,
+                                  projectId: widget.projectId,
+                                  isOwner: _canEditCover,
+                                  projectsRepo: _projectsRepo,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      _DashboardTab.development => SizedBox(
-                        width: _canvasWidth,
-                        height: 760,
-                        child: Stack(
-                          children: [
-                            _buildHeader(context),
-                            _buildTabs(),
-                            ProjectDevelopmentTab(
-                              projectId: widget.projectId,
-                              isOwner: widget.isOwner,
-                              summary: _developmentSummary,
-                              onChanged: _reloadDevelopmentSummary,
-                              projectsRepo: _projectsRepo,
+                          ),
+                          ProjectDashboardSection.development => SizedBox(
+                            width: _canvasWidth,
+                            height: 760,
+                            child: Stack(
+                              children: [
+                                _buildHeader(context),
+                                _buildTabs(),
+                                ProjectDevelopmentTab(
+                                  projectId: widget.projectId,
+                                  isOwner: _canEditCover,
+                                  summary: _developmentSummary,
+                                  onChanged: _reloadDevelopmentSummary,
+                                  projectsRepo: _projectsRepo,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          ProjectDashboardSection.overview => SizedBox(
+                            width: _canvasWidth,
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 1400 + _overviewContentOffset,
+                                  child: Stack(
+                                    children: [
+                                      _buildHeader(context),
+                                      _buildTabs(),
+                                      _buildHero(),
+                                      Transform.translate(
+                                        offset: Offset(
+                                          0,
+                                          _overviewContentOffset,
+                                        ),
+                                        child: _buildDevelopmentProgress(),
+                                      ),
+                                      Transform.translate(
+                                        offset: Offset(
+                                          0,
+                                          _overviewContentOffset,
+                                        ),
+                                        child: _buildProjectBasics(),
+                                      ),
+                                      Transform.translate(
+                                        offset: Offset(
+                                          0,
+                                          _overviewContentOffset,
+                                        ),
+                                        child: _buildImpactSummary(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _buildLearningObjectives(),
+                                const SizedBox(
+                                  height: AppMetrics.pageBottomPadding,
+                                ),
+                                if (_participant)
+                                  const SizedBox(height: AppMetrics.sectionGap),
+                                if (_participant)
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: _sectionInset,
+                                    ),
+                                    child: _buildRecentActivity(),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        },
                       ),
-                      _DashboardTab.overview => SizedBox(
-                        width: _canvasWidth,
-                        height: 1716,
-                        child: Stack(
-                          children: [
-                            _buildHeader(context),
-                            _buildTabs(),
-                            _buildHero(),
-                            _buildDevelopmentProgress(),
-                            _buildProjectBasics(),
-                            _buildImpactSummary(),
-                            _buildLearningObjectives(),
-                            _buildRecentActivity(),
-                          ],
-                        ),
-                      ),
-                    },
+                    ),
                   ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCollaborationCanvas(BuildContext context) {
+    final platform = ScrollConfiguration.of(context).getPlatform(context);
+    final gutter = DesktopContentWidth.of(context) != null
+        ? 0.0
+        : switch (platform) {
+            TargetPlatform.macOS ||
+            TargetPlatform.windows ||
+            TargetPlatform.linux => AppScrollbar.gutterWidth,
+            _ => 0.0,
+          };
+    // Match the viewport and canvas scale used by the other dashboard tabs.
+    return Padding(
+      padding: EdgeInsetsDirectional.only(end: gutter),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scale = (constraints.maxWidth / _canvasWidth).clamp(0.0, 1.0);
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: _canvasWidth,
+              height: constraints.maxHeight / scale,
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 124,
+                    child: Stack(
+                      children: [_buildHeader(context), _buildTabs()],
+                    ),
+                  ),
+                  Expanded(
+                    child: ProjectCollaborationTab(
+                      readOnly: !_participant,
+                      refreshToken: _collaborationRevision,
+                      initialSection:
+                          _activityCollaborationSection ??
+                          widget.initialCollaborationSection,
+                      initialPostId: _activityPostId ?? widget.initialPostId,
+                      initialCommentId: widget.initialCommentId,
+                      bulletinRepo: widget.bulletinRepo,
+                      key: ValueKey(
+                        'collaboration-$_settingsRevision-$_activityNavigationRevision',
+                      ),
+                      projectId: widget.projectId,
+                      projectsRepo: _projectsRepo,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -198,119 +532,156 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
           left: 21,
           top: 19,
           width: 47,
-          height: 22,
+          height: 40,
+          key: const ValueKey('project-dashboard-done'),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
+            onTap: _exitProject,
             child: const Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Done',
                 style: TextStyle(
-                  color: _green,
-                  fontSize: 18,
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.primary,
+                  fontSize: AppTypography.buttonSize,
                   height: 1,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
         ),
         Positioned(
-          left: 89,
+          left: (_canvasWidth - 215) / 2,
           top: 19,
           width: 215,
           height: 40,
+          key: const ValueKey('project-dashboard-label'),
           child: const _ProjectNameTag(),
         ),
-        Positioned(
-          right: 29,
-          top: 19,
-          width: 35,
-          height: 35,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _openSettings,
-            child: SvgPicture.asset(
-              'assets/learning_module/dashboard_settings.svg',
-              width: 35,
-              height: 35,
+        if (_canEditCover)
+          Positioned(
+            right: 22.5,
+            top: 15,
+            width: 48,
+            height: 48,
+            key: const ValueKey('project-dashboard-settings'),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _openingSettings ? null : _openSettings,
+              child: Center(
+                child: _openingSettings
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : SvgPicture.asset(
+                        'assets/learning_module/dashboard_settings.svg',
+                        width: 35,
+                        height: 35,
+                      ),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 
-  Future<void> _openSettings() async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            if (widget.isOwner)
-              ListTile(
-                leading: const Icon(
-                  Icons.delete_outline,
-                  color: Color(0xFFD64545),
-                ),
-                title: const Text(
-                  'Delete Project',
-                  style: TextStyle(
-                    color: Color(0xFFD64545),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onTap: () => Navigator.of(context).pop('delete'),
-              )
-            else
-              const ListTile(
-                title: Text('No settings available.'),
-                enabled: false,
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (action == 'delete') await _deleteProject();
+  Future<void> _exitProject() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in [
+      'debug.projectId',
+      'debug.projectName',
+      'debug.projectTags',
+      'debug.isOwner',
+      'debug.page',
+    ]) {
+      await prefs.remove(key);
+    }
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeShellScreen()),
+      );
+    }
   }
 
-  Future<void> _deleteProject() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text('Delete Project?'),
-        content: const Text(
-          'This permanently deletes the project and all of its journal '
-          'entries, impacts and materials. This cannot be undone.',
+  Future<void> _openSettings() async {
+    if (_openingSettings || !_canEditCover) return;
+    setState(() => _openingSettings = true);
+    try {
+      final project = await _projectsRepo.getProjectById(widget.projectId);
+      if (!mounted) return;
+      if (project == null) {
+        showTopSnackBar(
+          context,
+          'Could not load project settings. Please try again.',
+          isError: true,
+        );
+        return;
+      }
+      final isOwner =
+          _canEditCover ||
+          (project.userId != null &&
+              project.userId == _projectsRepo.currentUserId);
+      if (!isOwner && !await _projectsRepo.canManageProject(widget.projectId)) {
+        if (!mounted) return;
+        showTopSnackBar(
+          context,
+          _projectsRepo.lastProjectAccessError ??
+              'Only the project owner or a project admin can change settings.',
+          isError: true,
+        );
+        return;
+      }
+      if (!mounted) return;
+      final changed = await pushAppRoute<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CreateProjectScreen(
+            existingProject: project,
+            projectsRepo: _projectsRepo,
+            challengeId: widget.challengeId,
+            initialObjectives: _learningObjectives,
+            onDelete: (settingsContext) =>
+                _deleteProject(confirmationContext: settingsContext),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Color(0xFFD64545)),
-            ),
-          ),
-        ],
-      ),
+      );
+      if (!mounted) return;
+      if (_projectDeleted) {
+        Navigator.of(context).pop(true);
+        return;
+      }
+      if (changed == true) setState(() => _settingsRevision++);
+      await _loadProject();
+    } catch (e) {
+      debugPrint('Open project settings: $e');
+      if (mounted)
+        showTopSnackBar(
+          context,
+          'Could not open project settings. Please try again.',
+          isError: true,
+        );
+    } finally {
+      if (mounted) setState(() => _openingSettings = false);
+    }
+  }
+
+  Future<void> _deleteProject({BuildContext? confirmationContext}) async {
+    final confirmed = await confirmProjectDeletion(
+      confirmationContext ?? context,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     final ok = await _projectsRepo.deleteProject(id: widget.projectId);
     if (!mounted) return;
     if (ok) {
+      _projectDeleted = true;
       showTopSnackBar(context, 'Project deleted');
       Navigator.of(context).pop(true);
     } else {
@@ -322,61 +693,163 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     final selected = _selectedTab;
     return Stack(
       children: [
-        const Positioned(
+        Positioned(
           left: 0,
           top: 121,
-          width: 402,
+          width: _canvasWidth,
           child: Divider(height: 1, thickness: 1, color: Color(0xFFEDEDED)),
         ),
         Positioned(
-          left: switch (selected) {
-            _DashboardTab.overview => 22,
-            _DashboardTab.development => 151,
-            _DashboardTab.timeline => 298,
-          },
-          top: 121,
-          width: selected == _DashboardTab.development ? 103 : 75,
-          child: const Divider(height: 1, thickness: 1, color: _green),
-        ),
-        Positioned(
-          left: 26,
+          left: 0,
           top: 95,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _selectedTab = _DashboardTab.overview),
-            child: _TabLabel(
-              'Overview',
-              active: selected == _DashboardTab.overview,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 158,
-          top: 95,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () =>
-                setState(() => _selectedTab = _DashboardTab.development),
-            child: _TabLabel(
-              'Development',
-              active: selected == _DashboardTab.development,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 306,
-          top: 95,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _selectedTab = _DashboardTab.timeline),
-            child: _TabLabel(
-              'Timeline',
-              active: selected == _DashboardTab.timeline,
-            ),
+          width: _canvasWidth,
+          height: 29,
+          child: Row(
+            children: [
+              for (final tab in ProjectDashboardSection.values.where(
+                (tab) =>
+                    _participant || tab != ProjectDashboardSection.timeline,
+              ))
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      setState(() {
+                        if (tab == ProjectDashboardSection.collaboration &&
+                            _selectedTab != tab)
+                          _collaborationRevision++;
+                        _selectedTab = tab;
+                        _visitedTabs.add(tab);
+                      });
+                      if (tab == ProjectDashboardSection.overview)
+                        _loadProject();
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: 18,
+                          child: Center(
+                            child: _TabLabel(switch (tab) {
+                              ProjectDashboardSection.overview => 'Overview',
+                              ProjectDashboardSection.development =>
+                                'Development',
+                              ProjectDashboardSection.collaboration =>
+                                'Collaboration',
+                              ProjectDashboardSection.timeline => 'Timeline',
+                            }, active: selected == tab),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          key: ValueKey('dashboard-tab-indicator-${tab.name}'),
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: selected == tab
+                                ? _green
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _editCover(ImageSource source) async {
+    if (_uploadingCover || (_imageUrl?.trim().isNotEmpty ?? false)) return;
+    if (!await _projectsRepo.canManageProject(widget.projectId)) return;
+    if (!mounted) return;
+    setState(() => _uploadingCover = true);
+    try {
+      final url = await MediaService().pickAndUploadImage(
+        source,
+        folder: 'project-images',
+      );
+      if (url == null) return;
+      final saved = await _projectsRepo.updateProjectImage(
+        id: widget.projectId,
+        projectImageUrl: url,
+      );
+      if (mounted) {
+        if (saved)
+          setState(() => _imageUrl = url);
+        else
+          showTopSnackBar(
+            context,
+            'Could not save the cover image. Please retry.',
+            isError: true,
+          );
+      }
+    } catch (_) {
+      if (mounted)
+        showTopSnackBar(
+          context,
+          'Could not update the cover image. Please retry.',
+          isError: true,
+        );
+    } finally {
+      if (mounted) setState(() => _uploadingCover = false);
+    }
+  }
+
+  Future<void> _openCover() async {
+    if (_uploadingCover) return;
+    final url = _imageUrl;
+    if (url != null && url.isNotEmpty) {
+      await showAppDialog<void>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    tooltip: 'Close image',
+                    onPressed: () => Navigator.pop(dialogContext),
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+                Flexible(
+                  child: InteractiveViewer(
+                    minScale: .5,
+                    maxScale: 5,
+                    child: Image.network(
+                      url,
+                      key: const ValueKey('expanded-project-cover'),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Text('Image could not be loaded.'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!_canEditCover) return;
+    if (MediaService.usesDesktopImageUpload) {
+      await _editCover(ImageSource.gallery);
+      return;
+    }
+    final source = await showProjectPhotoDialog(context);
+    if (source != null && mounted) await _editCover(source);
   }
 
   Widget _buildHero() {
@@ -384,88 +857,132 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     return Stack(
       children: [
         Positioned(
-          left: 52,
+          left: MediaQuery.sizeOf(context).width >= 1000
+              ? _sectionInset
+              : (_canvasWidth - 283) / 2,
           top: 140,
-          width: 283,
+          width: MediaQuery.sizeOf(context).width >= 1000 ? _sectionWidth : 283,
           height: 255,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: hasImage
-                ? Image.network(
-                    _imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _HeroPlaceholder(),
-                  )
-                : const _HeroPlaceholder(),
+          child: Semantics(
+            button: hasImage || _canEditCover,
+            label: hasImage ? 'View project cover' : 'Add project cover',
+            child: GestureDetector(
+              onTap: hasImage || _canEditCover ? _openCover : null,
+              child: ClipRRect(
+                key: const ValueKey('project-cover'),
+                borderRadius: BorderRadius.circular(11),
+                child: _uploadingCover
+                    ? const Center(child: CircularProgressIndicator())
+                    : hasImage
+                    ? Image.network(
+                        _imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _HeroPlaceholder(),
+                      )
+                    : _HeroPlaceholder(
+                        onAddPhoto: _canEditCover ? _openCover : null,
+                      ),
+              ),
+            ),
           ),
         ),
         Positioned(
-          left: 26,
+          left: _sectionInset,
           top: 438,
-          width: 349,
-          child: Text(
-            _projectName,
-            style: const TextStyle(
-              color: _text,
-              fontSize: 24,
-              height: 29 / 24,
-              fontWeight: FontWeight.w700,
-            ),
+          width: _sectionWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _projectName,
+                style: const TextStyle(
+                  fontFamily: AppTypography.headingFamily,
+                  color: _text,
+                  fontSize: AppTypography.displaySize,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (_description.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Text(
+                      _description,
+                      style: const TextStyle(fontSize: 15, height: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ],
     );
   }
 
+  Future<void> _openDevelopmentPhase(int index) async {
+    final page = switch (index) {
+      0 => DiscoveryDashboardPage(
+        projectId: widget.projectId,
+        isOwner: _canEditCover,
+        projectsRepo: _projectsRepo,
+      ),
+      1 => IdeatingDashboardPage(
+        projectId: widget.projectId,
+        isOwner: _canEditCover,
+        projectsRepo: _projectsRepo,
+      ),
+      2 => PrototypingDashboardPage(
+        projectId: widget.projectId,
+        isOwner: _canEditCover,
+        projectsRepo: _projectsRepo,
+      ),
+      _ => ImplementationDashboardPage(
+        projectId: widget.projectId,
+        isOwner: _canEditCover,
+        projectsRepo: _projectsRepo,
+      ),
+    };
+    await pushAppRoute(context, MaterialPageRoute(builder: (_) => page));
+    if (mounted) await _reloadDevelopmentSummary();
+  }
+
   Widget _buildDevelopmentProgress() {
     final furthestPhase = _developmentSummary.furthestPhase;
     return Stack(
       children: [
-        const Positioned(
-          left: 22,
+        Positioned(
+          left: _sectionInset,
           top: 498,
           child: _SectionTitle('Development Progress'),
         ),
-        const Positioned(
-          left: 64,
+        Positioned(
+          left: _sectionInset - 8,
           top: 553,
-          width: 256,
-          child: _ProgressTrack(),
-        ),
-        Positioned(
-          left: 1,
-          top: 553,
-          child: _ProgressBubble(
-            number: '1',
-            label: 'Discover',
-            active: furthestPhase >= 1,
-          ),
-        ),
-        Positioned(
-          left: 98,
-          top: 553,
-          child: _ProgressBubble(
-            number: '2',
-            label: 'Ideating',
-            active: furthestPhase >= 2,
-          ),
-        ),
-        Positioned(
-          left: 194,
-          top: 554,
-          child: _ProgressBubble(
-            number: '3',
-            label: 'Prototyping',
-            active: furthestPhase >= 3,
-          ),
-        ),
-        Positioned(
-          left: 291,
-          top: 554,
-          child: _ProgressBubble(
-            number: '4',
-            label: 'Implementation',
-            active: furthestPhase >= 4,
+          width: _sectionWidth,
+          height: 82,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: _canvasWidth - 12,
+              child: ProgressTracker(
+                key: const ValueKey('project-development-tracker'),
+                onSelected: _openDevelopmentPhase,
+                showCurrentIndicator: false,
+                labels: const [
+                  'Discover',
+                  'Ideating',
+                  'Prototyping',
+                  'Implementation',
+                ],
+                currentIndex: furthestPhase > 0 ? furthestPhase - 1 : null,
+                reachedIndices: {for (var i = 0; i < furthestPhase; i++) i},
+              ),
+            ),
           ),
         ),
       ],
@@ -475,119 +992,147 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
   Widget _buildProjectBasics() {
     return Stack(
       children: [
-        const Positioned(
-          left: 22,
+        Positioned(
+          left: _sectionInset,
           top: 648,
           child: _SectionTitle('Project Basics'),
         ),
-        const Positioned(
-          left: 25,
+        Positioned(
+          left: _sectionInset,
           top: 675,
-          width: 357,
+          width: _sectionWidth,
           child: Divider(height: 1, thickness: 1, color: Color(0xFFE1E1E1)),
         ),
-        const Positioned(left: 45, top: 684, child: _MetaHeading('Subject')),
         Positioned(
-          left: 58,
-          top: 711,
-          child: SvgPicture.asset(
-            'assets/project_setup/subject_environment.svg',
-            width: 43,
-            height: 43,
-          ),
-        ),
-        Positioned(left: 34, top: 762, width: 90, child: _MetaValue(_subject)),
-        const Positioned(
-          left: 170,
+          left: _sectionInset,
           top: 684,
-          child: _MetaHeading('Difficulty'),
-        ),
-        Positioned(
-          left: 181,
-          top: 721,
-          child: SvgPicture.asset(
-            'assets/project_setup/difficulty_moderate.svg',
-            width: 49,
-            height: 25,
+          width: _sectionWidth,
+          height: 120,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _BasicColumn(
+                  heading: 'Subject',
+                  icon: ProjectSettingIcon(
+                    kind: ProjectSettingKind.subject,
+                    value: _subject,
+                  ),
+                  value: _subject,
+                ),
+              ),
+              const VerticalDivider(
+                width: 16,
+                thickness: 1,
+                color: Color(0xFFEAEAEA),
+              ),
+              Expanded(
+                child: _BasicColumn(
+                  heading: 'Difficulty',
+                  icon: ProjectSettingIcon(
+                    kind: ProjectSettingKind.difficulty,
+                    value: _difficulty,
+                  ),
+                  value: _difficulty?.trim().isNotEmpty == true
+                      ? _difficulty!
+                      : 'Not set',
+                ),
+              ),
+              const VerticalDivider(
+                width: 16,
+                thickness: 1,
+                color: Color(0xFFEAEAEA),
+              ),
+              Expanded(
+                child: _BasicColumn(
+                  heading: 'Scale',
+                  icon: ProjectSettingIcon(
+                    kind: ProjectSettingKind.scale,
+                    value: _projectScale,
+                  ),
+                  value: _projectScale?.trim().isNotEmpty == true
+                      ? _projectScale!
+                      : 'Not set',
+                ),
+              ),
+            ],
           ),
         ),
         Positioned(
-          left: 170,
-          top: 762,
-          width: 72,
-          child: _MetaValue(_difficulty ?? 'Not set'),
-        ),
-        const Positioned(left: 317, top: 684, child: _MetaHeading('Scale')),
-        Positioned(
-          left: 317,
-          top: 714,
-          child: SvgPicture.asset(
-            'assets/project_setup/scale_small.svg',
-            width: 43,
-            height: 43,
-          ),
-        ),
-        Positioned(
-          left: 310,
-          top: 762,
-          width: 58,
-          child: _MetaValue(_projectScale ?? 'Not set'),
-        ),
-        const Positioned(
-          left: 25,
+          left: _sectionInset,
           top: 807,
-          width: 357,
+          width: _sectionWidth,
           child: Divider(height: 1, thickness: 1, color: Color(0xFFE1E1E1)),
         ),
         Positioned(
-          left: 10,
+          left: _sectionInset,
           top: 831,
-          child: _StatCard(
-            icon: const _JournalCardIcon(),
-            title: 'Journal Entries',
-            value: '${_developmentSummary.totalEntries}',
-            caption: 'Across all phases',
-          ),
-        ),
-        Positioned(
-          left: 141,
-          top: 831,
-          child: _StatCard(
-            icon: const _MoneyCardIcon(),
-            title: 'Materials & Cost',
-            value: _formatDashboardCurrency(_materialsTotal),
-            caption:
-                '$_materialsCount ${_materialsCount == 1 ? 'item' : 'items'}',
-            showChevron: true,
-            onTap: () async {
-              final changed = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => MaterialsCostPage(
-                    projectId: widget.projectId,
-                    projectName: _projectName,
-                    tags: _tags,
-                    isOwner: widget.isOwner,
-                  ),
-                ),
-              );
-              if (changed == true) {
-                final materials = await _projectsRepo.getMaterialsCost(
+          width: _sectionWidth,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _StatCard(
+                icon: const _JournalCardIcon(),
+                title: 'Journal Entries',
+                value: '${_developmentSummary.totalEntries}',
+                caption: 'Across all phases',
+              ),
+              _StatCard(
+                icon: const _MoneyCardIcon(),
+                title: 'Materials & Cost',
+                value: _formatDashboardCurrency(_materialsTotal),
+                caption:
+                    '$_materialsCount ${_materialsCount == 1 ? 'item' : 'items'}',
+                showChevron: true,
+                onTap: () async {
+                  final changed = await pushAppRoute<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MaterialsCostPage(
+                        projectId: widget.projectId,
+                        projectName: _projectName,
+                        tags: _tags,
+                        isOwner: _canEditCover,
+                        readOnly: !_canEditCover,
+                      ),
+                    ),
+                  );
+                  if (changed == true) {
+                    final materials = await _projectsRepo.getMaterialsCost(
+                      widget.projectId,
+                    );
+                    if (!mounted) return;
+                    setState(
+                      () => _updateMaterialsSummary(materials ?? const []),
+                    );
+                  }
+                },
+              ),
+              ListenableBuilder(
+                listenable: ProjectActivity.meter(
                   widget.projectId,
-                );
-                if (!mounted) return;
-                setState(() => _updateMaterialsSummary(materials ?? const []));
-              }
-            },
-          ),
-        ),
-        const Positioned(
-          left: 272,
-          top: 831,
-          child: _StatCard(
-            icon: _TimeCardIcon(),
-            title: 'Time Spent',
-            value: '12.4 hrs',
-            caption: 'Across all phases',
+                  _projectsRepo,
+                ),
+                builder: (context, _) {
+                  final time = ProjectActivity.meter(
+                    widget.projectId,
+                    _projectsRepo,
+                  );
+                  return _StatCard(
+                    icon: _TimeCardIcon(),
+                    title: 'Time Spent',
+                    value: time.available
+                        ? formatProjectTime(time.displaySeconds)
+                        : '—',
+                    caption: time.available
+                        ? (time.participant
+                              ? 'Your active time'
+                              : 'Total participant time')
+                        : 'Time tracking unavailable',
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ],
@@ -598,10 +1143,10 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     return Stack(
       children: [
         Positioned(
-          left: 22,
+          left: _sectionInset,
           top: 987,
-          width: 347,
-          height: 340,
+          width: _sectionWidth,
+          height: 380,
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -610,15 +1155,15 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             ),
           ),
         ),
-        const Positioned(
-          left: 50,
+        Positioned(
+          left: _sectionInset + 28,
           top: 999,
           child: _SectionTitle('Impact Summary'),
         ),
         Positioned(
-          left: 50,
+          left: _sectionInset + 28,
           top: 1029,
-          width: 295,
+          width: _sectionWidth - 56,
           height: 115,
           child: Container(
             decoration: BoxDecoration(
@@ -626,7 +1171,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
               border: Border.all(color: const Color(0xFFE2E2E2)),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.fromLTRB(18, 12, 18, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,9 +1179,10 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                   Text(
                     'Ecological Impact',
                     style: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 12,
-                      height: 18 / 12,
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.textSecondary,
+                      fontSize: AppTypography.helperSize,
+                      height: 1.4,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -645,12 +1191,13 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '0.00',
+                        _impactTotal.toStringAsFixed(2),
                         style: TextStyle(
+                          fontFamily: AppTypography.headingFamily,
                           color: _green,
-                          fontSize: 40,
+                          fontSize: AppTypography.displaySize,
                           height: 1,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       SizedBox(width: 8),
@@ -659,10 +1206,11 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                         child: Text(
                           'EcoPoints',
                           style: TextStyle(
-                            color: _green,
-                            fontSize: 20,
+                            fontFamily: AppTypography.bodyFamily,
+                            color: AppColors.textPrimary,
+                            fontSize: AppTypography.bodySize,
                             height: 1,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -670,53 +1218,82 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                   ),
                   Spacer(),
                   Text(
-                    'From 0 implementation entries',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                    'From ${_impacts.length} recorded impact entries',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
         ),
-        const Positioned(
-          left: 39,
+        Positioned(
+          left: _sectionInset + 16,
           top: 1160,
           child: Text(
             'Impact Category Breakdown',
             style: TextStyle(
-              color: Colors.black54,
-              fontSize: 12,
-              height: 18 / 14,
+              fontFamily: AppTypography.bodyFamily,
+              color: AppColors.textSecondary,
+              fontSize: AppTypography.helperSize,
+              height: 1.4,
               fontWeight: FontWeight.w400,
             ),
           ),
         ),
-        const Positioned(
-          left: 37,
+        Positioned(
+          left: _sectionInset + 16,
           top: 1194,
-          child: _ImpactLabel(label: 'Energy', icon: _EnergyImpactIcon()),
-        ),
-        const Positioned(
-          left: 103,
-          top: 1194,
-          child: _ImpactLabel(label: 'Waste', icon: _WasteImpactIcon()),
-        ),
-        const Positioned(
-          left: 166,
-          top: 1194,
-          child: _ImpactLabel(label: 'Water', icon: _WaterImpactIcon()),
-        ),
-        const Positioned(
-          left: 226,
-          top: 1194,
-          child: _ImpactLabel(label: 'BioGrowth', icon: _BioImpactIcon()),
-        ),
-        const Positioned(
-          left: 295,
-          top: 1194,
-          child: _ImpactLabel(
-            label: 'Educational',
-            icon: _EducationImpactIcon(),
+          width: _sectionWidth - 32,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: _ImpactLabel(
+                  label: 'Energy',
+                  points: _categoryPoints('Energy'),
+                  measurements: _impactTotals.measurementsFor('Energy'),
+                  icon: _EnergyImpactIcon(),
+                ),
+              ),
+              Expanded(
+                child: _ImpactLabel(
+                  label: 'Waste',
+                  points: _categoryPoints('Waste'),
+                  measurements: _impactTotals.measurementsFor('Waste'),
+                  icon: _WasteImpactIcon(),
+                ),
+              ),
+              Expanded(
+                child: _ImpactLabel(
+                  label: 'Water',
+                  points: _categoryPoints('Water'),
+                  measurements: _impactTotals.measurementsFor('Water'),
+                  icon: _WaterImpactIcon(),
+                ),
+              ),
+              Expanded(
+                child: _ImpactLabel(
+                  label: 'Biological Growth',
+                  points: _categoryPoints('Biological Growth'),
+                  measurements: _impactTotals.measurementsFor(
+                    'Biological Growth',
+                  ),
+                  icon: _BioImpactIcon(),
+                ),
+              ),
+              Expanded(
+                child: _ImpactLabel(
+                  label: 'Education',
+                  points: _categoryPoints('Education'),
+                  measurements: _impactTotals.measurementsFor('Education'),
+                  icon: _EducationImpactIcon(),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -724,160 +1301,179 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
   }
 
   Widget _buildLearningObjectives() {
-    final objectives = widget.learningObjectives;
-    return Stack(
-      children: [
-        Positioned(
-          left: 22,
-          top: 1360,
-          width: 347,
-          height: 143,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE0E0E0)),
-              borderRadius: BorderRadius.circular(5),
-            ),
+    final objectives = _learningObjectives;
+    return Container(
+      width: _sectionWidth,
+      padding: const EdgeInsets.fromLTRB(22, 12, 22, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionTitle('Learning Objectives'),
+          const SizedBox(height: 16),
+          if (objectives.isEmpty)
+            const Text(
+              'No learning objectives selected.',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                color: AppColors.textSecondary,
+              ),
+            )
+          else
+            for (var index = 0; index < objectives.length; index++) ...[
+              if (index > 0) const SizedBox(height: 16),
+              _ObjectivePreview(
+                number: index + 1,
+                objective: objectives[index],
+              ),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openRecentEntry(JournalEntry entry) async {
+    if (await openFreeNotesIfNeeded(context, entry, _projectsRepo)) {
+      if (mounted) await _loadProject();
+      return;
+    }
+
+    final page = switch (normalizePhase(entry.progress)) {
+      'discover'
+          when !journalEntryIsComplete(entry) &&
+              (_canEditCover ||
+                  (entry.authorId != null &&
+                      entry.authorId ==
+                          AuthService.instance.currentUser?.id)) =>
+        DiscoveryObservationEntryPage(
+          projectId: widget.projectId,
+          projectsRepo: _projectsRepo,
+          returnToPhaseDashboard: true,
+          entry: entry,
+        ),
+      'discover' => DiscoveryEntryPreviewPage(entry: entry),
+      'ideating' => IdeatingEntryPreviewPage(entry: entry),
+      'prototyping'
+          when entry.content.whereType<Map>().any(
+            (row) => row['entryType'] != null,
+          ) =>
+        PrototypingJournalEntryPage(
+          projectId: widget.projectId,
+          projectsRepo: _projectsRepo,
+          entry: entry,
+          readOnly:
+              journalEntryIsComplete(entry) ||
+              (!_canEditCover &&
+                  entry.authorId != AuthService.instance.currentUser?.id),
+        ),
+      'prototyping' => PrototypingDashboardPage(
+        projectId: widget.projectId,
+        isOwner: _canEditCover,
+        projectsRepo: _projectsRepo,
+      ),
+      'implementation' => ImplementationPreviewPage(
+        entry: entry,
+        projectId: widget.projectId,
+        projectsRepo: _projectsRepo,
+      ),
+      _ => JournalEntryEditorScreen(
+        projectId: widget.projectId,
+        projectName: _projectName,
+        tags: _tags,
+        entryId: entry.id,
+        initialTitle: entry.title,
+        initialContent: entry.content,
+        initialProgress: entry.progress,
+        readOnly: true,
+      ),
+    };
+    await pushAppRoute(context, MaterialPageRoute(builder: (_) => page));
+    if (mounted) await _loadProject();
+  }
+
+  Future<void> _openActivity(ProjectActivityEvent activity) async {
+    if (activity.kind.startsWith('impact_')) {
+      await pushAppRoute(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ImpactLogScreen(
+            projectId: widget.projectId,
+            projectName: _projectName,
+            isOwner: _canEditCover,
           ),
         ),
-        const Positioned(
-          left: 47,
-          top: 1371,
-          child: _SectionTitle('Learning Objectives'),
+      );
+      if (mounted) await _loadProject();
+      return;
+    }
+    if (activity.journalEntryId != null) {
+      final entries = await _projectsRepo.getJournalEntries(
+        projectId: widget.projectId,
+      );
+      if (!mounted) return;
+      final matches = (entries ?? <JournalEntry>[]).where(
+        (e) => e.id == activity.journalEntryId,
+      );
+      if (matches.isNotEmpty) {
+        await _openRecentEntry(matches.first);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This entry is no longer available.')),
+        );
+      }
+      return;
+    }
+    if (activity.kind.startsWith('materials') ||
+        activity.kind == 'budget_updated') {
+      await pushAppRoute(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MaterialsCostPage(
+            projectId: widget.projectId,
+            projectName: _projectName,
+            tags: _tags,
+            isOwner: _canEditCover,
+          ),
         ),
-        if (objectives.isEmpty)
-          const Positioned(
-            left: 45,
-            top: 1408,
-            width: 300,
-            child: Text(
-              'No learning objectives selected.',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
-            ),
-          )
-        else
-          for (var index = 0; index < objectives.take(2).length; index++)
-            _ObjectivePreview(
-              top: index == 0 ? 1400 : 1447,
-              number: index + 1,
-              objective: objectives[index],
-            ),
-      ],
-    );
+      );
+      if (mounted) await _loadProject();
+      return;
+    }
+    final section = activity.kind.startsWith('timeline')
+        ? ProjectDashboardSection.timeline
+        : activity.kind.startsWith('member') ||
+              activity.kind.startsWith('forum')
+        ? ProjectDashboardSection.collaboration
+        : ProjectDashboardSection.overview;
+    setState(() {
+      _activityNavigationRevision++;
+      _activityEventId =
+          activity.kind.startsWith('timeline') &&
+              activity.kind != 'timeline_removed'
+          ? activity.sourceId
+          : null;
+      _activityCollaborationSection = activity.kind.startsWith('member')
+          ? CollaborationSection.members
+          : CollaborationSection.bulletin;
+      _activityPostId = activity.kind.startsWith('forum')
+          ? activity.sourceId
+          : null;
+      _selectedTab = section;
+      _visitedTabs.add(section);
+    });
   }
 
-  JournalEntry? _mostRecentEntry() {
-    final entries = _developmentSummary.entries;
-    if (entries.isEmpty) return null;
-    final sorted = [...entries]
-      ..sort((a, b) {
-        final da =
-            a.updatedAt ??
-            a.createdAt ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final db =
-            b.updatedAt ??
-            b.createdAt ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return db.compareTo(da);
-      });
-    return sorted.first;
-  }
-
-  String _phaseLabelOf(JournalEntry entry) {
-    final key = normalizePhase(entry.progress);
-    final index = phaseKeys.indexOf(key);
-    return index >= 0 ? phaseLabels[index] : 'Entry';
-  }
-
-  Widget _buildRecentActivity() {
-    final entry = _mostRecentEntry();
-    return Stack(
-      children: [
-        const Positioned(
-          left: 22,
-          top: 1536,
-          child: _SectionTitle('Recent Activity'),
-        ),
-        Positioned(
-          left: 22,
-          top: 1568,
-          width: _canvasWidth - 44,
-          child: entry == null
-              ? const Text(
-                  'No activity yet.',
-                  style: TextStyle(color: Colors.black45, fontSize: 13),
-                )
-              : Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFFE5E5E5)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.title.isEmpty
-                                  ? 'Untitled entry'
-                                  : entry.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: _text,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              () {
-                                final date = entry.updatedAt ?? entry.createdAt;
-                                return date == null
-                                    ? ''
-                                    : DateFormat(
-                                        'MMMM d, yyyy',
-                                      ).format(date.toLocal());
-                              }(),
-                              style: const TextStyle(
-                                color: Color(0xFFA1A1A1),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _green.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _phaseLabelOf(entry).toUpperCase(),
-                          style: const TextStyle(
-                            color: _green,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: .5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-        ),
-      ],
-    );
-  }
+  Widget _buildRecentActivity() => ProjectActivityFeed(
+    projectId: widget.projectId,
+    repo: _projectsRepo,
+    entries: _developmentSummary.entries,
+    onOpen: _openActivity,
+  );
 }
 
 class _ProjectNameTag extends StatelessWidget {
@@ -897,10 +1493,11 @@ class _ProjectNameTag extends StatelessWidget {
         maxLines: 1,
         textAlign: TextAlign.center,
         style: TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: Colors.white,
-          fontSize: 16,
+          fontSize: AppTypography.bodySize,
           height: 1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1.1,
         ),
       ),
@@ -918,29 +1515,55 @@ class _TabLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
+      textAlign: TextAlign.center,
+      maxLines: 1,
       style: TextStyle(
-        color: active ? _ProjectDashboardState._text : Colors.black,
-        fontSize: 14,
-        height: 18 / 14,
-        fontWeight: FontWeight.w700,
+        fontFamily: AppTypography.bodyFamily,
+        color: active ? _ProjectDashboardState._green : Colors.grey,
+        fontSize: AppTypography.helperSize,
+        height: 1.4,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
 }
 
 class _HeroPlaceholder extends StatelessWidget {
-  const _HeroPlaceholder();
+  const _HeroPlaceholder({this.onAddPhoto});
+  final VoidCallback? onAddPhoto;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.avatarBackground,
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.landscape_outlined,
-        size: 42,
-        color: AppColors.avatarIcon,
-      ),
+      child: onAddPhoto == null
+          ? const Icon(
+              Icons.landscape_outlined,
+              size: 42,
+              color: AppColors.avatarIcon,
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.landscape_outlined,
+                  size: 42,
+                  color: AppColors.avatarIcon,
+                ),
+                const SizedBox(height: 10),
+                const Text('Tap to add a photo', style: AppTypography.helper),
+                const SizedBox(height: 6),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'You can change this photo later in Project Settings.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.helper,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -952,101 +1575,41 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: _ProjectDashboardState._text,
-        fontSize: 14,
-        height: 17 / 14,
-        fontWeight: FontWeight.w700,
-      ),
-    );
+    return Text(text, style: AppTypography.sectionTitle);
   }
 }
 
-class _ProgressBubble extends StatelessWidget {
-  const _ProgressBubble({
-    required this.number,
-    required this.label,
-    this.active = false,
+class _BasicColumn extends StatelessWidget {
+  const _BasicColumn({
+    required this.heading,
+    required this.icon,
+    required this.value,
   });
-
-  final String number;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 92,
-      height: 45,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 29,
-            top: 0,
-            width: 34,
-            height: 34,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: active ? _ProjectDashboardState._green : Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: _ProjectDashboardState._green),
-              ),
-              child: Text(
-                number,
-                style: TextStyle(
-                  color: active ? Colors.white : _ProjectDashboardState._text,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            top: 38,
-            width: 92,
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.visible,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, height: 1),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressTrack extends StatelessWidget {
-  const _ProgressTrack();
+  final String heading;
+  final Widget icon;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 34,
-      child: CustomPaint(painter: _ProgressTrackPainter(), size: Size.infinite),
+    return Column(
+      children: [
+        _MetaHeading(heading),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 43,
+          child: Center(
+            child: SizedBox(
+              width: 49,
+              height: 43,
+              child: FittedBox(fit: BoxFit.scaleDown, child: icon),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _MetaValue(value),
+      ],
     );
   }
-}
-
-class _ProgressTrackPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _ProjectDashboardState._green
-      ..strokeWidth = 1;
-    final y = size.height / 2;
-    canvas.drawLine(Offset.zero.translate(0, y), Offset(size.width, y), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _MetaHeading extends StatelessWidget {
@@ -1059,10 +1622,10 @@ class _MetaHeading extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: _ProjectDashboardState._text,
-        fontSize: 14,
-        height: 18 / 14,
-        fontWeight: FontWeight.w700,
+        color: Color(0xFFA5A5A5),
+        fontSize: AppTypography.helperSize,
+        height: 1.4,
+        fontWeight: FontWeight.w400,
       ),
     );
   }
@@ -1081,9 +1644,10 @@ class _MetaValue extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
       style: const TextStyle(
+        fontFamily: AppTypography.bodyFamily,
         color: _ProjectDashboardState._text,
-        fontSize: 13,
-        height: 18 / 13,
+        fontSize: AppTypography.bodySize,
+        height: 1.4,
         fontWeight: FontWeight.w400,
       ),
     );
@@ -1110,9 +1674,16 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final card = Container(
-      width: 111,
+      width:
+          (((JournalPageLayout.widthFor(context, mobileWidth: 402) - 44).clamp(
+                        0.0,
+                        620.0,
+                      ) -
+                      32) /
+                  3)
+              .clamp(0.0, 148.0),
       height: 122,
-      padding: const EdgeInsets.fromLTRB(8, 14, 8, 10),
+      padding: const EdgeInsets.fromLTRB(6, 12, 6, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFDED7D7)),
@@ -1127,15 +1698,16 @@ class _StatCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          SizedBox(width: 34, height: 34, child: icon),
-          const SizedBox(height: 13),
+          SizedBox(width: 32, height: 32, child: icon),
+          const SizedBox(height: 11),
           Text(
             title,
             maxLines: 1,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF838383),
-              fontSize: 10,
+              fontFamily: AppTypography.bodyFamily,
+              color: AppColors.textSecondary,
+              fontSize: AppTypography.helperSize,
               height: 1,
               fontWeight: FontWeight.w400,
               letterSpacing: 0.2,
@@ -1146,37 +1718,53 @@ class _StatCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: _ProjectDashboardState._green,
-                  fontSize: 14,
-                  height: 1,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.28,
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: _ProjectDashboardState._green,
+                    fontSize: AppTypography.bodySize,
+                    height: 1,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.28,
+                  ),
                 ),
               ),
-              if (showChevron) ...[
-                const SizedBox(width: 13),
-                const Icon(
-                  Icons.chevron_right,
-                  color: Color(0xFF838383),
-                  size: 13,
-                ),
-              ],
             ],
           ),
-          const SizedBox(height: 9),
-          Text(
-            caption,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF838383),
-              fontSize: 8,
-              height: 1,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.16,
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 13,
+            width: double.infinity,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  caption,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: AppColors.textSecondary,
+                    fontSize: AppTypography.helperSize,
+                    height: 1,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 0.16,
+                  ),
+                ),
+                if (showChevron)
+                  Positioned(
+                    right: 6,
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFF838383),
+                      size: 13,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -1196,7 +1784,14 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ImpactLabel extends StatelessWidget {
-  const _ImpactLabel({required this.label, required this.icon});
+  const _ImpactLabel({
+    required this.label,
+    required this.icon,
+    required this.points,
+    this.measurements = const [],
+  });
+  final double points;
+  final List<String> measurements;
 
   final String label;
   final Widget icon;
@@ -1204,24 +1799,32 @@ class _ImpactLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 58,
+      width: double.infinity,
       child: Column(
         children: [
           SizedBox(width: 31, height: 31, child: icon),
           const SizedBox(height: 12),
-          Text(
-            label,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.black54, fontSize: 10),
+          SizedBox(
+            height: 34,
+            child: Text(
+              label,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                color: AppColors.textSecondary,
+                fontSize: AppTypography.helperSize,
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
-          const Text(
-            '20',
+          const SizedBox(height: 8),
+          Text(
+            points.toStringAsFixed(points == points.roundToDouble() ? 0 : 2),
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _ProjectDashboardState._green,
-              fontSize: 15,
-              height: 18 / 15,
+              fontSize: AppTypography.bodySize,
+              height: 1.4,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -1229,11 +1832,23 @@ class _ImpactLabel extends StatelessWidget {
             'EcoPoints',
             maxLines: 1,
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _ProjectDashboardState._green,
-              fontSize: 10,
-              height: 18 / 10,
+              fontSize: AppTypography.captionSize,
+              height: 1.4,
             ),
           ),
+          if (measurements.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                measurements.join(' · '),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.helper,
+              ),
+            ),
         ],
       ),
     );
@@ -1254,7 +1869,24 @@ class _MoneyCardIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _MoneyIconPainter());
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: _ProjectDashboardState._green, width: 1.3),
+      ),
+      child: const Center(
+        child: Text(
+          '\$',
+          style: TextStyle(
+            fontFamily: AppTypography.headingFamily,
+            color: _ProjectDashboardState._green,
+            fontSize: AppTypography.sectionTitleSize,
+            height: 1,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1272,7 +1904,10 @@ class _EnergyImpactIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _EnergyIconPainter());
+    return SvgPicture.asset(
+      'assets/project_setup/impact_energy.svg',
+      fit: BoxFit.contain,
+    );
   }
 }
 
@@ -1281,7 +1916,10 @@ class _WasteImpactIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _WasteIconPainter());
+    return SvgPicture.asset(
+      'assets/project_setup/impact_waste.svg',
+      fit: BoxFit.contain,
+    );
   }
 }
 
@@ -1290,7 +1928,10 @@ class _WaterImpactIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _WaterIconPainter());
+    return SvgPicture.asset(
+      'assets/project_setup/impact_water.svg',
+      fit: BoxFit.contain,
+    );
   }
 }
 
@@ -1299,7 +1940,10 @@ class _BioImpactIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _BioIconPainter());
+    return SvgPicture.asset(
+      'assets/project_setup/impact_bio.svg',
+      fit: BoxFit.contain,
+    );
   }
 }
 
@@ -1308,7 +1952,10 @@ class _EducationImpactIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _EducationIconPainter());
+    return SvgPicture.asset(
+      'assets/project_setup/impact_education.svg',
+      fit: BoxFit.contain,
+    );
   }
 }
 
@@ -1333,65 +1980,24 @@ class _JournalIconPainter extends _LineIconPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final s = stroke;
+    final outline = stroke;
     final rect = Rect.fromLTWH(
-      size.width * .31,
+      size.width * .21,
       size.height * .13,
-      size.width * .38,
+      size.width * .58,
       size.height * .74,
     );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(2)),
-      s,
+      RRect.fromRectAndRadius(rect, Radius.circular(size.shortestSide * .10)),
+      outline,
     );
-    canvas.drawLine(
-      Offset(size.width * .42, size.height * .18),
-      Offset(size.width * .42, size.height * .36),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .18),
-      Offset(size.width * .5, size.height * .36),
-      s,
-    );
-  }
-}
-
-class _MoneyIconPainter extends _LineIconPainter {
-  _MoneyIconPainter() : super(_ProjectDashboardState._green);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = stroke;
-    canvas.drawCircle(size.center(Offset.zero), size.shortestSide * .43, s);
-    final centerX = size.width / 2;
-    canvas.drawLine(
-      Offset(centerX, size.height * .28),
-      Offset(centerX, size.height * .72),
-      s,
-    );
-    canvas.drawArc(
-      Rect.fromCenter(
-        center: Offset(centerX, size.height * .4),
-        width: size.width * .23,
-        height: size.height * .22,
-      ),
-      1.4,
-      3.2,
-      false,
-      s,
-    );
-    canvas.drawArc(
-      Rect.fromCenter(
-        center: Offset(centerX, size.height * .6),
-        width: size.width * .23,
-        height: size.height * .22,
-      ),
-      -1.8,
-      3.2,
-      false,
-      s,
-    );
+    final bookmark = Path()
+      ..moveTo(rect.left + rect.width * .19, rect.top)
+      ..lineTo(rect.left + rect.width * .19, rect.top + rect.height * .35)
+      ..lineTo(rect.left + rect.width * .285, rect.top + rect.height * .29)
+      ..lineTo(rect.left + rect.width * .38, rect.top + rect.height * .35)
+      ..lineTo(rect.left + rect.width * .38, rect.top);
+    canvas.drawPath(bookmark, stroke..strokeWidth = 1);
   }
 }
 
@@ -1408,254 +2014,51 @@ class _TimeIconPainter extends _LineIconPainter {
   }
 }
 
-class _EnergyIconPainter extends _LineIconPainter {
-  _EnergyIconPainter() : super(const Color(0xFFFFC329));
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width * .55, size.height * .05)
-      ..lineTo(size.width * .18, size.height * .55)
-      ..lineTo(size.width * .47, size.height * .55)
-      ..lineTo(size.width * .36, size.height * .95)
-      ..lineTo(size.width * .82, size.height * .39)
-      ..lineTo(size.width * .52, size.height * .39)
-      ..close();
-    canvas.drawPath(path, stroke);
-  }
-}
-
-class _WasteIconPainter extends _LineIconPainter {
-  _WasteIconPainter() : super(_ProjectDashboardState._green);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = stroke;
-    canvas.drawLine(
-      Offset(size.width * .25, size.height * .25),
-      Offset(size.width * .75, size.height * .25),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .42, size.height * .12),
-      Offset(size.width * .58, size.height * .12),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .12),
-      Offset(size.width * .5, size.height * .25),
-      s,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          size.width * .32,
-          size.height * .3,
-          size.width * .36,
-          size.height * .58,
-        ),
-        const Radius.circular(2),
-      ),
-      s,
-    );
-  }
-}
-
-class _WaterIconPainter extends _LineIconPainter {
-  _WaterIconPainter() : super(const Color(0xFF0F6AD9));
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width * .5, size.height * .09)
-      ..cubicTo(
-        size.width * .25,
-        size.height * .39,
-        size.width * .22,
-        size.height * .55,
-        size.width * .22,
-        size.height * .66,
-      )
-      ..cubicTo(
-        size.width * .22,
-        size.height * .84,
-        size.width * .35,
-        size.height * .94,
-        size.width * .5,
-        size.height * .94,
-      )
-      ..cubicTo(
-        size.width * .65,
-        size.height * .94,
-        size.width * .78,
-        size.height * .84,
-        size.width * .78,
-        size.height * .66,
-      )
-      ..cubicTo(
-        size.width * .78,
-        size.height * .55,
-        size.width * .75,
-        size.height * .39,
-        size.width * .5,
-        size.height * .09,
-      );
-    canvas.drawPath(path, stroke);
-  }
-}
-
-class _BioIconPainter extends _LineIconPainter {
-  _BioIconPainter() : super(_ProjectDashboardState._green);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = stroke;
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .88),
-      Offset(size.width * .5, size.height * .36),
-      s,
-    );
-    canvas.drawArc(
-      Rect.fromLTWH(
-        size.width * .17,
-        size.height * .08,
-        size.width * .33,
-        size.height * .28,
-      ),
-      0,
-      3.2,
-      false,
-      s,
-    );
-    canvas.drawArc(
-      Rect.fromLTWH(
-        size.width * .5,
-        size.height * .08,
-        size.width * .33,
-        size.height * .28,
-      ),
-      3.1,
-      3.2,
-      false,
-      s,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width * .22, size.height * .88)
-        ..lineTo(size.width * .78, size.height * .88)
-        ..lineTo(size.width * .68, size.height * .55)
-        ..lineTo(size.width * .32, size.height * .55)
-        ..close(),
-      s,
-    );
-  }
-}
-
-class _EducationIconPainter extends _LineIconPainter {
-  _EducationIconPainter() : super(const Color(0xFFAD45E6));
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = stroke;
-    canvas.drawRect(
-      Rect.fromLTWH(
-        size.width * .16,
-        size.height * .18,
-        size.width * .68,
-        size.height * .64,
-      ),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .28, size.height * .91),
-      Offset(size.width * .72, size.height * .91),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .82),
-      Offset(size.width * .5, size.height * .91),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .6, size.height * .32),
-      Offset(size.width * .41, size.height * .58),
-      s,
-    );
-    canvas.drawCircle(
-      Offset(size.width * .4, size.height * .61),
-      size.width * .06,
-      s,
-    );
-    canvas.drawCircle(
-      Offset(size.width * .63, size.height * .29),
-      size.width * .05,
-      s,
-    );
-  }
-}
-
 String _formatDashboardCurrency(double value) =>
     '\$${value.toStringAsFixed(2)}';
 
 class _ObjectivePreview extends StatelessWidget {
-  const _ObjectivePreview({
-    required this.top,
-    required this.number,
-    required this.objective,
-  });
-
-  final double top;
+  const _ObjectivePreview({required this.number, required this.objective});
   final int number;
   final ProjectObjectiveSummary objective;
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: 0,
-      top: top,
-      width: _ProjectDashboardState._canvasWidth,
-      height: 38,
-      child: Stack(
-        children: [
-          Positioned(
-            left: 45,
-            top: 5,
-            width: 19,
-            height: 19,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: _ProjectDashboardState._green,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Text(
-                '$number',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _ProjectDashboardState._green,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: Text(
+            '$number',
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              color: Colors.white,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w400,
             ),
           ),
-          Positioned(
-            left: 78,
-            top: 0,
-            width: 291,
-            child: Text(
-              objective.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _ProjectDashboardState._text,
-                fontSize: 12,
-                height: 17 / 12,
-                fontWeight: FontWeight.w400,
-              ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            objective.description,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              color: _ProjectDashboardState._text,
+              fontSize: AppTypography.bodySize,
+              height: 1.4,
+              fontWeight: FontWeight.w400,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

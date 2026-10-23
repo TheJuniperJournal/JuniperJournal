@@ -1,7 +1,10 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/db/models/user_profile.dart';
-import 'package:juniper_journal/src/features/home_page/pages/friend_projects.dart';
+import 'package:juniper_journal/src/features/home_page/pages/public_user_profile.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 
 enum ConnectionsTab { friends, followers }
@@ -72,11 +75,7 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
         ),
         title: Text(
           _tab == ConnectionsTab.friends ? 'Friends' : 'Followers',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTypography.pageTitle,
         ),
         centerTitle: true,
       ),
@@ -88,7 +87,7 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search by name or username',
+                  hintText: '',
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -122,7 +121,7 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
                 },
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppMetrics.labelGap),
             Expanded(
               child: data.isEmpty
                   ? Center(
@@ -132,7 +131,10 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
                                   ? 'No friends yet.'
                                   : 'No followers yet.')
                             : 'No results found.',
-                        style: const TextStyle(color: Colors.black54),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     )
                   : ListView.separated(
@@ -142,7 +144,8 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
                       itemBuilder: (context, index) {
                         final person = data[index];
                         final userId = person.id;
-                        final displayName = person.displayName ?? 'Unknown User';
+                        final displayName =
+                            person.displayName ?? 'Unknown User';
                         final username = person.username;
                         final avatarUrl = person.avatarUrl;
 
@@ -171,13 +174,11 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
                           onTap: userId.isEmpty
                               ? null
                               : () {
-                                  Navigator.push(
+                                  pushAppRoute(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => FriendProjectsPage(
-                                        userId: userId,
-                                        displayName: displayName,
-                                      ),
+                                      builder: (_) =>
+                                          PublicUserProfilePage(userId: userId),
                                     ),
                                   );
                                 },

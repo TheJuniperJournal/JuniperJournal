@@ -1,5 +1,12 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:flutter/services.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+// Temporarily disable assessment authoring and responses without removing data.
+const assessmentFeaturesEnabled = false;
 
 enum AssessmentType {
   numeric(
@@ -14,28 +21,28 @@ enum AssessmentType {
     title: 'Matching',
     selectorTitle: 'Matching',
     description: 'Match related terms, concepts, or images together.',
-    iconAsset: 'assets/learning_module/assessment_matching_multi.svg',
+    iconAsset: 'assets/learning_module/assessment_list_mock.svg',
   ),
   trueFalse(
     storageValue: 'true_false',
     title: 'True/False',
     selectorTitle: 'True/False',
     description: 'Choose whether a statement is true or false.',
-    iconAsset: 'assets/learning_module/assessment_true_false1.svg',
+    iconAsset: 'assets/learning_module/assessment_check_mock.svg',
   ),
   paragraph(
     storageValue: 'paragraph',
     title: 'Paragraph',
     selectorTitle: 'Paragraph',
     description: 'Write a detailed explanation or reflection.',
-    iconAsset: 'assets/learning_module/assessment_paragraph.svg',
+    iconAsset: 'assets/learning_module/assessment_paragraph_mock.svg',
   ),
   multipleChoice(
     storageValue: 'multiple_choice',
     title: 'Multiple Choice',
     selectorTitle: 'Multiple Choice',
     description: 'Select the best answer from multiple options.',
-    iconAsset: 'assets/learning_module/assessment_matching_multi.svg',
+    iconAsset: 'assets/learning_module/assessment_list_mock.svg',
   );
 
   final String storageValue;
@@ -61,21 +68,34 @@ enum AssessmentType {
 }
 
 class AssessmentBlockData {
+  final String? assessmentId;
   final AssessmentType? type;
   final Map<String, dynamic> data;
 
-  const AssessmentBlockData({this.type, this.data = const {}});
+  const AssessmentBlockData({
+    this.type,
+    this.data = const {},
+    this.assessmentId,
+  });
 
   bool get isEmpty => type == null && data.isEmpty;
 
   bool get hasDraft {
     if (type == null) return false;
-    return _hasMeaningfulValue(data);
+    final inputs = Map<String, dynamic>.from(data)
+      ..remove('allow_multiple')
+      ..remove('authoring_finalized')
+      ..remove('correct_mapping')
+      ..remove('response_length')
+      ..remove('max_characters');
+    return _hasMeaningfulValue(inputs);
   }
 
   bool get isValid {
     final selectedType = type;
     if (selectedType == null) return true;
+    if (assessmentId != null && data['answer_key_redacted'] == true)
+      return true;
     switch (selectedType) {
       case AssessmentType.numeric:
         final answer = num.tryParse(_string('correct_answer'));
@@ -83,8 +103,11 @@ class AssessmentBlockData {
         final maximum = num.tryParse(_string('max_value'));
         return _string('question').isNotEmpty &&
             answer != null &&
+            answer.isFinite &&
             minimum != null &&
+            minimum.isFinite &&
             maximum != null &&
+            maximum.isFinite &&
             minimum <= maximum &&
             answer >= minimum &&
             answer <= maximum;
@@ -112,9 +135,15 @@ class AssessmentBlockData {
         return _string('question').isNotEmpty &&
             options.length >= 2 &&
             options.every((option) => option.trim().isNotEmpty) &&
-            correctIndex is int &&
-            correctIndex >= 0 &&
-            correctIndex < options.length;
+            (data['allow_multiple'] == true
+                ? data['correct_indices'] is List &&
+                      (data['correct_indices'] as List).isNotEmpty &&
+                      (data['correct_indices'] as List).every(
+                        (i) => i is int && i >= 0 && i < options.length,
+                      )
+                : correctIndex is int &&
+                      correctIndex >= 0 &&
+                      correctIndex < options.length);
     }
   }
 
@@ -122,6 +151,7 @@ class AssessmentBlockData {
     final selectedType = type;
     if (selectedType == null) return <String, dynamic>{};
     return {
+      if (assessmentId != null) 'assessment_id': assessmentId,
       'type': selectedType.storageValue,
       'data': data,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -139,6 +169,7 @@ class AssessmentBlockData {
     final rawData = json['data'];
     return AssessmentBlockData(
       type: type,
+      assessmentId: json['assessment_id']?.toString(),
       data: rawData is Map ? Map<String, dynamic>.from(rawData) : {},
     );
   }
@@ -189,12 +220,14 @@ class AssessmentBlockSection extends StatefulWidget {
   final AssessmentBlockData value;
   final ValueChanged<AssessmentBlockData> onChanged;
   final bool showValidation;
+  final Future<bool> Function()? onSave;
 
   const AssessmentBlockSection({
     super.key,
     required this.value,
     required this.onChanged,
     this.showValidation = false,
+    this.onSave,
   });
 
   @override
@@ -208,6 +241,13 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
   static const _error = Color(0xFFD12E2E);
   static const _purpleTile = Color(0x339027BD);
 
+  bool _selectorExpanded = false;
+  bool _resettingAssessment = false;
+  bool _saveAttempted = false,
+      _savingAssessment = false,
+      _assessmentSaved = false;
+  String? _saveError;
+  bool _finalized = false;
   AssessmentType? _type;
   late TextEditingController _questionController;
   late TextEditingController _numericAnswerController;
@@ -222,6 +262,8 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
   late List<TextEditingController> _optionControllers;
   String _paragraphLength = 'short';
   int? _correctOptionIndex;
+  bool _allowMultiple = false;
+  Set<int> _correctIndices = {};
 
   @override
   void initState() {
@@ -250,8 +292,14 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
   }
 
   void _hydrate(AssessmentBlockData value) {
-    _type = value.type;
+    _type = value.hasDraft ? value.type : null;
+    _finalized = value.data['authoring_finalized'] == true && value.isValid;
     final data = value.data;
+    _allowMultiple = data['allow_multiple'] == true;
+    _correctIndices = {
+      for (final i in (data['correct_indices'] as List? ?? []))
+        if (i is int) i,
+    };
     _questionController = TextEditingController(
       text: data['question']?.toString() ?? '',
     )..addListener(_emit);
@@ -358,16 +406,20 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
     }
   }
 
-  Future<void> _selectType(AssessmentType type) async {
+  Future<void> _selectType(AssessmentType? type) async {
     if (_type == type) return;
     final current = _buildData();
     if (current.hasDraft) {
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showAppDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Change assessment type?'),
-          content: const Text(
-            'Changing the assessment type will clear the current assessment inputs.',
+          title: Text(
+            type == null ? 'Remove assessment?' : 'Change assessment type?',
+          ),
+          content: Text(
+            type == null
+                ? 'Remove this assessment and its entered content?'
+                : 'Changing the assessment type will clear the current assessment inputs.',
           ),
           actions: [
             TextButton(
@@ -376,16 +428,24 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Change'),
+              child: Text(type == null ? 'Remove' : 'Change'),
             ),
           ],
         ),
       );
-      if (confirmed != true) return;
+      if (confirmed != true || !mounted) return;
     }
 
     setState(() {
+      _resettingAssessment = true;
       _type = type;
+      _selectorExpanded = false;
+      _finalized = false;
+      _saveAttempted = false;
+      _assessmentSaved = false;
+      _saveError = null;
+      _allowMultiple = false;
+      _correctIndices = {};
       _questionController.clear();
       _numericAnswerController.clear();
       _numericMinController.clear();
@@ -423,21 +483,9 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
         TextEditingController()..addListener(_emit),
         TextEditingController()..addListener(_emit),
       ];
+      _resettingAssessment = false;
     });
     _emit();
-  }
-
-  Future<void> _openAssessmentSelector() async {
-    final selected = await showModalBottomSheet<AssessmentType>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.28),
-      builder: (context) => const _AssessmentSelectorSheet(),
-    );
-    if (selected != null) {
-      await _selectType(selected);
-    }
   }
 
   AssessmentBlockData _buildData() {
@@ -487,15 +535,60 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
           for (final controller in _optionControllers) controller.text.trim(),
         ],
         'correct_index': _correctOptionIndex,
+        'allow_multiple': _allowMultiple,
+        if (_allowMultiple) 'correct_indices': _correctIndices.toList()..sort(),
         'explanation': _explanationController.text.trim(),
       },
     };
-    return AssessmentBlockData(type: selectedType, data: data);
+    return AssessmentBlockData(
+      type: selectedType,
+      data: {...data, if (_finalized) 'authoring_finalized': true},
+      assessmentId: widget.value.assessmentId,
+    );
   }
 
   void _emit() {
-    if (!mounted) return;
+    if (!mounted || _resettingAssessment) return;
+    setState(() {
+      _assessmentSaved = false;
+      _saveError = null;
+    });
     widget.onChanged(_buildData());
+  }
+
+  Future<void> _saveAssessment() async {
+    if (_savingAssessment) return;
+    setState(() {
+      _saveAttempted = true;
+      _saveError = null;
+    });
+    final data = _buildData();
+    if (!data.isValid) return;
+    _finalized = true;
+    widget.onChanged(_buildData());
+    FocusScope.of(context).unfocus();
+    setState(() => _savingAssessment = true);
+    try {
+      final saved = await widget.onSave?.call() ?? true;
+      if (!mounted) return;
+      setState(() {
+        _assessmentSaved = saved;
+        _finalized = saved;
+        if (!saved)
+          _saveError = 'Could not save the assessment. Please try again.';
+      });
+    } catch (_) {
+      if (mounted)
+        setState(() {
+          _finalized = false;
+          _saveError = 'Could not save the assessment. Please try again.';
+        });
+    } finally {
+      if (mounted) {
+        setState(() => _savingAssessment = false);
+        if (!_finalized) widget.onChanged(_buildData());
+      }
+    }
   }
 
   void _addTrueFalseQuestion() {
@@ -529,6 +622,10 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
     if (_optionControllers.length <= 2) return;
     setState(() {
       _optionControllers.removeAt(index).dispose();
+      _correctIndices = {
+        for (final value in _correctIndices)
+          if (value != index) value > index ? value - 1 : value,
+      };
       if (_correctOptionIndex == index) {
         _correctOptionIndex = null;
       } else if (_correctOptionIndex != null && _correctOptionIndex! > index) {
@@ -562,95 +659,271 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
     _emit();
   }
 
+  Widget _removeAssessmentButton() => TextButton.icon(
+    onPressed: _savingAssessment ? null : () => _selectType(null),
+    icon: const Icon(Icons.close, size: 18),
+    label: const Text('Remove assessment'),
+  );
+
+  Widget _savedAssessmentCard() {
+    final data = _buildData().data;
+    final questions = switch (_type!) {
+      AssessmentType.matching => [
+        for (final item in _matchingTopControllers) item.text.trim(),
+      ],
+      AssessmentType.trueFalse => [
+        for (final item in _trueFalseQuestionControllers) item.text.trim(),
+      ],
+      _ => [_questionController.text.trim()],
+    };
+    return _AssessmentFormCard(
+      showError: false,
+      child: Padding(
+        padding: const EdgeInsets.all(AppMetrics.smallGap),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                SvgPicture.asset(_type!.iconAsset, width: 28, height: 28),
+                const SizedBox(width: AppMetrics.contentGap),
+                Expanded(
+                  child: Text(_type!.title, style: AppTypography.fieldLabel),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppMetrics.contentGap),
+            for (final question in questions) ...[
+              Text(question, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: AppMetrics.smallGap),
+            ],
+            if (_type == AssessmentType.multipleChoice)
+              for (final option in _optionControllers)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppMetrics.smallGap),
+                  child: Text('•  ${option.text.trim()}'),
+                ),
+            if (_type == AssessmentType.paragraph)
+              Text('Response length: ${data['response_length']}'),
+            const SizedBox(height: AppMetrics.contentGap),
+            const Center(
+              child: Text('Assessment saved', style: TextStyle(color: _green)),
+            ),
+            const SizedBox(height: AppMetrics.contentGap),
+            Center(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                label: const Text('Edit Assessment'),
+                onPressed: () {
+                  setState(() {
+                    _finalized = false;
+                    _assessmentSaved = false;
+                    _saveAttempted = false;
+                  });
+                  widget.onChanged(_buildData());
+                },
+              ),
+            ),
+            Center(child: _removeAssessmentButton()),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!assessmentFeaturesEnabled) return const SizedBox.shrink();
+    if (_finalized && !_savingAssessment) return _savedAssessmentCard();
     final currentData = _buildData();
-    final showError = widget.showValidation && !currentData.isValid;
+    final showError =
+        (widget.showValidation || _saveAttempted) && !currentData.isValid;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _openAssessmentSelector,
-          child: _AssessmentSelectorShell(type: _type, showError: showError),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: showError ? _error : _green),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _AssessmentSelectorShell(
+                type: _type,
+                showError: showError,
+                expanded: _selectorExpanded,
+                onToggle: () =>
+                    setState(() => _selectorExpanded = !_selectorExpanded),
+              ),
+              if (_selectorExpanded)
+                Container(
+                  key: const ValueKey('assessment-type-dropdown'),
+                  constraints: const BoxConstraints(maxHeight: 320),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(top: BorderSide(color: Color(0xFFE6E6E6))),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    primary: false,
+                    itemCount: AssessmentType.values.length + 1,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) => index == 0
+                        ? Material(
+                            color: Colors.white,
+                            child: ListTile(
+                              key: const ValueKey('no-assessment-option'),
+                              title: const Text('—'),
+                              subtitle: const Text('No assessment'),
+                              onTap: () async {
+                                setState(() => _selectorExpanded = false);
+                                await _selectType(null);
+                              },
+                            ),
+                          )
+                        : SizedBox(
+                            height: 76,
+                            child: _SelectorPanelRow(
+                              type: AssessmentType.values[index - 1],
+                              selected:
+                                  _type == AssessmentType.values[index - 1],
+                              onTap: () async {
+                                setState(() => _selectorExpanded = false);
+                                await _selectType(
+                                  AssessmentType.values[index - 1],
+                                );
+                              },
+                            ),
+                          ),
+                  ),
+                ),
+            ],
+          ),
         ),
         if (_type != null) ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: _removeAssessmentButton(),
+          ),
           const SizedBox(height: 16),
           _AssessmentFormCard(
             showError: showError,
-            child: switch (_type!) {
-              AssessmentType.numeric => _NumericForm(
-                questionController: _questionController,
-                answerController: _numericAnswerController,
-                minController: _numericMinController,
-                maxController: _numericMaxController,
-                explanationController: _explanationController,
-                showError: showError,
-              ),
-              AssessmentType.matching => _MatchingForm(
-                topControllers: _matchingTopControllers,
-                bottomControllers: _matchingBottomControllers,
-                bottomOrder: _matchingBottomOrder,
-                showError: showError,
-                onAddRow: _addMatchingRow,
-                onRemoveRow: _removeMatchingRow,
-              ),
-              AssessmentType.trueFalse => _TrueFalseForm(
-                questionControllers: _trueFalseQuestionControllers,
-                selectedAnswers: _trueFalseAnswers,
-                showError: showError,
-                onAddQuestion: _addTrueFalseQuestion,
-                onRemoveQuestion: _removeTrueFalseQuestion,
-                onAnswerChanged: (index, value) {
-                  setState(() => _trueFalseAnswers[index] = value);
-                  _emit();
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                switch (_type!) {
+                  AssessmentType.numeric => _NumericForm(
+                    questionController: _questionController,
+                    answerController: _numericAnswerController,
+                    minController: _numericMinController,
+                    maxController: _numericMaxController,
+                    explanationController: _explanationController,
+                    showError: showError,
+                  ),
+                  AssessmentType.matching => _MatchingForm(
+                    topControllers: _matchingTopControllers,
+                    bottomControllers: _matchingBottomControllers,
+                    bottomOrder: _matchingBottomOrder,
+                    showError: showError,
+                    onAddRow: _addMatchingRow,
+                    onRemoveRow: _removeMatchingRow,
+                  ),
+                  AssessmentType.trueFalse => _TrueFalseForm(
+                    questionControllers: _trueFalseQuestionControllers,
+                    selectedAnswers: _trueFalseAnswers,
+                    showError: showError,
+                    onAddQuestion: _addTrueFalseQuestion,
+                    onRemoveQuestion: _removeTrueFalseQuestion,
+                    onAnswerChanged: (index, value) {
+                      setState(() => _trueFalseAnswers[index] = value);
+                      _emit();
+                    },
+                  ),
+                  AssessmentType.paragraph => _ParagraphForm(
+                    questionController: _questionController,
+                    responseLength: _paragraphLength,
+                    showError: showError,
+                    onLengthChanged: (value) {
+                      final limit = _paragraphLimit(value);
+                      setState(() {
+                        _paragraphLength = value;
+                        if (_questionController.text.length > limit) {
+                          _questionController.text = _questionController.text
+                              .substring(0, limit);
+                          _questionController.selection =
+                              TextSelection.collapsed(offset: limit);
+                        }
+                      });
+                      _emit();
+                    },
+                  ),
+                  AssessmentType.multipleChoice => _MultipleChoiceForm(
+                    questionController: _questionController,
+                    optionControllers: _optionControllers,
+                    explanationController: _explanationController,
+                    correctIndex: _correctOptionIndex,
+                    allowMultiple: _allowMultiple,
+                    correctIndices: _correctIndices,
+                    onMultipleChanged: (v) {
+                      setState(() => _allowMultiple = v);
+                      _emit();
+                    },
+                    showError: showError,
+                    onAddOption: _addOption,
+                    onRemoveOption: _removeOption,
+                    onCorrectChanged: (index) {
+                      setState(() {
+                        if (_allowMultiple) {
+                          if (!_correctIndices.add(index))
+                            _correctIndices.remove(index);
+                        } else
+                          _correctOptionIndex = index;
+                      });
+                      _emit();
+                    },
+                  ),
                 },
-              ),
-              AssessmentType.paragraph => _ParagraphForm(
-                questionController: _questionController,
-                responseLength: _paragraphLength,
-                showError: showError,
-                onLengthChanged: (value) {
-                  final limit = _paragraphLimit(value);
-                  setState(() {
-                    _paragraphLength = value;
-                    if (_questionController.text.length > limit) {
-                      _questionController.text = _questionController.text
-                          .substring(0, limit);
-                      _questionController.selection = TextSelection.collapsed(
-                        offset: limit,
-                      );
-                    }
-                  });
-                  _emit();
-                },
-              ),
-              AssessmentType.multipleChoice => _MultipleChoiceForm(
-                questionController: _questionController,
-                optionControllers: _optionControllers,
-                explanationController: _explanationController,
-                correctIndex: _correctOptionIndex,
-                showError: showError,
-                onAddOption: _addOption,
-                onRemoveOption: _removeOption,
-                onCorrectChanged: (index) {
-                  setState(() => _correctOptionIndex = index);
-                  _emit();
-                },
-              ),
-            },
-          ),
-          if (showError) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'Complete the selected assessment before saving this block.',
-              style: TextStyle(
-                color: _error,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+                const SizedBox(height: 16),
+                Center(
+                  child: FilledButton(
+                    onPressed: _savingAssessment ? null : _saveAssessment,
+                    child: Text(
+                      _savingAssessment ? 'Saving…' : 'Save Assessment',
+                    ),
+                  ),
+                ),
+                if (_assessmentSaved) ...[
+                  const SizedBox(height: 8),
+                  const Center(
+                    child: Text(
+                      'Assessment saved',
+                      style: TextStyle(color: _green),
+                    ),
+                  ),
+                ],
+                if (_saveError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_saveError!, style: const TextStyle(color: _error)),
+                ],
+                if (showError) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Complete the selected assessment before saving this block.',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      color: _error,
+                      fontSize: AppTypography.helperSize,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ],
       ],
     );
@@ -663,115 +936,62 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
   };
 }
 
-class _AssessmentSelectorSheet extends StatelessWidget {
-  const _AssessmentSelectorSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(13, 0, 13, 24),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 367),
-            child: Container(
-              height: 307,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(9),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1F000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  for (
-                    var index = 0;
-                    index < AssessmentType.values.length;
-                    index++
-                  )
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: _SelectorPanelRow(
-                              type: AssessmentType.values[index],
-                              onTap: () => Navigator.of(
-                                context,
-                              ).pop(AssessmentType.values[index]),
-                            ),
-                          ),
-                          if (index != AssessmentType.values.length - 1)
-                            const Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: Color(0xFFE6E6E6),
-                            ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _AssessmentSelectorShell extends StatelessWidget {
   final AssessmentType? type;
   final bool showError;
+  final bool expanded;
+  final VoidCallback onToggle;
 
-  const _AssessmentSelectorShell({required this.type, required this.showError});
+  const _AssessmentSelectorShell({
+    required this.type,
+    required this.showError,
+    required this.expanded,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 47,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: showError
-              ? _AssessmentBlockSectionState._error
-              : _AssessmentBlockSectionState._green,
-        ),
+    return Semantics(
+      button: true,
+      expanded: expanded,
+      child: InkWell(
+        onTap: onToggle,
         borderRadius: BorderRadius.circular(9),
-      ),
-      child: Row(
-        children: [
-          if (type != null) ...[
-            _AssessmentIcon(type: type!, size: 31),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: Text(
-              type?.title ?? 'Select Assessment Type',
-              style: const TextStyle(
-                color: _AssessmentBlockSectionState._text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+        child: Container(
+          height: 47,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              if (type != null) ...[
+                _AssessmentIcon(type: type!, size: 31),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(
+                  type?.title ?? 'Select Assessment',
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: _AssessmentBlockSectionState._text,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-            ),
+              IconButton(
+                tooltip: expanded
+                    ? 'Close assessment types'
+                    : 'Choose assessment type',
+                onPressed: onToggle,
+                icon: Icon(
+                  expanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: _AssessmentBlockSectionState._green,
+                ),
+              ),
+            ],
           ),
-          SvgPicture.asset(
-            'assets/learning_module/text_block_chevron.svg',
-            width: 13,
-            height: 13,
-            colorFilter: const ColorFilter.mode(
-              Color(0xFF8BD5A0),
-              BlendMode.srcIn,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -781,7 +1001,12 @@ class _SelectorPanelRow extends StatelessWidget {
   final AssessmentType type;
   final VoidCallback onTap;
 
-  const _SelectorPanelRow({required this.type, required this.onTap});
+  final bool selected;
+  const _SelectorPanelRow({
+    required this.type,
+    required this.onTap,
+    this.selected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -803,10 +1028,11 @@ class _SelectorPanelRow extends StatelessWidget {
                     Text(
                       type.selectorTitle,
                       style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: _AssessmentBlockSectionState._text,
-                        fontSize: 14,
+                        fontSize: AppTypography.bodySize,
                         height: 1,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -816,7 +1042,7 @@ class _SelectorPanelRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF666666),
-                        fontSize: 9,
+                        fontSize: AppTypography.captionSize,
                         height: 1,
                         fontWeight: FontWeight.w400,
                       ),
@@ -824,24 +1050,12 @@ class _SelectorPanelRow extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Center(
-                  child: Transform.rotate(
-                    angle: -1.5708,
-                    child: SvgPicture.asset(
-                      'assets/learning_module/text_block_chevron.svg',
-                      width: 13,
-                      height: 13,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xFF141414),
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
+              if (selected)
+                const Icon(
+                  Icons.check,
+                  color: _AssessmentBlockSectionState._green,
+                  size: 22,
                 ),
-              ),
             ],
           ),
         ),
@@ -866,31 +1080,11 @@ class _AssessmentIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(7),
       ),
       alignment: Alignment.center,
-      child: type == AssessmentType.trueFalse
-          ? Stack(
-              alignment: Alignment.center,
-              children: [
-                SvgPicture.asset(
-                  'assets/learning_module/assessment_true_false1.svg',
-                  width: size * 0.45,
-                  height: size * 0.45,
-                ),
-                Positioned(
-                  right: size * 0.2,
-                  bottom: size * 0.2,
-                  child: SvgPicture.asset(
-                    'assets/learning_module/assessment_true_false2.svg',
-                    width: size * 0.25,
-                    height: size * 0.2,
-                  ),
-                ),
-              ],
-            )
-          : SvgPicture.asset(
-              type.iconAsset,
-              width: size * 0.5,
-              height: size * 0.5,
-            ),
+      child: SvgPicture.asset(
+        type.iconAsset,
+        width: size * .62,
+        height: size * .62,
+      ),
     );
   }
 }
@@ -915,7 +1109,7 @@ class _AssessmentFormCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: child,
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 }
@@ -939,6 +1133,21 @@ class _NumericForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final answer = num.tryParse(answerController.text.trim());
+    final minimum = num.tryParse(minController.text.trim());
+    final maximum = num.tryParse(maxController.text.trim());
+    final hasAnswer = answer?.isFinite == true;
+    final hasMinimum = minimum?.isFinite == true;
+    final hasMaximum = maximum?.isFinite == true;
+    final reversed = hasMinimum && hasMaximum && minimum! > maximum!;
+    final validRange = hasMinimum && hasMaximum && !reversed;
+    final below = validRange && hasAnswer && answer! < minimum!;
+    final above = validRange && hasAnswer && answer! > maximum!;
+    final rangeMessage = reversed
+        ? 'The minimum must be less than or equal to the maximum.'
+        : below || above
+        ? 'The correct answer ($answer) is outside the acceptable range ($minimum to $maximum). Adjust the answer or the range so they match.'
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -957,16 +1166,21 @@ class _NumericForm extends StatelessWidget {
           controller: answerController,
           maxLength: 80,
           height: 42,
-          keyboardType: TextInputType.number,
-          error:
-              showError && num.tryParse(answerController.text.trim()) == null,
+          keyboardType: const TextInputType.numberWithOptions(
+            decimal: true,
+            signed: true,
+          ),
+          error: (showError && !hasAnswer) || below || above,
         ),
         const SizedBox(height: 12),
         const _SmallLabel('Acceptable Range'),
         const SizedBox(height: 4),
         const Text(
           'Set the minimum and maximum accepted values.',
-          style: TextStyle(color: Color(0xFF666666), fontSize: 11),
+          style: TextStyle(
+            color: Color(0xFF666666),
+            fontSize: AppTypography.helperSize,
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -974,31 +1188,50 @@ class _NumericForm extends StatelessWidget {
             Expanded(
               child: _CompactTextField(
                 controller: minController,
-                hintText: 'Min',
+                hintText: '',
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                   signed: true,
                 ),
-                error: showError && !_validMinimum(),
+                error: (showError && !hasMinimum) || reversed || below,
               ),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('to', style: TextStyle(fontSize: 13)),
+              child: Text(
+                'to',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                ),
+              ),
             ),
             Expanded(
               child: _CompactTextField(
                 controller: maxController,
-                hintText: 'Max',
+                hintText: '',
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                   signed: true,
                 ),
-                error: showError && !_validMaximum(),
+                error: (showError && !hasMaximum) || reversed || above,
               ),
             ),
           ],
         ),
+        if (rangeMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                rangeMessage,
+                style: AppTypography.helper.copyWith(
+                  color: _AssessmentBlockSectionState._error,
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         _AssessmentInput(
           label: 'Explanation',
@@ -1010,28 +1243,6 @@ class _NumericForm extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  bool _validMinimum() {
-    final minimum = num.tryParse(minController.text.trim());
-    final maximum = num.tryParse(maxController.text.trim());
-    final answer = num.tryParse(answerController.text.trim());
-    return minimum != null &&
-        maximum != null &&
-        answer != null &&
-        minimum <= maximum &&
-        answer >= minimum;
-  }
-
-  bool _validMaximum() {
-    final minimum = num.tryParse(minController.text.trim());
-    final maximum = num.tryParse(maxController.text.trim());
-    final answer = num.tryParse(answerController.text.trim());
-    return minimum != null &&
-        maximum != null &&
-        answer != null &&
-        minimum <= maximum &&
-        answer <= maximum;
   }
 }
 
@@ -1061,7 +1272,10 @@ class _MatchingForm extends StatelessWidget {
         const SizedBox(height: 4),
         const Text(
           'What users will match from.',
-          style: TextStyle(color: Color(0xFF666666), fontSize: 11),
+          style: TextStyle(
+            color: Color(0xFF666666),
+            fontSize: AppTypography.helperSize,
+          ),
         ),
         const SizedBox(height: 8),
         _MatchingGroup(
@@ -1075,7 +1289,10 @@ class _MatchingForm extends StatelessWidget {
         const SizedBox(height: 4),
         const Text(
           'What users will match to.',
-          style: TextStyle(color: Color(0xFF666666), fontSize: 11),
+          style: TextStyle(
+            color: Color(0xFF666666),
+            fontSize: AppTypography.helperSize,
+          ),
         ),
         const SizedBox(height: 8),
         _MatchingGroup(
@@ -1163,8 +1380,8 @@ class _MatchingItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           const SizedBox(width: 8),
@@ -1181,9 +1398,10 @@ class _MatchingItemRow extends StatelessWidget {
             child: Text(
               String.fromCharCode(65 + letterIndex.clamp(0, 25)),
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.helperSize,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -1191,19 +1409,20 @@ class _MatchingItemRow extends StatelessWidget {
           Expanded(
             child: _CompactTextField(
               controller: controller,
-              hintText: 'Enter item',
+              expandText: true,
+              hintText: '',
               error: showError && controller.text.trim().isEmpty,
             ),
           ),
           const SizedBox(width: 8),
           Opacity(
-            opacity: canDelete ? 1 : 0.35,
+            opacity: 1,
             child: GestureDetector(
               onTap: canDelete ? onDelete : null,
               child: SvgPicture.asset(
                 'assets/learning_module/learning_objective_trash.svg',
-                width: 13,
-                height: 15,
+                width: 14,
+                height: 16,
               ),
             ),
           ),
@@ -1240,7 +1459,7 @@ class _TrueFalseForm extends StatelessWidget {
         const SizedBox(height: 4),
         const Text(
           'Add statements and select whether each is true or false.',
-          style: TextStyle(color: Color(0xFF666666), fontSize: 11),
+          style: AppTypography.helper,
         ),
         const SizedBox(height: 8),
         Container(
@@ -1302,7 +1521,8 @@ class _TrueFalseQuestionRow extends StatelessWidget {
           Expanded(
             child: _CompactTextField(
               controller: controller,
-              hintText: 'Enter question',
+              multiline: true,
+              hintText: '',
               error: showError && controller.text.trim().isEmpty,
             ),
           ),
@@ -1319,7 +1539,7 @@ class _TrueFalseQuestionRow extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Opacity(
-            opacity: canDelete ? 1 : 0.3,
+            opacity: 1,
             child: GestureDetector(
               onTap: canDelete ? onDelete : null,
               child: SvgPicture.asset(
@@ -1368,7 +1588,7 @@ class _TinyChoice extends StatelessWidget {
             color: selected
                 ? _AssessmentBlockSectionState._green
                 : Colors.black,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -1444,6 +1664,9 @@ class _MultipleChoiceForm extends StatelessWidget {
   final List<TextEditingController> optionControllers;
   final TextEditingController explanationController;
   final int? correctIndex;
+  final bool allowMultiple;
+  final Set<int> correctIndices;
+  final ValueChanged<bool> onMultipleChanged;
   final bool showError;
   final VoidCallback onAddOption;
   final ValueChanged<int> onRemoveOption;
@@ -1454,6 +1677,9 @@ class _MultipleChoiceForm extends StatelessWidget {
     required this.optionControllers,
     required this.explanationController,
     required this.correctIndex,
+    required this.allowMultiple,
+    required this.correctIndices,
+    required this.onMultipleChanged,
     required this.showError,
     required this.onAddOption,
     required this.onRemoveOption,
@@ -1474,37 +1700,64 @@ class _MultipleChoiceForm extends StatelessWidget {
           error: showError && questionController.text.trim().isEmpty,
         ),
         const SizedBox(height: 12),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: allowMultiple,
+          onChanged: (v) => onMultipleChanged(v ?? false),
+          title: const Text('Allow multiple selections'),
+        ),
         const _SmallLabel('Answer Options'),
+        const SizedBox(height: 4),
+        Text(
+          allowMultiple
+              ? 'Mark every correct option below. Learners will not see the answer key.'
+              : 'Mark one option as the correct answer below. Learners will not see the answer key.',
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.helperSize,
+            color: Color(0xFF777777),
+          ),
+        ),
         const SizedBox(height: 8),
         for (var index = 0; index < optionControllers.length; index++) ...[
           _OptionRow(
             index: index,
+            multiple: allowMultiple,
             controller: optionControllers[index],
-            selected: correctIndex == index,
+            selected: allowMultiple
+                ? correctIndices.contains(index)
+                : correctIndex == index,
             canDelete: optionControllers.length > 2,
             showError: showError,
             onSelected: () => onCorrectChanged(index),
             onDelete: () => onRemoveOption(index),
           ),
-          if (index != optionControllers.length - 1) const SizedBox(height: 8),
+          if (index != optionControllers.length - 1)
+            const SizedBox(height: AppMetrics.contentGap),
         ],
-        const SizedBox(height: 10),
-        _MiniOutlineButton(
-          label: '+ Add Option',
-          onTap: optionControllers.length >= 4 ? null : onAddOption,
+        const SizedBox(height: AppMetrics.contentGap),
+        Center(
+          child: _MiniOutlineButton(
+            label: '+ Add Option',
+            onTap: optionControllers.length >= 4 ? null : onAddOption,
+          ),
         ),
-        if (showError && correctIndex == null) ...[
+        if (showError &&
+            (allowMultiple
+                ? correctIndices.isEmpty
+                : correctIndex == null)) ...[
           const SizedBox(height: 8),
           const Text(
             'Select the correct answer.',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _AssessmentBlockSectionState._error,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontSize: AppTypography.helperSize,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: AppMetrics.fieldGap),
         _AssessmentInput(
           label: 'Explanation',
           optional: true,
@@ -1522,6 +1775,7 @@ class _OptionRow extends StatelessWidget {
   final int index;
   final TextEditingController controller;
   final bool selected;
+  final bool multiple;
   final bool canDelete;
   final bool showError;
   final VoidCallback onSelected;
@@ -1531,6 +1785,7 @@ class _OptionRow extends StatelessWidget {
     required this.index,
     required this.controller,
     required this.selected,
+    this.multiple = false,
     required this.canDelete,
     required this.showError,
     required this.onSelected,
@@ -1539,53 +1794,93 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GestureDetector(
-          onTap: onSelected,
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: selected
-                  ? _AssessmentBlockSectionState._green
-                  : Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: selected
-                    ? _AssessmentBlockSectionState._green
-                    : const Color(0xFFD8D0D0),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: onSelected,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? _AssessmentBlockSectionState._green
+                      : Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected
+                        ? _AssessmentBlockSectionState._green
+                        : const Color(0xFFD8D0D0),
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  String.fromCharCode(65 + index),
+                  style: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF777777),
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactTextField(
+                controller: controller,
+                hintText: '',
+                error: showError && controller.text.trim().isEmpty,
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: canDelete ? onDelete : null,
+              child: Opacity(
+                opacity: 1,
+                child: SvgPicture.asset(
+                  'assets/learning_module/learning_objective_trash.svg',
+                  width: 14,
+                  height: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, AppMetrics.smallGap, 20, 0),
+          child: Align(
             alignment: Alignment.center,
-            child: Text(
-              String.fromCharCode(65 + index),
-              style: TextStyle(
-                color: selected ? Colors.white : const Color(0xFF777777),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+            child: Semantics(
+              button: true,
+              selected: selected,
+              label:
+                  'Mark option ${String.fromCharCode(65 + index)} as correct',
+              child: TextButton.icon(
+                onPressed: onSelected,
+                icon: Icon(
+                  selected
+                      ? (multiple ? Icons.check_box : Icons.check_circle)
+                      : (multiple
+                            ? Icons.check_box_outline_blank
+                            : Icons.radio_button_unchecked),
+                  size: 20,
+                ),
+                label: Text(selected ? 'Correct answer' : 'Mark as correct'),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, AppMetrics.controlHeight),
+                  foregroundColor: selected
+                      ? _AssessmentBlockSectionState._green
+                      : const Color(0xFF555555),
+                  backgroundColor: selected ? const Color(0xFFE8F5EB) : null,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppMetrics.contentGap,
+                    vertical: 10,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _CompactTextField(
-            controller: controller,
-            hintText: 'Option ${String.fromCharCode(65 + index)}',
-            error: showError && controller.text.trim().isEmpty,
-          ),
-        ),
-        const SizedBox(width: 6),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: canDelete ? onDelete : null,
-          child: Opacity(
-            opacity: canDelete ? 1 : 0.35,
-            child: SvgPicture.asset(
-              'assets/learning_module/learning_objective_trash.svg',
-              width: 14,
-              height: 16,
             ),
           ),
         ),
@@ -1627,56 +1922,61 @@ class _AssessmentInput extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             helper!,
-            style: const TextStyle(color: Color(0xFF666666), fontSize: 11),
+            style: const TextStyle(
+              color: Color(0xFF666666),
+              fontSize: AppTypography.helperSize,
+            ),
           ),
         ],
         const SizedBox(height: 8),
-        SizedBox(
-          height: height + 13,
-          child: Stack(
-            children: [
-              SizedBox(
-                height: height,
-                child: TextField(
-                  controller: controller,
-                  maxLength: maxLength,
-                  maxLines: maxLines,
-                  keyboardType: keyboardType,
-                  decoration: InputDecoration(
-                    counterText: '',
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                      borderSide: BorderSide(
-                        color: error
-                            ? _AssessmentBlockSectionState._error
-                            : _AssessmentBlockSectionState._green,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                      borderSide: BorderSide(
-                        color: error
-                            ? _AssessmentBlockSectionState._error
-                            : _AssessmentBlockSectionState._green,
-                      ),
-                    ),
+        TextField(
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  null,
+          controller: controller,
+          maxLength: maxLength,
+          minLines: maxLines > 1 ? AppMetrics.longResponseLines : 1,
+          maxLines: maxLines > 1 ? null : 1,
+          textAlignVertical: maxLines > 1
+              ? TextAlignVertical.top
+              : TextAlignVertical.center,
+          keyboardType: keyboardType,
+          inputFormatters: keyboardType == null
+              ? null
+              : [
+                  TextInputFormatter.withFunction(
+                    (oldValue, newValue) =>
+                        RegExp(r'^-?\d*(\.\d*)?$').hasMatch(newValue.text)
+                        ? newValue
+                        : oldValue,
                   ),
-                  style: const TextStyle(fontSize: 13),
-                ),
+                ],
+          decoration: InputDecoration(
+            counterText: '',
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 9,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: BorderSide(
+                color: error
+                    ? _AssessmentBlockSectionState._error
+                    : _AssessmentBlockSectionState._green,
               ),
-              Positioned(
-                right: 4,
-                bottom: 0,
-                child: Text(
-                  '${controller.text.length}/$maxLength',
-                  style: const TextStyle(color: Color(0xFF565656), fontSize: 8),
-                ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: BorderSide(
+                color: error
+                    ? _AssessmentBlockSectionState._error
+                    : _AssessmentBlockSectionState._green,
               ),
-            ],
+            ),
+          ),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
           ),
         ),
       ],
@@ -1688,6 +1988,8 @@ class _CompactTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final bool error;
+  final bool multiline;
+  final bool expandText;
   final TextInputType? keyboardType;
 
   const _CompactTextField({
@@ -1695,18 +1997,40 @@ class _CompactTextField extends StatelessWidget {
     required this.hintText,
     required this.error,
     this.keyboardType,
+    this.multiline = false,
+    this.expandText = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: multiline ? 76 : 40),
       child: TextField(
         controller: controller,
+        minLines: multiline ? 2 : 1,
+        maxLines: multiline || expandText ? null : 1,
+        textAlignVertical: multiline
+            ? TextAlignVertical.top
+            : TextAlignVertical.center,
         keyboardType: keyboardType,
+        inputFormatters: keyboardType == null
+            ? null
+            : [
+                TextInputFormatter.withFunction(
+                  (oldValue, newValue) =>
+                      RegExp(r'^-?\d*(\.\d*)?$').hasMatch(newValue.text)
+                      ? newValue
+                      : oldValue,
+                ),
+              ],
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(color: Color(0xFFBEBEBE), fontSize: 12),
+          isDense: true,
+          constraints: const BoxConstraints(minHeight: 40),
+          hintStyle: const TextStyle(
+            color: Color(0xFFBEBEBE),
+            fontSize: AppTypography.helperSize,
+          ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 9,
             vertical: 7,
@@ -1728,7 +2052,10 @@ class _CompactTextField extends StatelessWidget {
             ),
           ),
         ),
-        style: const TextStyle(fontSize: 12),
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.bodySize,
+        ),
       ),
     );
   }
@@ -1746,9 +2073,10 @@ class _SmallLabel extends StatelessWidget {
       TextSpan(
         text: label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _AssessmentBlockSectionState._text,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.bodySize,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
@@ -1756,7 +2084,7 @@ class _SmallLabel extends StatelessWidget {
               text: ' (optional)',
               style: TextStyle(
                 color: _AssessmentBlockSectionState._muted,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
         ],
@@ -1787,7 +2115,11 @@ class _MiniOutlineButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.buttonSize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -1813,7 +2145,11 @@ class _DropdownLikeBox extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           SvgPicture.asset(
@@ -1843,11 +2179,14 @@ class _LengthOption extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(color: Color(0xFF666666), fontSize: 11),
+          style: const TextStyle(
+            color: Color(0xFF666666),
+            fontSize: AppTypography.helperSize,
+          ),
         ),
       ],
     );

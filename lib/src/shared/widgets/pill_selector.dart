@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 
@@ -26,8 +27,8 @@ class PillSelector extends StatelessWidget {
     final labelColor = hasValue
         ? AppColors.primary
         : disabled
-            ? Colors.grey.shade400
-            : AppColors.primary.withValues(alpha: 0.55);
+        ? Colors.grey.shade400
+        : AppColors.primary.withValues(alpha: 0.55);
 
     final pill = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -47,9 +48,11 @@ class PillSelector extends StatelessWidget {
               child: Text(
                 value ?? placeholder,
                 style: TextStyle(
-                    color: labelColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500),
+                  fontFamily: AppTypography.bodyFamily,
+                  color: labelColor,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             )
           else
@@ -58,9 +61,11 @@ class PillSelector extends StatelessWidget {
                 value ?? placeholder,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: labelColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500),
+                  fontFamily: AppTypography.bodyFamily,
+                  color: labelColor,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           const SizedBox(width: 4),
@@ -76,10 +81,8 @@ class PillSelector extends StatelessWidget {
     if (disabled) return compact ? IntrinsicWidth(child: pill) : pill;
 
     final tappable = Builder(
-      builder: (ctx) => GestureDetector(
-        onTap: () => _showDropdown(ctx),
-        child: pill,
-      ),
+      builder: (ctx) =>
+          GestureDetector(onTap: () => _showDropdown(ctx), child: pill),
     );
 
     return compact ? IntrinsicWidth(child: tappable) : tappable;
@@ -90,8 +93,10 @@ class PillSelector extends StatelessWidget {
     final overlay =
         Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
     final pillTopLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
-    final pillBottomRight =
-        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay);
+    final pillBottomRight = box.localToGlobal(
+      box.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
     final rect = RelativeRect.fromRect(
       Rect.fromPoints(pillTopLeft, pillBottomRight),
       Offset.zero & overlay.size,
@@ -99,8 +104,10 @@ class PillSelector extends StatelessWidget {
 
     // Cap menu width so it never extends beyond the right edge of the screen,
     // preventing Flutter from shifting it left and covering adjacent widgets.
-    final maxWidth =
-        (overlay.size.width - pillTopLeft.dx - 8).clamp(box.size.width, overlay.size.width);
+    final maxWidth = (overlay.size.width - pillTopLeft.dx - 8).clamp(
+      box.size.width,
+      overlay.size.width,
+    );
 
     showMenu<String>(
       context: context,
@@ -132,19 +139,23 @@ class PillSelector extends StatelessWidget {
                       child: Text(
                         item,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
                           color: item == value
                               ? AppColors.primary
                               : Colors.black87,
                           fontWeight: item == value
-                              ? FontWeight.w600
+                              ? FontWeight.w500
                               : FontWeight.w400,
                         ),
                       ),
                     ),
                     if (item == value)
-                      const Icon(Icons.check,
-                          size: 16, color: AppColors.primary),
+                      const Icon(
+                        Icons.check,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
                   ],
                 ),
               ),

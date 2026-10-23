@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/backend/db/models/challenge_participant.dart';
@@ -77,14 +80,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 
   Future<void> _joinChallenge() async {
-    final result = await Navigator.push<String?>(
+    final result = await pushAppRoute<String?>(
       context,
       MaterialPageRoute(
         builder: (_) => CreateProjectScreen(
-            challengeId: _challenge.id,
-            lockedDifficulty: _challenge.difficulty,
-            lockedScale: _challenge.scale,
-          ),
+          challengeId: _challenge.id,
+          lockedDifficulty: _challenge.difficulty,
+          lockedScale: _challenge.scale,
+        ),
       ),
     );
     // result is the projectId after creation
@@ -96,7 +99,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   Future<void> _viewProject() async {
     final p = _myParticipation;
     if (p?.projectId == null) return;
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
         builder: (_) => ProjectDashboard(
@@ -112,11 +115,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   }
 
   Future<void> _openCreatorDashboard() async {
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            ChallengeCreatorDashboard(challengeId: _challenge.id),
+        builder: (_) => ChallengeCreatorDashboard(challengeId: _challenge.id),
       ),
     );
     _load();
@@ -155,30 +157,38 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             children: [
               GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.chevron_left,
-                    size: 28, color: Colors.white),
+                child: const Icon(
+                  Icons.chevron_left,
+                  size: 28,
+                  color: Colors.white,
+                ),
               ),
               const Spacer(),
               if (_isCreator)
                 GestureDetector(
                   onTap: _openCreatorDashboard,
-                  child: const Text('Edit',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Edit',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      color: Colors.white,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppMetrics.fieldGap),
 
           // Challenge name
           Text(
             _challenge.name,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
+              fontFamily: AppTypography.headingFamily,
+              fontSize: AppTypography.displaySize,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
@@ -189,9 +199,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             Text(
               _challenge.dateRange,
               style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w500),
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: Colors.white70,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           const SizedBox(height: 16),
 
@@ -207,7 +219,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
               _challenge.prompt!,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 14, color: Colors.white, height: 1.5),
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: Colors.white,
+                height: 1.5,
+              ),
             ),
 
           // Submission deadline for joined members
@@ -216,12 +232,14 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             Text(
               'Submission Deadline: ${_deadlineText()}',
               style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600),
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: AppMetrics.fieldGap),
 
           // CTA button
           SizedBox(
@@ -231,10 +249,10 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
               onPressed: _isCreator
                   ? _openCreatorDashboard
                   : hasJoined
-                      ? _viewProject
-                      : _challenge.isPast
-                          ? null
-                          : _joinChallenge,
+                  ? _viewProject
+                  : _challenge.isPast
+                  ? null
+                  : _joinChallenge,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: AppColors.primary,
@@ -242,18 +260,22 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                 disabledForegroundColor: Colors.white70,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999)),
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 textStyle: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700),
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.buttonSize,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               child: Text(
                 _isCreator
                     ? 'View Submissions'
                     : hasJoined
-                        ? 'View Project'
-                        : _challenge.isPast
-                            ? 'Challenge Ended'
-                            : 'Join the Challenge',
+                    ? 'View Project'
+                    : _challenge.isPast
+                    ? 'Challenge Ended'
+                    : 'Join the Challenge',
               ),
             ),
           ),
@@ -282,8 +304,11 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
                       ? NetworkImage(e.value)
                       : null,
                   child: e.value.isEmpty
-                      ? const Icon(Icons.person_outline,
-                          size: 14, color: AppColors.primary)
+                      ? const Icon(
+                          Icons.person_outline,
+                          size: 14,
+                          color: AppColors.primary,
+                        )
                       : null,
                 ),
               );
@@ -292,11 +317,15 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
         ),
         if (extra > 0) ...[
           const SizedBox(width: 6),
-          Text('+$extra',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            '+$extra',
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              color: Colors.white,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ],
     );
@@ -310,11 +339,15 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Tasks',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary)),
+          const Text(
+            'Tasks',
+            style: TextStyle(
+              fontFamily: AppTypography.headingFamily,
+              fontSize: AppTypography.sectionTitleSize,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 12),
           ...tasks.map(_buildTaskCard),
         ],
@@ -330,71 +363,84 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     for (final metric in c.requiredMetrics) {
       final count = hasProject
           ? _impactEntries
-              .where((e) => e.metric.toLowerCase() == metric.toLowerCase())
-              .length
+                .where((e) => e.metric.toLowerCase() == metric.toLowerCase())
+                .length
           : 0;
-      tasks.add(_TaskItem(
-        icon: _metricIcon(metric),
-        title: 'Metric: $metric',
-        subtitle: '$count/1 $metric Impact Entries',
-        done: count >= 1,
-      ));
+      tasks.add(
+        _TaskItem(
+          icon: _metricIcon(metric),
+          title: 'Metric: $metric',
+          subtitle: '$count/1 $metric Impact Entries',
+          done: count >= 1,
+        ),
+      );
     }
 
     for (final pattern in c.requiredPatterns) {
       final count = hasProject
           ? _impactEntries
-              .where((e) =>
-                  e.patternType.toLowerCase() == pattern.toLowerCase())
-              .length
+                .where(
+                  (e) => e.patternType.toLowerCase() == pattern.toLowerCase(),
+                )
+                .length
           : 0;
-      tasks.add(_TaskItem(
-        icon: Icons.change_circle_outlined,
-        title: 'Pattern: $pattern',
-        subtitle: '$count/1 $pattern Impact Entries',
-        done: count >= 1,
-      ));
+      tasks.add(
+        _TaskItem(
+          icon: Icons.change_circle_outlined,
+          title: 'Pattern: $pattern',
+          subtitle: '$count/1 $pattern Impact Entries',
+          done: count >= 1,
+        ),
+      );
     }
 
     if (c.type == 'community_impact' && c.minGroupMembers > 1) {
       final count = hasProject ? _memberCount : 0;
-      tasks.add(_TaskItem(
-        icon: Icons.group_add_outlined,
-        title: 'Group Project Members',
-        subtitle: '$count/${c.minGroupMembers} Members',
-        done: count >= c.minGroupMembers,
-      ));
+      tasks.add(
+        _TaskItem(
+          icon: Icons.group_add_outlined,
+          title: 'Group Project Members',
+          subtitle: '$count/${c.minGroupMembers} Members',
+          done: count >= c.minGroupMembers,
+        ),
+      );
     }
 
     if (c.requiredJournalEntries > 0) {
       final count = hasProject ? _journalEntries.length : 0;
-      tasks.add(_TaskItem(
-        icon: Icons.menu_book_outlined,
-        title: 'Complete ${c.requiredJournalEntries} Journal Entries',
-        subtitle: '$count/${c.requiredJournalEntries} Journal Entries',
-        done: count >= c.requiredJournalEntries,
-      ));
+      tasks.add(
+        _TaskItem(
+          icon: Icons.menu_book_outlined,
+          title: 'Complete ${c.requiredJournalEntries} Journal Entries',
+          subtitle: '$count/${c.requiredJournalEntries} Journal Entries',
+          done: count >= c.requiredJournalEntries,
+        ),
+      );
     }
 
     if (c.budgetMax != null) {
-      tasks.add(_TaskItem(
-        icon: Icons.attach_money_outlined,
-        title: 'Funding Requirements: \$${c.budgetMin}–\$${c.budgetMax}',
-        subtitle: '0/1 Material Cost',
-        done: false,
-      ));
+      tasks.add(
+        _TaskItem(
+          icon: Icons.attach_money_outlined,
+          title: 'Funding Requirements: \$${c.budgetMin}–\$${c.budgetMax}',
+          subtitle: '0/1 Material Cost',
+          done: false,
+        ),
+      );
     }
 
     if (c.measurementRequired) {
       final count = hasProject
           ? _impactEntries.where((e) => e.measurement != null).length
           : 0;
-      tasks.add(_TaskItem(
-        icon: Icons.straighten_outlined,
-        title: 'Measurement',
-        subtitle: '$count/1 Impact Entries with Measurement',
-        done: count >= 1,
-      ));
+      tasks.add(
+        _TaskItem(
+          icon: Icons.straighten_outlined,
+          title: 'Measurement',
+          subtitle: '$count/1 Impact Entries with Measurement',
+          done: count >= 1,
+        ),
+      );
     }
 
     return tasks;
@@ -410,7 +456,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: task.done ? AppColors.primary.withValues(alpha: 0.3) : AppColors.borderLight,
+          color: task.done
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : AppColors.borderLight,
         ),
         boxShadow: task.done
             ? []
@@ -447,18 +495,26 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(task.title,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary)),
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(task.subtitle,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: task.done
-                            ? AppColors.primary
-                            : AppColors.textSecondary)),
+                Text(
+                  task.subtitle,
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: task.done
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),

@@ -1,3 +1,10 @@
+import '../../../shared/widgets/persistent_desktop_shell.dart';
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import '../../../shared/widgets/profile_photo_actions.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/backend/db/repositories/users_repo.dart';
@@ -6,7 +13,15 @@ import 'package:juniper_journal/src/shared/styling/theme.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({
+    super.key,
+    this.usersRepo,
+    this.email,
+    this.uploadProfilePhoto,
+  });
+  final UsersRepo? usersRepo;
+  final String? email;
+  final Future<String?> Function(ImageSource)? uploadProfilePhoto;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -14,13 +29,18 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _authService = AuthService.instance;
-  final _usersRepo = UsersRepo();
+  late final _usersRepo = widget.usersRepo ?? UsersRepo();
 
   late final TextEditingController _displayNameController;
 
+  final _bioController = TextEditingController();
+  String? _avatarUrl;
+  bool _savingBio = false;
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isPublicProfile = true;
+  bool _savingVisibility = false;
+  bool _changingPhoto = false;
   String _email = '';
   String _username = '';
 
@@ -34,6 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _displayNameController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
 
@@ -43,8 +64,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _displayNameController.text =
           profile?.displayName?.trim() ?? profile?.username?.trim() ?? '';
+      _bioController.text = profile?.bio ?? '';
+      _avatarUrl = profile?.avatarUrl;
       _isPublicProfile = profile?.isPublicProfile ?? true;
-      _email = _authService.currentUser?.email ?? '';
+      _email = widget.email ?? _authService.currentUser?.email ?? '';
       _username = profile?.username?.trim() ?? '';
       _isLoading = false;
     });
@@ -60,17 +83,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showTopSnackBar(context, ok ? 'Name updated' : 'Failed to update name');
   }
 
+  Future<void> _saveBio() async {
+    setState(() => _savingBio = true);
+    final ok = await _usersRepo.updateCurrentUserProfile(
+      bio: _bioController.text,
+    );
+    if (!mounted) return;
+    setState(() => _savingBio = false);
+    showTopSnackBar(
+      context,
+      ok ? 'Bio updated' : 'Could not save bio. Please try again.',
+      isError: !ok,
+    );
+  }
+
   Future<void> _toggleVisibility(bool value) async {
-    setState(() => _isPublicProfile = value);
-    final ok = await _usersRepo.updateCurrentUserProfile(isPublicProfile: value);
-    if (!ok && mounted) {
-      setState(() => _isPublicProfile = !value);
+    if (_savingVisibility || value == _isPublicProfile) return;
+    final previous = _isPublicProfile;
+    setState(() {
+      _isPublicProfile = value;
+      _savingVisibility = true;
+    });
+    final ok = await _usersRepo.updateCurrentUserProfile(
+      isPublicProfile: value,
+    );
+    if (!mounted) return;
+    setState(() {
+      if (!ok) _isPublicProfile = previous;
+      _savingVisibility = false;
+    });
+    showTopSnackBar(
+      context,
+      ok
+          ? 'Profile is now ${value ? 'public' : 'private'}'
+          : 'Could not update profile visibility',
+      isError: !ok,
+    );
+  }
+
+  Future<void> _changePhoto() async {
+    if (_changingPhoto) return;
+    await changeProfilePhoto(
+      context,
+      usersRepo: _usersRepo,
+      uploadPhoto: widget.uploadProfilePhoto,
+      onUploadStarted: () {
+        if (mounted) setState(() => _changingPhoto = true);
+      },
+    );
+    if (mounted) {
+      setState(() => _changingPhoto = false);
+      await _loadProfile();
     }
   }
 
   Future<void> _signOut() async {
     await _authService.signOut();
     if (!mounted) return;
+    DesktopShellScope.of(context)?.clear();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const JuniperAuthScreen()),
       (route) => false,
@@ -78,9 +148,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(backgroundColor: AppColors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete account?'),
         content: const Text(
           'This will permanently delete your account, profile, and all your data. This cannot be undone.',
@@ -102,16 +174,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     // Second confirmation — must type DELETE
     final confirmController = TextEditingController();
-    final doubleConfirmed = await showDialog<bool>(
+    final doubleConfirmed = await showAppDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(backgroundColor: AppColors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Type DELETE to confirm'),
         content: TextField(
           controller: confirmController,
           autofocus: true,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
-            hintText: 'DELETE',
+            hintText: '',
           ),
         ),
         actions: [
@@ -137,7 +211,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (!ok) {
       setState(() => _isSaving = false);
-      showTopSnackBar(context, 'Failed to delete account. Please try again.', isError: true);
+      showTopSnackBar(
+        context,
+        'Failed to delete account. Please try again.',
+        isError: true,
+      );
       return;
     }
 
@@ -164,14 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Settings',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: const Text('Profile settings', style: AppTypography.pageTitle),
         centerTitle: true,
         shape: const Border(
           bottom: BorderSide(color: AppColors.divider, width: 0.6),
@@ -184,6 +255,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListView(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
                   children: [
+                    Center(
+                      child: Column(
+                        children: [
+                          InkWell(
+                            onTap: _changingPhoto ? null : _changePhoto,
+                            customBorder: const CircleBorder(),
+                            child: CircleAvatar(
+                              radius: 48,
+                              backgroundImage: _avatarUrl?.isNotEmpty == true
+                                  ? NetworkImage(_avatarUrl!)
+                                  : null,
+                              child: _avatarUrl?.isNotEmpty == true
+                                  ? null
+                                  : const Icon(Icons.person_outline, size: 40),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _changingPhoto ? null : _changePhoto,
+                            child: const Text('Change profile photo'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     _sectionHeader('Profile'),
                     _card([
                       ListTile(
@@ -221,8 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Expanded(
                               child: TextField(
                                 controller: _displayNameController,
-                                textCapitalization:
-                                    TextCapitalization.words,
+                                textCapitalization: TextCapitalization.words,
                                 decoration: const InputDecoration(
                                   labelText: 'Display Name',
                                   border: OutlineInputBorder(),
@@ -241,21 +335,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       ),
-                      const Divider(height: 1),
-                      SwitchListTile(
-                        title: const Text(
-                          'Public Profile',
-                          style: TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: const Text(
-                          'Allow others to find you in search',
-                        ),
-                        value: _isPublicProfile,
-                        activeColor: AppColors.primary,
-                        onChanged: _toggleVisibility,
-                      ),
                     ]),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _bioController,
+                            minLines: 3,
+                            maxLines: 5,
+                            maxLength: 500,
+                            decoration: const InputDecoration(
+                              labelText: 'Bio',
+                              hintText:
+                                  'Tell people about yourself and your interests.',
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: FilledButton(
+                              onPressed: _savingBio ? null : _saveBio,
+                              child: Text(_savingBio ? 'Saving…' : 'Save bio'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _sectionHeader('Privacy'),
+                    _card([
+                      const ListTile(
+                        title: Text(
+                          'Profile visibility',
+                          style: AppTypography.fieldLabel,
+                        ),
+                      ),
+                      RadioGroup<bool>(
+                        groupValue: _isPublicProfile,
+                        onChanged: (value) {
+                          if (!_savingVisibility && value != null)
+                            _toggleVisibility(value);
+                        },
+                        child: Column(
+                          children: [
+                            RadioListTile<bool>(
+                              value: true,
+
+                              title: const Text(
+                                'Public',
+                                style: AppTypography.fieldLabel,
+                              ),
+                              subtitle: const Text(
+                                'Anyone in Juniper can find and view your profile.',
+                                style: AppTypography.helper,
+                              ),
+                              enabled: !_savingVisibility,
+                            ),
+                            RadioListTile<bool>(
+                              value: false,
+
+                              title: const Text(
+                                'Private',
+                                style: AppTypography.fieldLabel,
+                              ),
+                              subtitle: const Text(
+                                'Only friends can view your profile. Hidden from people search. Your name and photo remain visible in shared projects and chats.',
+                                style: AppTypography.helper,
+                              ),
+                              enabled: !_savingVisibility,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_savingVisibility)
+                        const LinearProgressIndicator(minHeight: 2),
+                    ]),
+                    const SizedBox(height: AppMetrics.fieldGap),
                     _sectionHeader('Account'),
                     _card([
                       ListTile(
@@ -263,7 +419,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: const Text('Change Password'),
                         subtitle: const Text('Update your password'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.push(
+                        onTap: () => pushAppRoute(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const ChangePasswordScreen(),
@@ -280,7 +436,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onTap: _signOut,
                       ),
                     ]),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
                     _sectionHeader('Danger Zone'),
                     _card([
                       ListTile(
@@ -325,9 +481,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Text(
         title.toUpperCase(),
         style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: Colors.black45,
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
           letterSpacing: 0.8,
         ),
       ),
@@ -335,19 +492,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _card(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
+    return Material(
+      color: AppColors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        side: const BorderSide(color: AppColors.borderLight),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: children),
     );
   }

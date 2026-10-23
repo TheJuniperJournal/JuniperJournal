@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:fleather/fleather.dart';
 import '../styling/app_colors.dart';
@@ -44,21 +45,10 @@ class ConceptExplorationToolbar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _FormatButton(
-                onFormat: onFormat,
-              ),
-              _ToolbarButton(
-                icon: Icons.camera_alt,
-                onPressed: onCamera,
-              ),
-              _ToolbarButton(
-                icon: Icons.functions,
-                onPressed: onInsertMath,
-              ),
-              _ToolbarButton(
-                icon: Icons.table_chart,
-                onPressed: onInsertTable,
-              ),
+              _FormatButton(onFormat: onFormat),
+              _ToolbarButton(icon: Icons.camera_alt, onPressed: onCamera),
+              _ToolbarButton(icon: Icons.functions, onPressed: onInsertMath),
+              _ToolbarButton(icon: Icons.table_chart, onPressed: onInsertTable),
             ],
           ),
         ),
@@ -71,9 +61,7 @@ class ConceptExplorationToolbar extends StatelessWidget {
 class _FormatButton extends StatelessWidget {
   final Function(ParchmentAttribute)? onFormat;
 
-  const _FormatButton({
-    this.onFormat,
-  });
+  const _FormatButton({this.onFormat});
 
   @override
   Widget build(BuildContext context) {
@@ -82,16 +70,10 @@ class _FormatButton extends StatelessWidget {
         width: 48,
         height: 48,
         alignment: Alignment.center,
-        child: const Icon(
-          Icons.format_size,
-          color: AppColors.white,
-          size: 26,
-        ),
+        child: const Icon(Icons.format_size, color: AppColors.white, size: 26),
       ),
       color: AppColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       offset: const Offset(0, -180),
       onSelected: (value) {
         if (onFormat == null) return;
@@ -142,7 +124,14 @@ class _FormatButton extends StatelessWidget {
             children: [
               Icon(Icons.title, color: AppColors.darkText, size: 20),
               const SizedBox(width: 12),
-              Text('Heading 1', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'Heading 1',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.buttonSize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -152,7 +141,14 @@ class _FormatButton extends StatelessWidget {
             children: [
               Icon(Icons.title, color: AppColors.darkText, size: 18),
               const SizedBox(width: 12),
-              Text('Heading 2', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                'Heading 2',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.buttonSize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -162,7 +158,14 @@ class _FormatButton extends StatelessWidget {
             children: [
               Icon(Icons.title, color: AppColors.darkText, size: 16),
               const SizedBox(width: 12),
-              Text('Heading 3', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(
+                'Heading 3',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.buttonSize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -176,10 +179,7 @@ class _ToolbarButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
 
-  const _ToolbarButton({
-    required this.icon,
-    this.onPressed,
-  });
+  const _ToolbarButton({required this.icon, this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -190,11 +190,7 @@ class _ToolbarButton extends StatelessWidget {
         width: 48,
         height: 48,
         alignment: Alignment.center,
-        child: Icon(
-          icon,
-          color: AppColors.white,
-          size: 26,
-        ),
+        child: Icon(icon, color: AppColors.white, size: 26),
       ),
     );
   }

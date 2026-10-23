@@ -1,3 +1,9 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'project_development_flow.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
+import '../../../shared/widgets/journal_completion_tag.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:juniper_journal/src/backend/db/models/impact_entry.dart';
@@ -19,17 +25,9 @@ const _progressBase = {
   'Implemented': 100.0,
 };
 
-const _scaleMult = {
-  'Small': 1.00,
-  'Medium': 1.40,
-  'Large': 1.90,
-};
+const _scaleMult = {'Small': 1.00, 'Medium': 1.40, 'Large': 1.90};
 
-const _diffMult = {
-  'Easy': 1.00,
-  'Medium': 1.25,
-  'Hard': 1.50,
-};
+const _diffMult = {'Easy': 1.00, 'Medium': 1.25, 'Hard': 1.50};
 
 double _progressEcoPoints(String? progress, String? scale, String? difficulty) {
   final base = _progressBase[progress] ?? 0.0;
@@ -43,9 +41,11 @@ class JournalLogScreen extends StatefulWidget {
   final String projectId;
   final String projectName;
   final List<String> tags;
+
   /// When true, skips the Scaffold/AppBar so this widget can be embedded
   /// directly inside a TabBarView or other parent scaffold.
   final bool embedded;
+
   /// When false, hides create/delete controls and prevents editing.
   final bool isOwner;
 
@@ -94,8 +94,10 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
 
     if (!mounted) return;
 
-    final entries = (futures[0] as List<JournalEntry>?) ?? const <JournalEntry>[];
-    final impactEntries = (futures[1] as List<ImpactEntry>?) ?? const <ImpactEntry>[];
+    final entries =
+        (futures[0] as List<JournalEntry>?) ?? const <JournalEntry>[];
+    final impactEntries =
+        (futures[1] as List<ImpactEntry>?) ?? const <ImpactEntry>[];
     final project = futures[2] as Project?;
 
     final totals = <String, double>{};
@@ -118,14 +120,14 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
   Future<void> _loadEntries() => _loadAll();
 
   void _enterSelectMode() => setState(() {
-        _isSelecting = true;
-        _selectedIds.clear();
-      });
+    _isSelecting = true;
+    _selectedIds.clear();
+  });
 
   void _exitSelectMode() => setState(() {
-        _isSelecting = false;
-        _selectedIds.clear();
-      });
+    _isSelecting = false;
+    _selectedIds.clear();
+  });
 
   void _toggleSelection(String id) {
     setState(() {
@@ -139,7 +141,7 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
 
   Future<void> _deleteSelected() async {
     final count = _selectedIds.length;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
@@ -175,29 +177,28 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
     _loadEntries();
 
     if (failed > 0) {
-      showTopSnackBar(context, 'Failed to delete $failed entries', isError: true);
+      showTopSnackBar(
+        context,
+        'Failed to delete $failed entries',
+        isError: true,
+      );
     }
   }
 
   Future<void> _createEntry() async {
-    final nextNumber = _entries.length + 1;
-    final created = await _projectsRepo.createJournalEntry(
-      projectId: widget.projectId,
-      title: 'Entry $nextNumber',
-      content: const [],
-    );
-
+    final project = await _projectsRepo.getProjectById(widget.projectId);
     if (!mounted) return;
-    if (created == null) {
-      showTopSnackBar(context, 'Failed to create journal entry', isError: true);
-      return;
-    }
-
-    await _openEntry(created);
+    await openNewProjectJournal(
+      context,
+      projectId: widget.projectId,
+      phase: project?.progress,
+      projectsRepo: _projectsRepo,
+    );
+    if (mounted) await _loadEntries();
   }
 
   Future<void> _openEntry(JournalEntry entry) async {
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
         builder: (_) => JournalEntryEditorScreen(
@@ -230,7 +231,11 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
         .where((u) => u.isNotEmpty)
         .toList();
 
-    final progressPts = _progressEcoPoints(entry.progress, _projectScale, _projectDifficulty);
+    final progressPts = _progressEcoPoints(
+      entry.progress,
+      _projectScale,
+      _projectDifficulty,
+    );
     final impactPts = _impactTotals[entry.id] ?? 0.0;
     final totalPts = double.parse((progressPts + impactPts).toStringAsFixed(2));
 
@@ -256,7 +261,9 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
           children: [
             if (imageUrls.isNotEmpty)
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
                 child: SizedBox(
                   height: 140,
                   child: Row(
@@ -267,7 +274,10 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                             decoration: i > 0
                                 ? const BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Colors.white, width: 2),
+                                      left: BorderSide(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
                                     ),
                                   )
                                 : null,
@@ -302,43 +312,62 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                         height: 22,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isSelected ? AppColors.primary : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.transparent,
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : Colors.grey.shade400,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade400,
                             width: 2,
                           ),
                         ),
                         child: isSelected
-                            ? const Icon(Icons.check, size: 14, color: Colors.white)
+                            ? const Icon(
+                                Icons.check,
+                                size: 14,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
                     )
                   else
                     const Padding(
                       padding: EdgeInsets.only(right: 12),
-                      child: Icon(Icons.book_outlined, color: AppColors.primary),
+                      child: Icon(
+                        Icons.book_outlined,
+                        color: AppColors.primary,
+                      ),
                     ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          entry.title.isNotEmpty ? entry.title : 'Untitled Entry',
+                          entry.title.isNotEmpty
+                              ? entry.title
+                              : 'Untitled Entry',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                            fontFamily: AppTypography.bodyFamily,
+                            fontWeight: FontWeight.w500,
+                            fontSize: AppTypography.bodySize,
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        JournalCompletionTag(entry: entry),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             Flexible(
                               child: Text(
-                                _formattedDate(entry.updatedAt ?? entry.createdAt),
+                                _formattedDate(
+                                  entry.updatedAt ?? entry.createdAt,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 12,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  color: AppColors.textSecondary,
+                                  fontSize: AppTypography.helperSize,
                                 ),
                               ),
                             ),
@@ -346,17 +375,22 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
                                   entry.progress!,
                                   style: const TextStyle(
-                                    fontSize: 11,
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.helperSize,
                                     color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ),
@@ -371,17 +405,22 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                             children: entry.tags.map((tag) {
                               return Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
                                   tag,
                                   style: const TextStyle(
-                                    fontSize: 10,
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.captionSize,
                                     color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               );
@@ -410,15 +449,17 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                             Text(
                               totalPts.toStringAsFixed(1),
                               style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
                                 color: AppColors.primary,
                               ),
                             ),
                             const Text(
                               'EP',
                               style: TextStyle(
-                                fontSize: 9,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.captionSize,
                                 color: AppColors.primary,
                               ),
                             ),
@@ -456,7 +497,9 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                 onPressed: _createEntry,
                 icon: const Icon(Icons.add),
                 label: const Text('New Entry'),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
               ),
             ],
           ],
@@ -499,14 +542,20 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
+                        onPressed: _selectedIds.isEmpty
+                            ? null
+                            : _deleteSelected,
                         icon: const Icon(Icons.delete_outline),
-                        label: Text(_selectedIds.isEmpty
-                            ? 'Delete'
-                            : 'Delete (${_selectedIds.length})'),
+                        label: Text(
+                          _selectedIds.isEmpty
+                              ? 'Delete'
+                              : 'Delete (${_selectedIds.length})',
+                        ),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.error,
-                          disabledBackgroundColor: AppColors.error.withValues(alpha: 0.4),
+                          disabledBackgroundColor: AppColors.error.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
                     ),
@@ -535,7 +584,8 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leadingWidth: _isSelecting ? 72 : 56,
+        toolbarHeight: 56,
+        leadingWidth: _isSelecting ? 72 : 84,
         leading: _isSelecting
             ? TextButton(
                 onPressed: _exitSelectMode,
@@ -544,21 +594,19 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                 ),
                 child: const Text('Cancel', maxLines: 1),
               )
-            : IconButton(
-                icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.border),
-                onPressed: () => Navigator.pop(context),
+            : Padding(
+                padding: const EdgeInsets.only(left: 40),
+                child: ContentAlignedBackButton(
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
         title: Text(
           _isSelecting
               ? (_selectedIds.isEmpty
-                  ? 'Select entries'
-                  : '${_selectedIds.length} selected')
+                    ? 'Select entries'
+                    : '${_selectedIds.length} selected')
               : '${widget.projectName} Journal',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTypography.pageTitle,
         ),
         centerTitle: true,
         shape: const Border(
@@ -570,9 +618,13 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
               TextButton(
                 onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
                 child: Text(
-                  _selectedIds.isEmpty ? 'Delete' : 'Delete (${_selectedIds.length})',
+                  _selectedIds.isEmpty
+                      ? 'Delete'
+                      : 'Delete (${_selectedIds.length})',
                   style: TextStyle(
-                    color: _selectedIds.isEmpty ? Colors.black26 : AppColors.error,
+                    color: _selectedIds.isEmpty
+                        ? Colors.black26
+                        : AppColors.error,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

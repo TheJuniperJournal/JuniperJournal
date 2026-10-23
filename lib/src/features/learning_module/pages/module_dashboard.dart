@@ -1,3 +1,8 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:juniper_journal/src/features/learning_module/learning_module.dart';
@@ -9,19 +14,19 @@ class ModuleDashboardScreen extends StatelessWidget {
 
   static const _green = Color(0xFF5DB075);
   static const _text = Color(0xFF141414);
-  static const _canvasWidth = 402.0;
 
   @override
   Widget build(BuildContext context) {
+    final canvasWidth = JournalPageLayout.widthFor(context, mobileWidth: 402);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _canvasWidth),
+            constraints: BoxConstraints(maxWidth: canvasWidth),
             child: SingleChildScrollView(
               child: SizedBox(
-                width: _canvasWidth,
+                width: canvasWidth,
                 height: 861,
                 child: Stack(
                   children: [
@@ -40,24 +45,25 @@ class ModuleDashboardScreen extends StatelessWidget {
                           child: Text(
                             'Done',
                             style: TextStyle(
-                              color: _green,
-                              fontSize: 18,
+                              fontFamily: AppTypography.bodyFamily,
+                              color: AppColors.primary,
+                              fontSize: AppTypography.buttonSize,
                               height: 1,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const Positioned(
-                      left: 89,
+                    Positioned(
+                      left: (canvasWidth - 215) / 2,
                       top: 24,
                       width: 215,
                       height: 40,
                       child: _DashboardTag(),
                     ),
                     Positioned(
-                      left: 338,
+                      right: 29,
                       top: 24,
                       width: 35,
                       height: 35,
@@ -71,10 +77,10 @@ class ModuleDashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Positioned(
+                    Positioned(
                       left: 26,
                       top: 126,
-                      width: 349,
+                      width: canvasWidth - 53,
                       child: Divider(
                         height: 1,
                         thickness: 1,
@@ -88,7 +94,8 @@ class ModuleDashboardScreen extends StatelessWidget {
                         title: 'Concept\nExploration',
                         icon: const _DashboardConceptIcon(),
                         onTap: () {
-                          Navigator.of(context).push(
+                          pushAppRoute(
+                            context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   ConceptExplorationScreen(module: module),
@@ -98,7 +105,7 @@ class ModuleDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      left: 218,
+                      left: canvasWidth / 2 + 17,
                       top: 162,
                       child: _DashboardCard(
                         title: 'Learning\nObjectives',
@@ -107,7 +114,8 @@ class ModuleDashboardScreen extends StatelessWidget {
                         iconWidth: 23,
                         iconHeight: 26,
                         onTap: () {
-                          Navigator.of(context).push(
+                          pushAppRoute(
+                            context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   LearningObjectiveScreen(module: module),
@@ -126,7 +134,8 @@ class ModuleDashboardScreen extends StatelessWidget {
                         iconWidth: 22,
                         iconHeight: 25,
                         onTap: () {
-                          Navigator.of(context).push(
+                          pushAppRoute(
+                            context,
                             MaterialPageRoute(
                               builder: (context) => Summary(module: module),
                             ),
@@ -159,10 +168,11 @@ class _DashboardTag extends StatelessWidget {
       child: const Text(
         'PROJECT DASHBOARD',
         style: TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: Colors.white,
-          fontSize: 16,
+          fontSize: AppTypography.bodySize,
           height: 1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1.1,
         ),
       ),
@@ -193,7 +203,9 @@ class _DashboardCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        width: 139,
+        width: MediaQuery.sizeOf(context).width >= 1000
+            ? (JournalPageLayout.widthFor(context, mobileWidth: 402) - 124) / 2
+            : 139,
         height: 163,
         decoration: BoxDecoration(
           color: Colors.white,
@@ -210,18 +222,19 @@ class _DashboardCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 22),
+            const SizedBox(height: AppMetrics.fieldGap),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: ModuleDashboardScreen._text,
-                fontSize: 16,
+                fontSize: AppTypography.bodySize,
                 height: 1.08,
                 fontWeight: FontWeight.w400,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppMetrics.labelGap),
             Container(
               width: 44,
               height: 44,

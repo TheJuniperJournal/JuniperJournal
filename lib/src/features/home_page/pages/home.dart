@@ -1,5 +1,32 @@
+import '../../site/pages/site_information_page.dart';
+import '../../../shared/widgets/journal_entry_menu.dart';
+import '../../../shared/widgets/item_action_menu.dart';
+import '../../project/utils/journal_completion.dart';
+import '../../../shared/widgets/page_refresh_state.dart';
+import '../../../shared/widgets/journal_draft_session.dart';
+import '../../../shared/widgets/navigation_scroll_reset.dart';
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'public_user_profile.dart';
+import '../../../shared/widgets/explained_project_tag.dart';
+import '../../community/utils/community_visit_history.dart';
+import '../../../shared/widgets/journal_publication.dart';
+import '../../../shared/widgets/persistent_desktop_shell.dart';
+import '../../../shared/widgets/adaptive_app_shell.dart';
+import 'project_notification_destination.dart';
+import '../../../shared/widgets/create_menu_dialog.dart';
+import '../../../shared/widgets/app_refresh_indicator.dart';
+import '../../project/pages/project_development_flow.dart'
+    show normalizePhase, journalContentImageUrls;
+import '../../../shared/widgets/journal_project_link.dart';
+import '../../project/pages/journal_entry_view.dart';
+import '../../../backend/db/models/journal_entry.dart';
+import 'dart:async';
+
+import '../../../shared/widgets/app_tab_transition.dart';
+import 'explore_page.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/backend/db/models/collaboration_request.dart';
 import 'package:juniper_journal/src/backend/db/models/friend_request.dart';
@@ -20,15 +47,29 @@ import 'package:juniper_journal/src/backend/db/repositories/communities_repo.dar
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
 class HomeShellScreen extends StatefulWidget {
-  const HomeShellScreen({super.key});
+  const HomeShellScreen({
+    super.key,
+    this.initialSection = 0,
+    this.restoreJournal = true,
+    this.informationPage,
+  });
+  final int initialSection;
+  final bool restoreJournal;
+  final String? informationPage;
 
   @override
   State<HomeShellScreen> createState() => _HomeShellScreenState();
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
-  int _selectedIndex = 0;
+  Timer? _notificationRefresh;
+  late int _selectedIndex = widget.initialSection;
+  int _feedRevision = 0;
+  final _exploreKey = GlobalKey<ProjectBrowsePageState>();
+  final _libraryKey = GlobalKey<ProjectBrowsePageState>();
+  final Set<int> _visitedSections = {0};
   final _profileKey = GlobalKey<UserProfilePageState>();
+  final _desktopProfileKey = GlobalKey<UserProfilePageState>();
   final ProjectsRepo _projectsRepo = ProjectsRepo();
   final FriendsRepo _friendsRepo = FriendsRepo();
   final ChatRepo _chatRepo = ChatRepo();
@@ -41,23 +82,82 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   final Map<String, String> _ownerLabelByUserId = {};
   final Map<String, String?> _ownerAvatarByUserId = {};
   final Set<String> _likedProjectIds = {};
-  final Set<String> _collaboratedProjectIds = {};
   final Map<String, List<UserProfile>> _collaboratorsByProjectId = {};
+  final Map<String, JournalEntry> _feedEntryByProject = {};
   Future<List<Project>?>? _projectsFuture;
 
   @override
   void initState() {
     super.initState();
+    _visitedSections.add(widget.initialSection);
+    JournalPublication.onPublished = _journalPublished;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.restoreJournal) _restoreInterruptedJournal();
+    });
     _projectsFuture = _loadFeedProjects();
     _loadUnreadCount();
     _loadPendingRequestCount();
     _loadCommunities();
+    _notificationRefresh = Timer.periodic(const Duration(seconds: 30), (_) {
+      _loadPendingRequestCount();
+      if (_selectedIndex == 0 && ModalRoute.of(context)?.isCurrent == true) {
+        _refreshFeedSilently();
+      }
+    });
+  }
+
+  Future<void> _restoreInterruptedJournal() async {
+    try {
+      final entry = await JournalDraftSession.interruptedEntry(_projectsRepo);
+      if (entry == null || !mounted) return;
+      final project = await _projectsRepo.getProjectById(entry.projectId);
+      if (project == null ||
+          !mounted ||
+          ModalRoute.of(context)?.isCurrent != true)
+        return;
+      await pushAppRoute(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              editableJournalEntryPage(entry, project, _projectsRepo),
+        ),
+      );
+      if (mounted) _refreshProjects();
+    } catch (error) {
+      debugPrint('Could not reopen interrupted journal: $error');
+    }
+  }
+
+  void _journalPublished() {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    setState(() {
+      _selectedIndex = 0;
+      _feedRevision++;
+    });
+    _refreshProjects();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showTopSnackBar(context, 'Journal entry submitted.');
+    });
+    Navigator.of(
+      context,
+    ).popUntil((candidate) => candidate == route || candidate.isFirst);
+  }
+
+  @override
+  void dispose() {
+    if (JournalPublication.onPublished == _journalPublished)
+      JournalPublication.onPublished = null;
+    _notificationRefresh?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadCommunities() async {
     final communities = await _communitiesRepo.getUserCommunities();
     if (!mounted) return;
-    setState(() => _communities = communities);
+    final ranked = await CommunityVisitHistory.rank(communities);
+    if (!mounted) return;
+    setState(() => _communities = ranked);
   }
 
   Future<void> _loadPendingRequestCount() async {
@@ -65,18 +165,25 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       _friendsRepo.getIncomingFriendRequests(),
       _projectsRepo.getPendingCollaborationRequests(),
       _communitiesRepo.getPendingInvites(),
+      _projectsRepo.getProjectNotifications(),
     ]);
     if (!mounted) return;
     final friendCount = (results[0] as List?)?.length ?? 0;
     final collabCount = (results[1] as List).length;
     final communityCount = (results[2] as List).length;
     setState(
-      () => _pendingRequestCount = friendCount + collabCount + communityCount,
+      () => _pendingRequestCount =
+          friendCount +
+          collabCount +
+          communityCount +
+          (results[3] as List<Map<String, dynamic>>)
+              .where((n) => n['read_at'] == null)
+              .length,
     );
   }
 
   Future<void> _showNotifications() async {
-    await showModalBottomSheet(
+    await showAppModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -99,12 +206,29 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     });
   }
 
+  bool _refreshingFeed = false;
+  Future<void> _refreshFeedSilently() async {
+    if (_refreshingFeed) return;
+    _refreshingFeed = true;
+    try {
+      final projects = await _loadFeedProjects();
+      if (mounted && projects != null) {
+        setState(() => _projectsFuture = Future.value(projects));
+      }
+    } finally {
+      _refreshingFeed = false;
+    }
+  }
+
   Future<void> _refreshProjects() async {
     final nextFuture = _loadFeedProjects();
     setState(() {
       _projectsFuture = nextFuture;
     });
     await nextFuture;
+    _desktopProfileKey.currentState?.reload();
+    _exploreKey.currentState?.reload();
+    _libraryKey.currentState?.reload();
     _loadCommunities();
   }
 
@@ -145,31 +269,19 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : null;
     }
 
-    final projectResults = await Future.wait([
-      _projectsRepo.getProjectsForFeed(ownerIds: ownerIds.toList()),
-      _projectsRepo.getCollaboratedProjects(),
-    ]);
-
-    final feedProjects = projectResults[0] as List<Project>?;
-    final collaboratedProjects = projectResults[1] as List<Project>;
-
+    final feedProjects = await _projectsRepo.getProjectsForFeed(
+      ownerIds: ownerIds.toList(),
+    );
     if (feedProjects == null) return null;
-
-    // Merge by project id (feed projects take priority for dedup)
-    final projectMap = <String, Project>{for (final p in feedProjects) p.id: p};
-
-    // Track collaborated project ids and ensure their owners are in the label map
-    _collaboratedProjectIds.clear();
-    final missingOwnerIds = <String>[];
-    for (final p in collaboratedProjects) {
-      _collaboratedProjectIds.add(p.id);
-      if (!projectMap.containsKey(p.id)) {
-        projectMap[p.id] = p;
-        if (p.userId != null && !_ownerLabelByUserId.containsKey(p.userId)) {
-          missingOwnerIds.add(p.userId!);
-        }
-      }
-    }
+    final projectMap = {
+      for (final project in feedProjects) project.id: project,
+    };
+    final missingOwnerIds = feedProjects
+        .map((p) => p.userId)
+        .whereType<String>()
+        .where((id) => !_ownerLabelByUserId.containsKey(id))
+        .toSet()
+        .toList();
 
     // Fetch profiles for project owners not yet in our label maps
     if (missingOwnerIds.isNotEmpty) {
@@ -191,11 +303,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       } catch (_) {}
     }
 
-    final mergedProjects = projectMap.values.toList()
-      ..sort(
-        (a, b) =>
-            (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
-      );
+    final mergedProjects = await _projectsRepo
+        .projectsWithCompletedJournalEntries(projectMap.values.toList());
 
     if (mergedProjects.isNotEmpty) {
       final collaboratorsMap = await _projectsRepo.getCollaboratorsForProjects(
@@ -214,7 +323,26 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         ..clear()
         ..addAll(liked);
     }
-    return mergedProjects;
+    final entries = await Future.wait(
+      mergedProjects.map((p) => _projectsRepo.getPublishedJournalEntries(p.id)),
+    );
+    _feedEntryByProject.clear();
+    for (var i = 0; i < mergedProjects.length; i++) {
+      final latest = completedJournalFeedEntries(entries[i]);
+      if (latest.isNotEmpty) {
+        _feedEntryByProject[mergedProjects[i].id] = latest.first;
+      }
+    }
+    final visible = mergedProjects
+        .where((p) => _feedEntryByProject.containsKey(p.id))
+        .toList();
+    DateTime activity(Project project) {
+      final entry = _feedEntryByProject[project.id]!;
+      return entry.updatedAt ?? entry.createdAt ?? DateTime(1970);
+    }
+
+    visible.sort((a, b) => activity(b).compareTo(activity(a)));
+    return visible;
   }
 
   String _tabTitle() {
@@ -222,7 +350,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       case 0:
         return 'Home';
       case 1:
-        return 'Journal';
+        return 'Journal Library';
+      case 3:
+        return 'Explore';
       case 2:
         return 'Profile';
       default:
@@ -233,14 +363,23 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   Future<void> _handleSignOut() async {
     await AuthService.instance.signOut();
     if (!mounted) return;
+    DesktopShellScope.of(context)?.clear();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const JuniperAuthScreen()),
       (route) => false,
     );
   }
 
+  Future<void> _openMessages() async {
+    await pushAppRoute(
+      context,
+      MaterialPageRoute(builder: (_) => const ChatsListScreen()),
+    );
+    if (mounted) _loadUnreadCount();
+  }
+
   Future<void> _openSearch() async {
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(builder: (_) => const HomeSearchScreen()),
     );
@@ -249,6 +388,28 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   }
 
   // Shows create options as a popup above the FAB (does not cover the nav bar)
+  void _selectSection(int index) {
+    if (widget.informationPage != null) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) =>
+              HomeShellScreen(initialSection: index, restoreJournal: false),
+        ),
+        (_) => false,
+      );
+      return;
+    }
+    resetPageScroll(context);
+    setState(() {
+      _selectedIndex = index;
+      _visitedSections.add(index);
+    });
+    _desktopProfileKey.currentState?.reload();
+    if (index == 3) _exploreKey.currentState?.reload();
+    if (index == 1) _libraryKey.currentState?.reload();
+    if (index == 2) _profileKey.currentState?.reload();
+  }
+
   Widget _buildNavBar(BuildContext ctx) {
     const barH = 56.0;
     const fabD = 72.0;
@@ -259,13 +420,21 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     Widget navIcon(IconData icon, int index, {VoidCallback? onTapOverride}) =>
         _BottomNavIcon(
           icon: icon,
+          iconSize: index == 3 ? 34 : 28,
           isActive: _selectedIndex == index,
-          onTap: onTapOverride ?? () => setState(() => _selectedIndex = index),
+          onTap:
+              onTapOverride ??
+              () {
+                _selectSection(index);
+              },
         );
 
     Widget profileIcon() => InkWell(
       onTap: () {
-        setState(() => _selectedIndex = 2);
+        setState(() {
+          _selectedIndex = 2;
+          _visitedSections.add(2);
+        });
         _profileKey.currentState?.reload();
       },
       borderRadius: BorderRadius.circular(24),
@@ -287,42 +456,52 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
 
     return SizedBox(
-      height: barH + bottomPad,
+      // Keep the entire create button inside the Stack's hit-test bounds.
+      height: fabR + barH + bottomPad,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // ── Notched white bar ──────────────────────────────────────────
           Positioned.fill(
-            child: PhysicalShape(
-              clipper: _NavBarClipper(notchRadius: fabR + notchMargin),
-              elevation: 8,
-              color: AppColors.white,
-              shadowColor: Colors.black,
-              child: Padding(
-                padding: EdgeInsets.only(bottom: bottomPad),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [navIcon(Icons.home, 0)],
+            top: fabR,
+            child: CustomPaint(
+              foregroundPainter: _NavBarBorderPainter(
+                notchRadius: fabR + notchMargin,
+              ),
+              child: PhysicalShape(
+                clipper: _NavBarClipper(notchRadius: fabR + notchMargin),
+                elevation: 0,
+                color: AppColors.white,
+                shadowColor: Colors.black,
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: bottomPad),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            navIcon(Icons.home, 0),
+                            navIcon(Icons.landscape_outlined, 3),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: fabD + notchMargin * 2),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [navIcon(Icons.article, 1), profileIcon()],
+                      const SizedBox(width: fabD + notchMargin * 2),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [navIcon(Icons.article, 1), profileIcon()],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
           // ── FAB ───────────────────────────────────────────────────────
           Positioned(
-            top: -fabR,
+            top: 0,
             left: 0,
             right: 0,
             child: Center(
@@ -350,7 +529,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   void _showCreateOptions() {
     showGeneralDialog(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       barrierLabel: 'Dismiss',
       barrierColor: const Color.fromRGBO(60, 60, 60, 0.64),
       transitionDuration: const Duration(milliseconds: 180),
@@ -360,21 +539,20 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           parent: animation,
           curve: Curves.easeOut,
         );
-        final bottomPad = MediaQuery.of(context).padding.bottom + 168;
         return FadeTransition(
           opacity: curved,
           child: ScaleTransition(
             scale: Tween<double>(begin: 0.88, end: 1.0).animate(curved),
-            alignment: Alignment.bottomCenter,
+            alignment: Alignment.center,
             child: Align(
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.center,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad),
-                child: _CreateMenuDialog(
+                padding: const EdgeInsets.all(16),
+                child: CreateMenuDialog(
                   onClose: () => Navigator.pop(ctx),
                   onCommunityTap: () async {
                     Navigator.pop(ctx);
-                    await Navigator.push(
+                    final result = await pushAppRoute(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const CreateCommunityScreen(),
@@ -382,19 +560,21 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     );
                     if (!mounted) return;
                     _loadCommunities();
+                    if (result == false) _showCreateOptions();
                   },
-                  onJournalTap: () {
+                  onJournalTap: () async {
                     Navigator.pop(ctx);
-                    showModalBottomSheet(
+                    final result = await showAppModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
                       builder: (_) => const JournalAddToSheet(),
                     );
+                    if (mounted && result == false) _showCreateOptions();
                   },
                   onProjectTap: () async {
                     Navigator.pop(ctx);
-                    await Navigator.push(
+                    final result = await pushAppRoute(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const CreateProjectScreen(),
@@ -402,6 +582,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     );
                     if (!mounted) return;
                     _refreshProjects();
+                    if (result == false) _showCreateOptions();
                   },
                 ),
               ),
@@ -414,178 +595,270 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-
-      // ---------- Bottom Navigation (custom notched bar) ----------
-      bottomNavigationBar: _buildNavBar(context),
+    PageRefreshState.remember(context, {
+      'kind': widget.informationPage ?? 'home',
+      if (widget.informationPage == null) 'section': _selectedIndex,
+    });
+    return AdaptiveAppShell(
+      selectedIndex: widget.informationPage == null ? _selectedIndex : -1,
+      onSelect: (index) async {
+        final navigator = Navigator.of(context);
+        if (!await JournalDraftGuard.leaveCurrent(navigator) || !mounted)
+          return;
+        if (widget.informationPage != null) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) =>
+                  HomeShellScreen(initialSection: index, restoreJournal: false),
+            ),
+            (_) => false,
+          );
+          return;
+        }
+        while (navigator.canPop()) {
+          final route = desktopRouteObserver.current;
+          final popped = await navigator.maybePop();
+          if (!popped || !mounted) return;
+          // maybePop honors each editor's PopScope and autosave hooks.
+          await WidgetsBinding.instance.endOfFrame;
+          if (desktopRouteObserver.current == route) return;
+        }
+        if (mounted) _selectSection(index);
+      },
+      onCreate: _showCreateOptions,
+      mobileNavigation: _buildNavBar(context),
+      desktopSidebar: UserProfilePage(
+        key: _desktopProfileKey,
+        compact: true,
+        onProfileUpdated: _refreshProjects,
+        onSettings: () => pushAppRoute(
+          context,
+          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+        ),
+        onLogout: _handleSignOut,
+        onNotifications: _showNotifications,
+        onMessages: _openMessages,
+        notificationCount: _pendingRequestCount,
+        unreadMessageCount: _unreadCount,
+      ),
 
       // ---------- BODY ----------
-      body: SafeArea(
-        // On the profile tab the green bar extends into the status-bar area,
-        // so we disable the top safe-area inset and add it manually below.
-        top: _selectedIndex != 2,
-        child: Column(
-          children: [
-            // ---------- FIXED TOP BAR ----------
-            Container(
-              color: _selectedIndex == 2 ? AppColors.primary : null,
-              padding: EdgeInsets.fromLTRB(
-                16.0,
-                _selectedIndex == 2
-                    ? MediaQuery.of(context).padding.top + 8
-                    : 8,
-                16.0,
-                8,
-              ),
-              child: _selectedIndex == 2
-                  ? Row(
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const SettingsScreen(),
-                                  ),
-                                );
-                                if (!mounted) return;
-                                _profileKey.currentState?.reload();
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: const Text(
-                                'Settings',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const Text(
-                          'Profile',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: _handleSignOut,
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: const Text(
-                                'Logout',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: _openSearch,
-                              icon: const Icon(Icons.search, size: 28),
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _tabTitle(),
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  padding: EdgeInsets.zero,
-                                  onPressed: _showNotifications,
-                                  icon: Badge(
-                                    isLabelVisible: _pendingRequestCount > 0,
-                                    label: Text(
-                                      '$_pendingRequestCount',
-                                      style: const TextStyle(fontSize: 10),
+      body: widget.informationPage != null
+          ? SiteInformationPage(page: widget.informationPage!, embedded: true)
+          : SafeArea(
+              bottom: false,
+              // On the profile tab the green bar extends into the status-bar area,
+              // so we disable the top safe-area inset and add it manually below.
+              top: _selectedIndex != 2,
+              child: Column(
+                children: [
+                  // ---------- FIXED TOP BAR ----------
+                  Container(
+                    color: _selectedIndex == 2 ? AppColors.primary : null,
+                    padding: EdgeInsets.fromLTRB(
+                      16.0,
+                      _selectedIndex == 2
+                          ? MediaQuery.of(context).padding.top + 8
+                          : 8,
+                      16.0,
+                      8,
+                    ),
+                    child: _selectedIndex == 2
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: () async {
+                                      await pushAppRoute(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const SettingsScreen(),
+                                        ),
+                                      );
+                                      if (!mounted) return;
+                                      _profileKey.currentState?.reload();
+                                      await _refreshProjects();
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    child: const Icon(
-                                      Icons.notifications_outlined,
-                                      size: 26,
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const ChatsListScreen(),
+                                    child: const Text(
+                                      'Settings',
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.bodyFamily,
+                                        fontSize: AppTypography.buttonSize,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    );
-                                    if (!mounted) return;
-                                    _loadUnreadCount();
-                                  },
-                                  icon: Badge(
-                                    isLabelVisible: _unreadCount > 0,
-                                    label: Text(
-                                      _unreadCount > 99
-                                          ? '99+'
-                                          : '$_unreadCount',
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.chat_bubble_outline,
-                                      size: 26,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              const Text(
+                                'Profile',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.headingFamily,
+                                  fontSize: AppTypography.sectionTitleSize,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: _handleSignOut,
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      'Logout',
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.bodyFamily,
+                                        fontSize: AppTypography.buttonSize,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    tooltip: _selectedIndex == 1
+                                        ? 'Back to Home'
+                                        : 'Search',
+                                    onPressed: _selectedIndex == 1
+                                        ? () =>
+                                              setState(() => _selectedIndex = 0)
+                                        : _openSearch,
+                                    icon: Icon(
+                                      _selectedIndex == 1
+                                          ? Icons.chevron_left
+                                          : Icons.search,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                _tabTitle(),
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.headingFamily,
+                                  fontSize: AppTypography.pageTitleSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (MediaQuery.sizeOf(context).width <
+                                          AdaptiveAppShell
+                                              .desktopBreakpoint) ...[
+                                        IconButton(
+                                          padding: EdgeInsets.zero,
+                                          onPressed: _showNotifications,
+                                          icon: Badge(
+                                            isLabelVisible:
+                                                _pendingRequestCount > 0,
+                                            label: Text(
+                                              '$_pendingRequestCount',
+                                              style: const TextStyle(
+                                                fontFamily:
+                                                    AppTypography.bodyFamily,
+                                                fontSize:
+                                                    AppTypography.captionSize,
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.notifications_outlined,
+                                              size: 26,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          padding: EdgeInsets.zero,
+                                          onPressed: () async {
+                                            await pushAppRoute(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const ChatsListScreen(),
+                                              ),
+                                            );
+                                            if (!mounted) return;
+                                            _loadUnreadCount();
+                                          },
+                                          icon: Badge(
+                                            isLabelVisible: _unreadCount > 0,
+                                            label: Text(
+                                              _unreadCount > 99
+                                                  ? '99+'
+                                                  : '$_unreadCount',
+                                              style: const TextStyle(
+                                                fontFamily:
+                                                    AppTypography.bodyFamily,
+                                                fontSize:
+                                                    AppTypography.captionSize,
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.chat_bubble_outline,
+                                              size: 26,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                  ),
+
+                  Expanded(
+                    child: AppTabStack(
+                      index: _selectedIndex,
+                      children: [
+                        _buildProjectsSection(),
+                        _visitedSections.contains(1)
+                            ? JournalScreen(browseKey: _libraryKey)
+                            : const SizedBox.shrink(),
+                        _visitedSections.contains(2)
+                            ? UserProfilePage(
+                                key: _profileKey,
+                                onProfileUpdated: _refreshProjects,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedSections.contains(3)
+                            ? ProjectBrowsePage(key: _exploreKey)
+                            : const SizedBox.shrink(),
                       ],
                     ),
-            ),
-
-            Expanded(
-              child: IndexedStack(
-                index: _selectedIndex,
-                children: [
-                  _buildProjectsSection(),
-                  const JournalScreen(),
-                  UserProfilePage(
-                    key: _profileKey,
-                    onProfileUpdated: _refreshProjects,
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -596,7 +869,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     return FutureBuilder<List<Project>?>(
       future: projectsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -617,11 +891,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           );
         }
 
-        final currentUserId = AuthService.instance.currentUser?.id;
-        return RefreshIndicator(
+        return AppRefreshIndicator(
           onRefresh: _refreshProjects,
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            key: ValueKey('home-feed-$_feedRevision'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              8,
+              16,
+              116 + MediaQuery.of(context).padding.bottom,
+            ),
             itemCount: projects.length + 1, // +1 for community carousel header
             separatorBuilder: (_, i) =>
                 i == 0 ? const SizedBox.shrink() : const SizedBox(height: 12),
@@ -629,14 +909,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
               if (index == 0) {
                 return _CommunityCarousel(
                   communities: _communities,
-                  onCommunityTap: (c) => Navigator.push(
+                  onCommunityTap: (c) => pushAppRoute(
                     context,
                     MaterialPageRoute(
                       builder: (_) => CommunityHomeScreen(community: c),
                     ),
                   ).then((_) => _loadCommunities()),
                   onCreateTap: () async {
-                    await Navigator.push(
+                    await pushAppRoute(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const CreateCommunityScreen(),
@@ -653,11 +933,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   ? project.projectName.trim()
                   : 'Untitled Project';
               final tags = project.tags;
-              final imageUrl = project.imageUrl;
+              final feedEntry = _feedEntryByProject[projectId]!;
+              final entryImages = journalContentImageUrls(feedEntry.content);
+              final imageUrl = entryImages.isEmpty ? null : entryImages.first;
               final ownerId = project.userId;
-              final isOwner =
-                  (ownerId != null && ownerId == currentUserId) ||
-                  _collaboratedProjectIds.contains(projectId);
+
               final ownerLabel = ownerId == null
                   ? null
                   : _ownerLabelByUserId[ownerId];
@@ -665,9 +945,67 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   ? null
                   : _ownerAvatarByUserId[ownerId];
 
+              final viewer = AuthService.instance.currentUser?.id;
+              final projectParticipant =
+                  viewer != null &&
+                  (project.userId == viewer ||
+                      (_collaboratorsByProjectId[projectId]?.any(
+                            (p) => p.id == viewer,
+                          ) ??
+                          false));
               return _ProjectCard(
                 projectId: projectId,
-                name: projectName,
+                onEdit:
+                    projectParticipant &&
+                        (feedEntry.authorId ==
+                                AuthService.instance.currentUser?.id ||
+                            project.userId ==
+                                AuthService.instance.currentUser?.id ||
+                            (feedEntry.participantIds.contains(
+                                  AuthService.instance.currentUser?.id,
+                                ) &&
+                                (_collaboratorsByProjectId[projectId]?.any(
+                                      (p) =>
+                                          p.id ==
+                                          AuthService.instance.currentUser?.id,
+                                    ) ??
+                                    false)))
+                    ? () async {
+                        await pushAppRoute(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => editableJournalEntryPage(
+                              feedEntry,
+                              project,
+                              _projectsRepo,
+                            ),
+                          ),
+                        );
+                        if (mounted) await _refreshProjects();
+                      }
+                    : null,
+                onDelete:
+                    projectParticipant &&
+                        (feedEntry.authorId ==
+                                AuthService.instance.currentUser?.id ||
+                            project.userId ==
+                                AuthService.instance.currentUser?.id)
+                    ? () async {
+                        if (await confirmDeleteJournalEntry(
+                              context,
+                              _projectsRepo,
+                              feedEntry,
+                            ) &&
+                            mounted)
+                          await _refreshProjects();
+                      }
+                    : null,
+                name: _feedEntryByProject[projectId]!.title,
+                phase: _feedEntryByProject[projectId]!.progress,
+                projectName: projectName,
+                onProjectTap: () =>
+                    openJournalProject(context, project, _projectsRepo),
+                ownerId: ownerId,
                 ownerLabel: ownerLabel,
                 ownerAvatarUrl: ownerAvatarUrl,
                 collaborators: _collaboratorsByProjectId[projectId] ?? [],
@@ -677,19 +1015,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                 initialLikes: project.likes,
                 initialHasLiked: _likedProjectIds.contains(projectId),
                 onTap: () async {
-                  await Navigator.push(
+                  await pushAppRoute(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ProjectDashboard(
-                        projectId: projectId,
-                        projectName: projectName,
-                        tags: tags,
-                        isOwner: isOwner,
+                      builder: (_) => JournalEntryView(
+                        entry: _feedEntryByProject[projectId]!,
+                        project: project,
+                        projectsRepo: _projectsRepo,
                       ),
                     ),
                   );
-                  if (!mounted) return;
-                  _refreshProjects();
+                  if (mounted) await _refreshProjects();
                 },
               );
             },
@@ -721,13 +1057,34 @@ class _NavBarClipper extends CustomClipper<Path> {
   bool shouldReclip(_NavBarClipper old) => old.notchRadius != notchRadius;
 }
 
+class _NavBarBorderPainter extends CustomPainter {
+  const _NavBarBorderPainter({required this.notchRadius});
+  final double notchRadius;
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      _NavBarClipper(notchRadius: notchRadius).getClip(size),
+      Paint()
+        ..color = const Color(0xFFD1DBD5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.25,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NavBarBorderPainter oldDelegate) =>
+      oldDelegate.notchRadius != notchRadius;
+}
+
 class _BottomNavIcon extends StatelessWidget {
   final IconData icon;
+  final double iconSize;
   final bool isActive;
   final VoidCallback onTap;
 
   const _BottomNavIcon({
     required this.icon,
+    this.iconSize = 28,
     required this.isActive,
     required this.onTap,
   });
@@ -741,190 +1098,9 @@ class _BottomNavIcon extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         child: Icon(
           icon,
-          size: 28,
+          size: iconSize,
           color: isActive ? AppColors.primary : AppColors.textPrimary,
         ),
-      ),
-    );
-  }
-}
-
-class _CreateMenuDialog extends StatelessWidget {
-  const _CreateMenuDialog({
-    required this.onClose,
-    required this.onCommunityTap,
-    required this.onJournalTap,
-    required this.onProjectTap,
-  });
-
-  static const _primary = Color(0xFF5DB075);
-  static const _iconBackground = Color(0xFFD2E2DA);
-
-  final VoidCallback onClose;
-  final VoidCallback onCommunityTap;
-  final VoidCallback onJournalTap;
-  final VoidCallback onProjectTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 268,
-      height: 312,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: SvgPicture.asset(
-              'assets/create_menu/card_background.svg',
-              fit: BoxFit.fill,
-            ),
-          ),
-          Positioned(
-            left: 120,
-            top: 10,
-            child: Container(
-              width: 22,
-              height: 2,
-              decoration: BoxDecoration(
-                color: const Color(0xFF707070),
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 8,
-            top: 21,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onClose,
-              child: SizedBox(
-                width: 29,
-                height: 33,
-                child: SvgPicture.asset(
-                  'assets/create_menu/close.svg',
-                  fit: BoxFit.fill,
-                ),
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 99,
-            top: 21,
-            width: 64,
-            height: 34,
-            child: Text(
-              'Create',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 28 / 16,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 44,
-            top: 63.142578125,
-            child: _CreateMenuOption(
-              assetPath: 'assets/create_menu/community.svg',
-              label: 'Community',
-              labelGap: 11.89896011352539,
-              labelWidth: 83,
-              iconSize: const Size(30.86968421936035, 30.86968421936035),
-              onTap: onCommunityTap,
-            ),
-          ),
-          Positioned(
-            left: 154,
-            top: 63.142578125,
-            child: _CreateMenuOption(
-              assetPath: 'assets/create_menu/journal.svg',
-              label: 'Journal',
-              labelGap: 11.89896011352539,
-              labelWidth: 61,
-              iconSize: const Size(23.3835506439209, 24.24220848083496),
-              onTap: onJournalTap,
-            ),
-          ),
-          Positioned(
-            left: 99,
-            top: 183.982421875,
-            child: _CreateMenuOption(
-              assetPath: 'assets/create_menu/new_project.svg',
-              label: 'New\nProject',
-              labelGap: 8.05911636352539,
-              labelWidth: 69,
-              iconSize: const Size(23.3835506439209, 23.460201263427734),
-              onTap: onProjectTap,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CreateMenuOption extends StatelessWidget {
-  const _CreateMenuOption({
-    required this.label,
-    required this.labelGap,
-    required this.labelWidth,
-    required this.onTap,
-    this.assetPath,
-    this.iconSize,
-    this.iconBuilder,
-  });
-
-  final String label;
-  final double labelGap;
-  final double labelWidth;
-  final VoidCallback onTap;
-  final String? assetPath;
-  final Size? iconSize;
-  final Widget? iconBuilder;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 53.78216552734375,
-            height: 53.95846176147461,
-            decoration: BoxDecoration(
-              color: _CreateMenuDialog._iconBackground,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child:
-                  iconBuilder ??
-                  SvgPicture.asset(
-                    assetPath!,
-                    width: iconSize!.width,
-                    height: iconSize!.height,
-                    fit: BoxFit.fill,
-                  ),
-            ),
-          ),
-          SizedBox(height: labelGap),
-          SizedBox(
-            width: labelWidth,
-            child: Text(
-              label.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                height: 1,
-                color: _CreateMenuDialog._primary,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -933,6 +1109,11 @@ class _CreateMenuOption extends StatelessWidget {
 class _ProjectCard extends StatefulWidget {
   final String projectId;
   final String name;
+  final String? phase;
+  final String projectName;
+  final VoidCallback onProjectTap;
+  final VoidCallback? onEdit, onDelete;
+  final String? ownerId;
   final String? ownerLabel;
   final String? ownerAvatarUrl;
   final List<UserProfile> collaborators;
@@ -946,6 +1127,12 @@ class _ProjectCard extends StatefulWidget {
   const _ProjectCard({
     required this.projectId,
     required this.name,
+    required this.phase,
+    required this.projectName,
+    required this.onProjectTap,
+    this.onEdit,
+    this.onDelete,
+    this.ownerId,
     required this.ownerLabel,
     required this.ownerAvatarUrl,
     required this.collaborators,
@@ -1022,26 +1209,33 @@ class _ProjectCardState extends State<_ProjectCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Cover image — full width, flush to card edges ──────────
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(14),
+            if (widget.imageUrl?.trim().isNotEmpty == true)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => SizedBox(
+                    width: constraints.maxWidth,
+                    height: (constraints.maxWidth * 9 / 16).clamp(0.0, 260.0),
+                    child:
+                        (widget.imageUrl != null &&
+                            widget.imageUrl!.trim().isNotEmpty)
+                        ? Image.network(
+                            widget.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildDefaultBanner(),
+                          )
+                        : _buildDefaultBanner(),
+                  ),
+                ),
               ),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child:
-                    (widget.imageUrl != null &&
-                        widget.imageUrl!.trim().isNotEmpty)
-                    ? Image.network(
-                        widget.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildDefaultBanner(),
-                      )
-                    : _buildDefaultBanner(),
-              ),
-            ),
             // ── Card content ────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: widget.imageUrl?.trim().isNotEmpty == true ? 16 : 38,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1054,40 +1248,75 @@ class _ProjectCardState extends State<_ProjectCard> {
                             ? Row(
                                 children: [
                                   _AvatarStack(
+                                    ownerId: widget.ownerId,
                                     ownerAvatarUrl: widget.ownerAvatarUrl,
                                     collaborators: widget.collaborators,
                                   ),
                                   const SizedBox(width: 8),
                                   Flexible(
-                                    child: Text(
-                                      () {
-                                        final currentUserId = AuthService
-                                            .instance
-                                            .currentUser
-                                            ?.id;
-                                        final names = [
-                                          widget.ownerLabel!,
-                                          ...widget.collaborators.map(
-                                            (c) => c.id == currentUserId
-                                                ? 'You'
-                                                : c.resolvedDisplayName,
+                                    child: Wrap(
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        const Text('by '),
+                                        if (widget.ownerId != null)
+                                          TextButton(
+                                            style: TextButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 3,
+                                                  ),
+                                              minimumSize: Size.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            onPressed: () => openUserProfile(
+                                              context,
+                                              widget.ownerId!,
+                                            ),
+                                            child: Text(widget.ownerLabel!),
                                           ),
-                                        ];
-                                        return 'by ${names.join(', ')}';
-                                      }(),
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
+                                        for (final person
+                                            in widget.collaborators)
+                                          TextButton(
+                                            style: TextButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 3,
+                                                  ),
+                                              minimumSize: Size.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            onPressed: () => openUserProfile(
+                                              context,
+                                              person.id,
+                                            ),
+                                            child: Text(
+                                              person.id ==
+                                                      AuthService
+                                                          .instance
+                                                          .currentUser
+                                                          ?.id
+                                                  ? 'You'
+                                                  : person.resolvedDisplayName,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               )
                             : const SizedBox.shrink(),
                       ),
+                      if (widget.onEdit != null || widget.onDelete != null)
+                        ItemActionMenu(
+                          onEdit: widget.onEdit,
+                          onDelete: widget.onDelete,
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                        ),
                       GestureDetector(
                         onTap: _handleLike,
                         child: Row(
@@ -1103,8 +1332,9 @@ class _ProjectCardState extends State<_ProjectCard> {
                             Text(
                               '$_likes',
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.bodySize,
+                                fontWeight: FontWeight.w500,
                                 color: _hasLiked
                                     ? AppColors.primaryDark
                                     : Colors.grey.shade400,
@@ -1115,7 +1345,7 @@ class _ProjectCardState extends State<_ProjectCard> {
                       ),
                       const SizedBox(width: 14),
                       GestureDetector(
-                        onTap: () => showModalBottomSheet(
+                        onTap: () => showAppModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
@@ -1137,62 +1367,100 @@ class _ProjectCardState extends State<_ProjectCard> {
                   Text(
                     widget.name,
                     style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.sectionTitleSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (widget.description != null &&
-                      widget.description!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.description!.trim(),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black54,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                   const SizedBox(height: 10),
-                  if (widget.tags.isEmpty)
-                    const Text(
-                      'No tags',
-                      style: TextStyle(color: Colors.black54, fontSize: 12),
-                    )
-                  else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: widget.tags
-                          .map((tag) => tag.split('|').first.trim())
-                          .toSet()
-                          .map(
-                            (domain) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.15,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _entryPhaseTag(),
+                              for (final subject
+                                  in widget.tags
+                                      .map((tag) => tag.split('|').first.trim())
+                                      .where((subject) => subject.isNotEmpty)
+                                      .toSet())
+                                ExplainedProjectTag(
+                                  label: subject,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(
+                                          alpha: .45,
+                                        ),
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      subject,
+                                      style: AppTypography.helper.copyWith(
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                domain,
-                                style: const TextStyle(
-                                  color: AppColors.primaryDark,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      JournalProjectLink(
+                        projectName: widget.projectName,
+                        onTap: widget.onProjectTap,
+                        topPadding: 0,
+                      ),
+                    ],
+                  ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _entryPhaseTag() {
+    final (label, icon) = switch (normalizePhase(widget.phase)) {
+      'discover' => ('Discovery', Icons.search_outlined),
+      'ideating' => ('Ideation', Icons.lightbulb_outline),
+      'prototyping' => ('Prototyping', Icons.build_outlined),
+      'implementation' => ('Implementation', Icons.rocket_launch_outlined),
+      _ => ('Journal', Icons.menu_book_outlined),
+    };
+    return ExplainedProjectTag(
+      label: label,
+      isPhase: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.helper.copyWith(color: Colors.white),
               ),
             ),
           ],
@@ -1237,7 +1505,9 @@ class _NotificationsSheet extends StatefulWidget {
 }
 
 class _NotificationsSheetState extends State<_NotificationsSheet> {
+  Timer? _notificationRefresh;
   bool _isLoading = true;
+  List<Map<String, dynamic>> _projectNotifications = [];
   List<FriendRequest> _friendRequests = const [];
   List<CollaborationRequest> _collabRequests = const [];
   List<CommunityInvite> _communityInvites = const [];
@@ -1249,20 +1519,32 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
   void initState() {
     super.initState();
     _loadAll();
+    _notificationRefresh = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _loadAll(showLoading: false),
+    );
   }
 
-  Future<void> _loadAll() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _notificationRefresh?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadAll({bool showLoading = true}) async {
+    if (showLoading) setState(() => _isLoading = true);
     final results = await Future.wait([
       widget.friendsRepo.getIncomingFriendRequests(),
       widget.projectsRepo.getPendingCollaborationRequests(),
       widget.communitiesRepo.getPendingInvites(),
+      widget.projectsRepo.getProjectNotifications(),
     ]);
     if (!mounted) return;
     setState(() {
       _friendRequests = (results[0] as List<FriendRequest>?) ?? [];
       _collabRequests = results[1] as List<CollaborationRequest>;
       _communityInvites = results[2] as List<CommunityInvite>;
+      _projectNotifications = results[3] as List<Map<String, dynamic>>;
       _isLoading = false;
     });
   }
@@ -1333,6 +1615,7 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
   @override
   Widget build(BuildContext context) {
     final hasAny =
+        _projectNotifications.isNotEmpty ||
         _friendRequests.isNotEmpty ||
         _collabRequests.isNotEmpty ||
         _communityInvites.isNotEmpty;
@@ -1350,23 +1633,36 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 4),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                child: SizedBox(
+                  height: 48,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 48),
+                        child: Text(
+                          'Notifications',
+                          style: TextStyle(
+                            fontFamily: AppTypography.headingFamily,
+                            fontSize: AppTypography.sectionTitleSize,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          key: const ValueKey('close-notifications'),
+                          tooltip: 'Close notifications',
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Text(
-                  'Notifications',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1377,13 +1673,75 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                     ? const Center(
                         child: Text(
                           'No pending notifications.',
-                          style: TextStyle(color: Colors.black54),
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       )
                     : ListView(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                         children: [
+                          if (_projectNotifications.isNotEmpty) ...[
+                            const _SectionHeader(title: 'Project Updates'),
+                            for (final notification in _projectNotifications)
+                              ListTile(
+                                leading: Icon(
+                                  Icons.folder_shared_outlined,
+                                  color: notification['read_at'] == null
+                                      ? AppColors.primary
+                                      : Colors.grey,
+                                ),
+                                title: Text(
+                                  notification['message']?.toString() ??
+                                      'Project update',
+                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => runActionOnce(
+                                  this,
+                                  'open-notification',
+                                  () async {
+                                    try {
+                                      final destination =
+                                          await projectNotificationDestination(
+                                            notification,
+                                            widget.projectsRepo,
+                                          );
+                                      if (!context.mounted) return;
+                                      await widget.projectsRepo
+                                          .markProjectNotificationRead(
+                                            notification['id'].toString(),
+                                          );
+                                      if (!context.mounted) return;
+                                      final navigator = Navigator.of(context);
+                                      navigator.pop();
+                                      await pushAppRoute(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => destination,
+                                        ),
+                                      );
+                                    } on StateError catch (error) {
+                                      if (context.mounted)
+                                        showTopSnackBar(
+                                          context,
+                                          error.message,
+                                          isError: true,
+                                        );
+                                    } catch (_) {
+                                      if (context.mounted)
+                                        showTopSnackBar(
+                                          context,
+                                          'Could not open this notification. Please try again.',
+                                          isError: true,
+                                        );
+                                    }
+                                    if (mounted) _loadAll(showLoading: false);
+                                  },
+                                ),
+                              ),
+                          ],
                           if (_friendRequests.isNotEmpty) ...[
                             const _SectionHeader(title: 'Friend Requests'),
                             ..._friendRequests.map((request) {
@@ -1508,7 +1866,10 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                                 ),
                                 subtitle: Text(
                                   request.projectName,
-                                  style: const TextStyle(fontSize: 12),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.helperSize,
+                                  ),
                                 ),
                                 trailing: isActionLoading
                                     ? const SizedBox(
@@ -1596,7 +1957,10 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                                 ),
                                 subtitle: Text(
                                   invite.communityName,
-                                  style: const TextStyle(fontSize: 12),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.helperSize,
+                                  ),
                                 ),
                                 trailing: isLoading
                                     ? const SizedBox(
@@ -1671,9 +2035,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Colors.black54,
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
         ),
       ),
     );
@@ -1684,7 +2049,12 @@ class _AvatarStack extends StatelessWidget {
   final String? ownerAvatarUrl;
   final List<UserProfile> collaborators;
 
-  const _AvatarStack({this.ownerAvatarUrl, required this.collaborators});
+  const _AvatarStack({
+    this.ownerId,
+    this.ownerAvatarUrl,
+    required this.collaborators,
+  });
+  final String? ownerId;
 
   static const double _diameter = 24.0;
   static const double _offset = 16.0;
@@ -1716,7 +2086,17 @@ class _AvatarStack extends StatelessWidget {
           for (int i = visible.length - 1; i >= 0; i--)
             Positioned(
               left: i * _offset,
-              child: _StackAvatar(url: visible[i], diameter: _diameter),
+              child: Semantics(
+                button: true,
+                label: 'View contributor profile',
+                child: GestureDetector(
+                  onTap: () {
+                    final id = i == 0 ? ownerId : collaborators[i - 1].id;
+                    if (id != null) openUserProfile(context, id);
+                  },
+                  child: _StackAvatar(url: visible[i], diameter: _diameter),
+                ),
+              ),
             ),
           if (overflow > 0)
             Positioned(
@@ -1733,7 +2113,8 @@ class _AvatarStack extends StatelessWidget {
                   child: Text(
                     '…',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.captionSize,
                       color: AppColors.textSecondary,
                     ),
                   ),
@@ -1792,7 +2173,7 @@ class _ProjectsMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return AppRefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -1806,12 +2187,19 @@ class _ProjectsMessage extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.sectionTitleSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(subtitle, style: const TextStyle(color: Colors.black54)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1834,6 +2222,68 @@ class _CommunityCarousel extends StatelessWidget {
   final List<Community> communities;
   final void Function(Community) onCommunityTap;
   final VoidCallback onCreateTap;
+
+  Future<void> _showAll(BuildContext context) async {
+    final selected = await showAppModalBottomSheet<Community>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SizedBox(
+        width: 560,
+        height: MediaQuery.sizeOf(sheetContext).height * .65,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Your communities',
+                      style: AppTypography.sectionTitle,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close communities',
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: communities.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final community = communities[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: community.bannerColor,
+                        backgroundImage: community.imageUrl?.isNotEmpty == true
+                            ? NetworkImage(community.imageUrl!)
+                            : null,
+                        child: community.imageUrl?.isNotEmpty == true
+                            ? null
+                            : const Icon(Icons.groups, color: Colors.white),
+                      ),
+                      title: Text(community.name),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.pop(sheetContext, community),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && context.mounted) onCommunityTap(selected);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1861,7 +2311,7 @@ class _CommunityCarousel extends StatelessWidget {
                 'Click here to join a community',
                 style: TextStyle(
                   color: AppColors.primary.withValues(alpha: 0.7),
-                  fontSize: 14,
+                  fontSize: AppTypography.bodySize,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1871,72 +2321,146 @@ class _CommunityCarousel extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      height: 72,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: 8),
-        itemCount: communities.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final c = communities[index];
-          return GestureDetector(
-            onTap: () => onCommunityTap(c),
-            child: Container(
-              width: 190,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(12),
-                    ),
-                    child: SizedBox(
-                      width: 72,
-                      height: double.infinity,
-                      child: (c.imageUrl != null && c.imageUrl!.isNotEmpty)
-                          ? Image.network(c.imageUrl!, fit: BoxFit.cover)
-                          : Container(
-                              color: c.bannerColor,
-                              child: const Icon(
-                                Icons.group,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      c.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text('Your communities', style: AppTypography.fieldLabel),
             ),
-          );
-        },
-      ),
+            TextButton(
+              onPressed: () => _showAll(context),
+              child: const Text('View all communities'),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: SizedBox(
+            height: 72,
+            child: Row(
+              children: [
+                for (
+                  var index = 0;
+                  index < communities.take(3).length;
+                  index++
+                ) ...[
+                  if (index > 0) const SizedBox(width: 12),
+                  Builder(
+                    builder: (context) {
+                      final c = communities[index];
+                      return Expanded(
+                        child: _CommunityHoverCard(
+                          onTap: () => onCommunityTap(c),
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.horizontal(
+                                    left: Radius.circular(12),
+                                  ),
+                                  child: SizedBox(
+                                    width: 48,
+                                    height: double.infinity,
+                                    child:
+                                        (c.imageUrl != null &&
+                                            c.imageUrl!.isNotEmpty)
+                                        ? Image.network(
+                                            c.imageUrl!,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            color: c.bannerColor,
+                                            child: const Icon(
+                                              Icons.group,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    c.name,
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.bodySize,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
+}
+
+/// Paint above artwork so feedback covers the complete community card.
+class _CommunityHoverCard extends StatefulWidget {
+  const _CommunityHoverCard({required this.child, required this.onTap});
+  final Widget child;
+  final VoidCallback onTap;
+  @override
+  State<_CommunityHoverCard> createState() => _CommunityHoverCardState();
+}
+
+class _CommunityHoverCardState extends State<_CommunityHoverCard> {
+  bool _hovered = false;
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    cursor: SystemMouseCursors.click,
+    onEnter: (_) => setState(() => _hovered = true),
+    onExit: (_) => setState(() => _hovered = false),
+    child: GestureDetector(
+      onTap: widget.onTap,
+      child: Stack(
+        children: [
+          widget.child,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                decoration: BoxDecoration(
+                  color: _hovered
+                      ? const Color(0x10000000)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -1,106 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:juniper_journal/src/features/home_page/home_page.dart';
-import 'package:juniper_journal/src/shared/styling/theme.dart';
+import 'login.dart';
 
+/// Authentication starts directly on the floral sign-in page.
 class JuniperAuthScreen extends StatelessWidget {
   const JuniperAuthScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-
-        // Green background gradient like the mockup
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.gradientStart,
-              AppColors.gradientEnd
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const Spacer(),
-
-              // Centered logo
-              Center(
-                child: SizedBox(
-                  height: 260,
-                  child: Image.asset(
-                    'assets/juniper journal logo.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-              
-              // Buttons
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Column(
-                  children: [
-                    _AuthButton(
-                      label: 'Sign up',
-                      onTap: () {
-                        Navigator.pushNamed(context, '/signup');
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _AuthButton(
-                      label: 'Log in',
-                      onTap: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AuthButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _AuthButton({
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black.withOpacity(0.8),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const LoginScreen();
 }

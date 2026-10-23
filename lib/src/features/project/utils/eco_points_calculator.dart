@@ -12,21 +12,33 @@ const impactScaleMultipliers = {
   'Watershed (Very Large)': 2.25,
 };
 
-const confidenceMultipliers = {
-  'Low': 0.70,
-  'Medium': 0.85,
-  'High': 1.00,
-};
+const confidenceMultipliers = {'Low': 0.70, 'Medium': 0.85, 'High': 1.00};
 
 // Threshold lookup: list of (threshold, multiplier) pairs in ascending order.
 const _sqftThresholds = [
-  (0, 1.00), (10, 1.05), (25, 1.10), (50, 1.20), (100, 1.30),
-  (250, 1.40), (500, 1.50), (1000, 1.60), (2500, 1.75), (5000, 2.00),
+  (0, 1.00),
+  (10, 1.05),
+  (25, 1.10),
+  (50, 1.20),
+  (100, 1.30),
+  (250, 1.40),
+  (500, 1.50),
+  (1000, 1.60),
+  (2500, 1.75),
+  (5000, 2.00),
 ];
 
 const _kgThresholds = [
-  (0, 1.00), (5, 1.05), (10, 1.10), (20, 1.20), (50, 1.30),
-  (100, 1.40), (250, 1.50), (500, 1.60), (1000, 1.75), (2500, 2.00),
+  (0, 1.00),
+  (5, 1.05),
+  (10, 1.10),
+  (20, 1.20),
+  (50, 1.30),
+  (100, 1.40),
+  (250, 1.50),
+  (500, 1.60),
+  (1000, 1.75),
+  (2500, 2.00),
 ];
 
 double measurementMultiplier(double m, String unit) {

@@ -4,12 +4,64 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/*.map"
     ],
     "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/flutter_bootstrap.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/main.dart.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/about",
+        "destination": "/#/about",
+        "type": 301
+      },
+      {
+        "source": "/support",
+        "destination": "/#/support",
+        "type": 301
+      },
+      {
+        "source": "/privacy",
+        "destination": "/#/privacy",
+        "type": 301
+      },
+      {
+        "source": "/safety",
+        "destination": "/#/safety",
+        "type": 301
       }
     ]
   }

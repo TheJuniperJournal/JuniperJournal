@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
@@ -27,15 +29,18 @@ class _EmailVerificationPendingScreenState
   }
 
   Future<void> _resendEmail() async {
-    final ok =
-        await AuthService.instance.resendVerificationEmail(widget.email);
+    final ok = await AuthService.instance.resendVerificationEmail(widget.email);
     if (!mounted) return;
 
     if (ok) {
       _startCooldown();
       showTopSnackBar(context, 'Verification email resent.');
     } else {
-      showTopSnackBar(context, 'Failed to resend email. Please try again.', isError: true);
+      showTopSnackBar(
+        context,
+        'Failed to resend email. Please try again.',
+        isError: true,
+      );
     }
   }
 
@@ -67,34 +72,45 @@ class _EmailVerificationPendingScreenState
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 32.0,
+              vertical: 48.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Spacer(),
-                const Icon(Icons.mark_email_unread_outlined,
-                    size: 72, color: AppColors.primary),
-                const SizedBox(height: 24),
+                const Icon(
+                  Icons.mark_email_unread_outlined,
+                  size: 72,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(height: AppMetrics.fieldGap),
                 const Text(
                   'Check your email',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTypography.headingFamily,
+                    fontSize: AppTypography.sectionTitleSize,
+                    fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'We sent a verification link to:',
-                  style: TextStyle(fontSize: 15, color: Colors.black54),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   widget.email,
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
                 ),
@@ -102,7 +118,11 @@ class _EmailVerificationPendingScreenState
                 const Text(
                   'Tap the link in the email to verify your account.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Colors.black54),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const Spacer(),
                 SizedBox(
@@ -130,7 +150,10 @@ class _EmailVerificationPendingScreenState
                 const SizedBox(height: 16),
                 const Text(
                   'Already verified?',
-                  style: TextStyle(color: Colors.black54),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(

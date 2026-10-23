@@ -28,14 +28,17 @@ class BulletinComment {
     return 'Member';
   }
 
-  factory BulletinComment.fromMap(Map<String, dynamic> map,
-      {Map<String, dynamic>? profile}) {
+  factory BulletinComment.fromMap(
+    Map<String, dynamic> map, {
+    Map<String, dynamic>? profile,
+  }) {
     return BulletinComment(
       id: map['id']?.toString() ?? '',
       postId: map['post_id']?.toString() ?? '',
       userId: map['user_id']?.toString() ?? '',
       body: map['body']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.now(),
       authorDisplayName: profile?['display_name']?.toString(),
       authorUsername: profile?['username']?.toString(),

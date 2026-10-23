@@ -50,3 +50,6 @@ app.*.map.json
 /android/app/release
 # Internal Figma/spec scratch (not app code)
 .codex_figma/
+
+# Firebase deployment cache
+.firebase/

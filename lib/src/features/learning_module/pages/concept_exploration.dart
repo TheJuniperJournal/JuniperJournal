@@ -1,3 +1,9 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/item_action_menu.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -30,7 +36,8 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
   static const _text = Color(0xFF141414);
   static const _mutedText = Color(0xFF565656);
   static const _border = Color(0xFFD8D0D0);
-  static const _screenWidth = 393.0;
+  double get _screenWidth =>
+      JournalPageLayout.widthFor(context, mobileWidth: 393);
 
   final List<_AddedBlock> _blocks = [];
   final _repo = LearningModuleRepo();
@@ -180,7 +187,7 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
   }
 
   Future<void> _openAddBlockSheet() async {
-    final blockType = await showModalBottomSheet<_BlockType>(
+    final blockType = await showAppModalBottomSheet<_BlockType>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -228,7 +235,8 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
 
   Future<void> _openTextBlockEditor(_BlockType type, [int? index]) async {
     final moduleId = widget.module['id']?.toString() ?? '';
-    final result = await Navigator.of(context).push<TextBlockData>(
+    final result = await pushAppRoute<TextBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => TextBlockEditorScreen(
           moduleId: moduleId,
@@ -237,7 +245,11 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
       ),
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
 
     setState(() {
       final block = _AddedBlock(type: type, textData: result);
@@ -252,7 +264,8 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
 
   Future<void> _openImageBlockEditor(_BlockType type, [int? index]) async {
     final moduleId = widget.module['id']?.toString() ?? '';
-    final result = await Navigator.of(context).push<ImageBlockData>(
+    final result = await pushAppRoute<ImageBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => ImageBlockEditorScreen(
           moduleId: moduleId,
@@ -261,7 +274,11 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
       ),
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
 
     setState(() {
       final block = _AddedBlock(type: type, imageData: result);
@@ -276,7 +293,8 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
 
   Future<void> _openSketchBlockEditor(_BlockType type, [int? index]) async {
     final moduleId = widget.module['id']?.toString() ?? '';
-    final result = await Navigator.of(context).push<SketchBlockData>(
+    final result = await pushAppRoute<SketchBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => SketchBlockEditorScreen(
           moduleId: moduleId,
@@ -285,7 +303,11 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
       ),
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
 
     setState(() {
       final block = _AddedBlock(type: type, sketchData: result);
@@ -304,7 +326,8 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
       _showError('Save the module before adding a video block.');
       return;
     }
-    final result = await Navigator.of(context).push<VideoBlockData>(
+    final result = await pushAppRoute<VideoBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => VideoBlockEditorScreen(
           moduleId: moduleId,
@@ -312,7 +335,11 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
         ),
       ),
     );
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
     setState(() {
       final block = _AddedBlock(type: type, videoData: result);
       if (index == null) {
@@ -328,14 +355,19 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
   }
 
   Future<void> _openTableBlockEditor(_BlockType type, [int? index]) async {
-    final result = await Navigator.of(context).push<TableBlockData>(
+    final result = await pushAppRoute<TableBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => TableBlockEditorScreen(
           initialData: index == null ? null : _blocks[index].tableData,
         ),
       ),
     );
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
     setState(() {
       final block = _AddedBlock(type: type, tableData: result);
       if (index == null) {
@@ -351,14 +383,19 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
   }
 
   Future<void> _openLinkBlockEditor(_BlockType type, [int? index]) async {
-    final result = await Navigator.of(context).push<LinkBlockData>(
+    final result = await pushAppRoute<LinkBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => LinkBlockEditorScreen(
           initialData: index == null ? null : _blocks[index].linkData,
         ),
       ),
     );
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
     setState(() {
       final block = _AddedBlock(type: type, linkData: result);
       if (index == null) {
@@ -374,14 +411,19 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
   }
 
   Future<void> _openGraphBlockEditor(_BlockType type, [int? index]) async {
-    final result = await Navigator.of(context).push<GraphBlockData>(
+    final result = await pushAppRoute<GraphBlockData>(
+      context,
       MaterialPageRoute(
         builder: (context) => GraphBlockEditorScreen(
           initialData: index == null ? null : _blocks[index].graphData,
         ),
       ),
     );
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      await _openAddBlockSheet();
+      return;
+    }
     setState(() {
       final block = _AddedBlock(type: type, graphData: result);
       if (index == null) {
@@ -397,7 +439,8 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
   }
 
   void _openPreview() {
-    Navigator.of(context).push(
+    pushAppRoute(
+      context,
       MaterialPageRoute(
         builder: (context) =>
             ConceptExplorationPreviewScreen(module: widget.module),
@@ -425,7 +468,7 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
 
   Future<void> _openReorder() async {
     if (_blocks.length <= 1) return;
-    final reordered = await showModalBottomSheet<List<_AddedBlock>>(
+    final reordered = await showAppModalBottomSheet<List<_AddedBlock>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -450,13 +493,13 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(maxWidth: _screenWidth),
             child: SizedBox(
               width: _screenWidth,
               height: 852,
               child: Stack(
                 children: [
-                  const Positioned(
+                  Positioned(
                     left: 0,
                     right: 0,
                     top: 21,
@@ -464,10 +507,11 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
                       'Concept Exploration',
                       textAlign: TextAlign.center,
                       style: TextStyle(
+                        fontFamily: AppTypography.headingFamily,
                         color: _text,
-                        fontSize: 18,
+                        fontSize: AppTypography.sectionTitleSize,
                         height: 1,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -482,7 +526,7 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
                       child: const _BackChevron(),
                     ),
                   ),
-                  const Positioned(
+                  Positioned(
                     left: 0,
                     right: 0,
                     top: 64,
@@ -761,27 +805,20 @@ class _EmptyState extends StatelessWidget {
       children: [
         const SizedBox(height: 136),
         const _ThreeCubesIllustration(),
-        const SizedBox(height: 35),
+        const SizedBox(height: AppMetrics.sectionGap),
         const Text(
           'Nothing yet...',
           style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
             color: _ConceptExplorationScreenState._text,
-            fontSize: 15,
+            fontSize: AppTypography.bodySize,
             height: 1,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 11),
-        const Text(
-          'Add your first block',
-          style: TextStyle(
-            color: _ConceptExplorationScreenState._mutedText,
-            fontSize: 15,
-            height: 1,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 28),
+        const Text('Add your first block', style: AppTypography.helper),
+        const SizedBox(height: AppMetrics.sectionGap),
         SizedBox(
           width: 345,
           height: 48,
@@ -799,9 +836,10 @@ class _EmptyState extends StatelessWidget {
             child: const Text(
               '+  Add Block',
               style: TextStyle(
-                fontSize: 16,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.buttonSize,
                 height: 1,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -839,7 +877,7 @@ class _BlockList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(33, 47, 32, 24),
       itemCount: blocks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 21),
+      separatorBuilder: (_, __) => const SizedBox(height: AppMetrics.fieldGap),
       itemBuilder: (context, index) {
         final block = blocks[index];
         VoidCallback? onTap;
@@ -921,8 +959,9 @@ class _BlockCard extends StatelessWidget {
               child: Text(
                 block.type.title,
                 style: const TextStyle(
+                  fontFamily: AppTypography.headingFamily,
                   color: _ConceptExplorationScreenState._text,
-                  fontSize: 18,
+                  fontSize: AppTypography.sectionTitleSize,
                   height: 1,
                   fontWeight: FontWeight.w400,
                 ),
@@ -944,8 +983,9 @@ class _BlockCard extends StatelessWidget {
                     block.type.description,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _ConceptExplorationScreenState._mutedText,
-                  fontSize: 13,
+                  fontSize: AppTypography.bodySize,
                   height: 1.2,
                   fontWeight: FontWeight.w400,
                 ),
@@ -954,46 +994,7 @@ class _BlockCard extends StatelessWidget {
             Positioned(
               right: 20,
               top: 7,
-              child: PopupMenuButton<String>(
-                tooltip: 'Block options',
-                padding: EdgeInsets.zero,
-                position: PopupMenuPosition.under,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                onSelected: (value) {
-                  if (value == 'delete') onDelete();
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem<String>(
-                    value: 'delete',
-                    height: 40,
-                    child: Text(
-                      'Delete',
-                      style: TextStyle(
-                        color: Color(0xFFD12E2E),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-                child: const SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: Center(
-                    child: Text(
-                      '...',
-                      style: TextStyle(
-                        color: Color(0xFF8B8B8B),
-                        fontSize: 16,
-                        height: 1,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              child: ItemActionMenu(onEdit: onTap, onDelete: onDelete),
             ),
           ],
         ),
@@ -1052,10 +1053,11 @@ class _AddBlockSheet extends StatelessWidget {
                     child: Text(
                       'Add Block',
                       style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: _ConceptExplorationScreenState._green,
-                        fontSize: 18,
+                        fontSize: AppTypography.buttonSize,
                         height: 1,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -1123,10 +1125,11 @@ class _MenuSection extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _ConceptExplorationScreenState._text,
-                fontSize: 15,
+                fontSize: AppTypography.bodySize,
                 height: 1,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -1170,18 +1173,20 @@ class _BlockMenuRow extends StatelessWidget {
                   Text(
                     block.title,
                     style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
                       color: _ConceptExplorationScreenState._text,
-                      fontSize: 15,
+                      fontSize: AppTypography.bodySize,
                       height: 1,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     block.description,
                     style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
                       color: _ConceptExplorationScreenState._mutedText,
-                      fontSize: 12,
+                      fontSize: AppTypography.helperSize,
                       height: 1,
                       fontWeight: FontWeight.w400,
                     ),
@@ -1263,17 +1268,18 @@ class _ReorderSheetState extends State<_ReorderSheet> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: AppMetrics.labelGap),
             const Text(
               'Reorder',
               style: TextStyle(
+                fontFamily: AppTypography.headingFamily,
                 color: _ConceptExplorationScreenState._text,
-                fontSize: 18,
+                fontSize: AppTypography.sectionTitleSize,
                 height: 1,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
             Expanded(
               child: ReorderableListView.builder(
                 padding: EdgeInsets.zero,
@@ -1307,9 +1313,10 @@ class _ReorderSheetState extends State<_ReorderSheet> {
                           child: Text(
                             block.type.title,
                             style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: _ConceptExplorationScreenState._text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -1343,7 +1350,11 @@ class _ReorderSheetState extends State<_ReorderSheet> {
                 ),
                 child: const Text(
                   'Save',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -1438,10 +1449,11 @@ class _BottomAction extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: color,
-                fontSize: 15,
+                fontSize: AppTypography.bodySize,
                 height: 1,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

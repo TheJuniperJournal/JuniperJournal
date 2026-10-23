@@ -1,3 +1,9 @@
+import 'filter_checkbox.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'impact_icon.dart';
+import '../../features/project/pages/create_project.dart'
+    show ProjectSettingIcon, ProjectSettingKind;
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 
@@ -18,6 +24,24 @@ class FilterOption {
 }
 
 // ── Option lists ──────────────────────────────────────────────────────────────
+
+const kProjectTypeOptions = [
+  FilterOption(
+    value: 'solo',
+    label: 'Solo',
+    description: 'Projects created and managed individually.',
+    icon: Icons.person_outline,
+  ),
+  FilterOption(
+    value: 'collaborative',
+    label: 'Collaborative',
+    description: 'Projects designed for working with other people.',
+    icon: Icons.group_outlined,
+  ),
+];
+
+bool matchesProjectType(String projectType, Set<String> selected) =>
+    selected.isEmpty || selected.contains(projectType.trim().toLowerCase());
 
 const kSubjectOptions = [
   FilterOption(
@@ -70,21 +94,14 @@ const kPhaseOptions = [
     label: 'Prototyping',
     description:
         'Building and experimenting with early versions of ideas to test functionality, explore solutions, and bring concepts to life.',
-    icon: Icons.precision_manufacturing_outlined,
-  ),
-  FilterOption(
-    value: 'Testing & Iterating',
-    label: 'Testing & Iterating',
-    description:
-        'Gathering feedback, collaborating with others, and refining ideas through repeated testing, improvement, and shared learning.',
-    icon: Icons.refresh_outlined,
+    icon: Icons.build_outlined,
   ),
   FilterOption(
     value: 'Implemented',
     label: 'Implemented',
     description:
         'Putting solutions into action, creating real-world impact through completed projects, measurable outcomes, and sustained change.',
-    icon: Icons.check_circle_outline,
+    icon: Icons.rocket_launch_outlined,
   ),
 ];
 
@@ -136,6 +153,118 @@ const kDifficultyOptions = [
   ),
 ];
 
+const kMetricOptions = [
+  FilterOption(
+    value: 'Biological Growth',
+    label: 'Biological Growth',
+    description:
+        'Measures increases in plant life, biodiversity, or ecosystem health, including growth of vegetation, food systems, or natural habitats over time.',
+    icon: Icons.spa_outlined,
+  ),
+  FilterOption(
+    value: 'Energy',
+    label: 'Energy',
+    description:
+        'Tracks energy saved, reduced, or generated through efficiency improvements, behavior changes, or renewable energy use.',
+    icon: Icons.bolt_outlined,
+  ),
+  FilterOption(
+    value: 'Education',
+    label: 'Education',
+    description:
+        'Captures learning outcomes, knowledge gained, and awareness built through projects, workshops, or shared experiences.',
+    icon: Icons.menu_book_outlined,
+  ),
+  FilterOption(
+    value: 'Waste',
+    label: 'Waste',
+    description:
+        'Measures waste reduced, diverted, or repurposed through recycling, composting, and efforts to minimize material consumption.',
+    icon: Icons.delete_outline,
+  ),
+  FilterOption(
+    value: 'Water',
+    label: 'Water',
+    description:
+        'Tracks water saved, reused, or conserved through system improvements, behavioral changes, or sustainable water practices.',
+    icon: Icons.water_drop_outlined,
+  ),
+];
+const kImpactOptions = [
+  FilterOption(
+    value: 'Seed',
+    label: 'Seed',
+    description:
+        'Represents initial impact, where actions begin to create measurable change at a small or localized level.',
+    icon: Icons.grass,
+  ),
+  FilterOption(
+    value: 'Sapling',
+    label: 'Sapling',
+    description:
+        'Represents growing impact, where actions lead to consistent, measurable improvements beyond a single instance or moment.',
+    icon: Icons.spa_outlined,
+  ),
+  FilterOption(
+    value: 'Grove',
+    label: 'Grove',
+    description:
+        'Represents expanding impact, where outcomes influence multiple people, systems, or areas through repeated or shared efforts.',
+    icon: Icons.park_outlined,
+  ),
+  FilterOption(
+    value: 'Forest',
+    label: 'Forest',
+    description:
+        'Represents significant impact, where outcomes drive meaningful change across communities, environments, or systems over time.',
+    icon: Icons.forest_outlined,
+  ),
+  FilterOption(
+    value: 'Watershed',
+    label: 'Watershed',
+    description:
+        'Represents transformative impact, where outcomes create lasting, system-level change that can scale, spread, or influence entire regions or networks.',
+    icon: Icons.account_tree_outlined,
+  ),
+];
+const kPatternOptions = [
+  FilterOption(
+    value: 'Reduction',
+    label: 'Reduction',
+    description:
+        'Focuses on lowering negative impact by using less energy, water, or materials, improving efficiency, and minimizing waste or emissions.',
+    icon: Icons.trending_down,
+  ),
+  FilterOption(
+    value: 'Regeneration',
+    label: 'Regeneration',
+    description:
+        'Focuses on restoring and improving natural systems, increasing biodiversity, and creating positive environmental growth beyond baseline conditions.',
+    icon: Icons.eco_outlined,
+  ),
+  FilterOption(
+    value: 'Substitution',
+    label: 'Substitution',
+    description:
+        'Focuses on replacing high-impact systems, materials, or behaviors with more sustainable alternatives, such as switching to renewable or reusable solutions.',
+    icon: Icons.swap_horiz,
+  ),
+  FilterOption(
+    value: 'Behavior Change',
+    label: 'Behavior Change',
+    description:
+        'Focuses on shifting habits, actions, and decision-making over time, influencing how individuals or groups engage with sustainability.',
+    icon: Icons.alt_route,
+  ),
+  FilterOption(
+    value: 'Capacity Building',
+    label: 'Capacity Building',
+    description:
+        'Focuses on enabling long-term impact by building knowledge, skills, systems, or infrastructure that allow others to continue and scale sustainable actions.',
+    icon: Icons.account_tree_outlined,
+  ),
+];
+
 // ── ProjectFilterSheet ────────────────────────────────────────────────────────
 
 class ProjectFilterSheet extends StatefulWidget {
@@ -157,170 +286,113 @@ class ProjectFilterSheet extends StatefulWidget {
 }
 
 class _ProjectFilterSheetState extends State<ProjectFilterSheet> {
-  late Set<String> _selected;
-
+  late final Set<String> _selected = Set.from(widget.initialSelected);
   @override
-  void initState() {
-    super.initState();
-    _selected = Set.from(widget.initialSelected);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => SafeArea(
+    child: Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * .88,
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Header
           Row(
             children: [
               Text(
                 widget.title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700),
+                style: AppTypography.sectionTitle.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: 1,
-                height: 16,
-                color: AppColors.divider,
+              const SizedBox(width: 8),
+              const Text('|', style: TextStyle(color: AppColors.primary)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Select all that apply',
+                  style: AppTypography.helper,
+                ),
               ),
-              const Text(
-                'Select All That Apply',
-                style: TextStyle(
-                    fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.close,
-                    size: 20, color: Colors.black54),
+              IconButton(
+                tooltip: 'Close filters',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.close,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.divider),
-
-          // Options
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: widget.options.length,
-            separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: AppColors.divider),
-            itemBuilder: (_, i) {
-              final opt = widget.options[i];
-              final isSelected = _selected.contains(opt.value);
-              return InkWell(
-                onTap: () => setState(() {
-                  if (isSelected) {
-                    _selected.remove(opt.value);
-                  } else {
-                    _selected.add(opt.value);
-                  }
-                }),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryTint,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(opt.icon,
-                            size: 20, color: AppColors.primaryDark),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              opt.label,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
+          const Divider(color: AppColors.primary, height: 1),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: widget.options.length,
+              itemBuilder: (context, index) {
+                final option = widget.options[index];
+                final selected = _selected.contains(option.value);
+                void toggle() => setState(
+                  () => selected
+                      ? _selected.remove(option.value)
+                      : _selected.add(option.value),
+                );
+                return Semantics(
+                  selected: selected,
+                  button: true,
+                  child: InkWell(
+                    onTap: toggle,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: 36, height: 40, child: _icon(option)),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.label,
+                                  style: AppTypography.fieldLabel,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  option.description,
+                                  style: AppTypography.helper.copyWith(
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              opt.description,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.grey.shade400,
-                            width: 1.5,
                           ),
-                        ),
-                        child: isSelected
-                            ? const Icon(Icons.check,
-                                size: 14, color: Colors.white)
-                            : null,
+                          const SizedBox(width: 8),
+                          FilterCheckbox(
+                            value: selected,
+                            onChanged: (_) => toggle(),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
+            child: FilledButton(
               onPressed: () {
                 widget.onApply(Set.from(_selected));
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                textStyle: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700),
-              ),
               child: Text(
                 _selected.isEmpty ? 'Clear Filters' : 'Apply Filters',
               ),
@@ -328,6 +400,36 @@ class _ProjectFilterSheetState extends State<ProjectFilterSheet> {
           ),
         ],
       ),
+    ),
+  );
+
+  Widget _icon(FilterOption option) {
+    final kind = switch (widget.title) {
+      'Subject' => ProjectSettingKind.subject,
+      'Scale' => ProjectSettingKind.scale,
+      'Difficulty' => ProjectSettingKind.difficulty,
+      _ => null,
+    };
+    if (kind != null) {
+      return Center(
+        child: SizedBox.square(
+          dimension: 32,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: ProjectSettingIcon(kind: kind, value: option.value),
+          ),
+        ),
+      );
+    }
+    return Center(
+      child: const ['Metrics', 'Impact', 'Pattern'].contains(widget.title)
+          ? SvgPicture.asset(
+              impactIconAsset(widget.title, option.value),
+              width: 32,
+              height: 32,
+              fit: BoxFit.contain,
+            )
+          : Icon(option.icon, size: 28, color: AppColors.primary),
     );
   }
 }

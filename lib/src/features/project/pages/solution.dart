@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:fleather/fleather.dart';
@@ -108,7 +111,6 @@ class _SolutionScreenState extends State<SolutionScreen> {
     }
   }
 
-
   /// Shows a dialog to let the user choose between camera or gallery
   Future<void> _openCamera() async {
     showCupertinoModalPopup(
@@ -205,9 +207,7 @@ class _SolutionScreenState extends State<SolutionScreen> {
     _controller!.replaceText(index + 1, 0, '\n');
 
     // Move cursor after the image
-    _controller!.updateSelection(
-      TextSelection.collapsed(offset: index + 2),
-    );
+    _controller!.updateSelection(TextSelection.collapsed(offset: index + 2));
   }
 
   /// Shows a dialog to configure and insert a table
@@ -216,24 +216,32 @@ class _SolutionScreenState extends State<SolutionScreen> {
 
     // Save the current cursor position
     final savedSelection = _controller!.selection;
-    final savedIndex = savedSelection.isValid && savedSelection.extentOffset >= 0
+    final savedIndex =
+        savedSelection.isValid && savedSelection.extentOffset >= 0
         ? savedSelection.extentOffset
         : _controller!.document.length - 1;
 
     final rowsController = TextEditingController(text: '3');
     final colsController = TextEditingController(text: '3');
 
-    final result = await showDialog<Map<String, int>>(
+    final result = await showAppDialog<Map<String, int>>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Insert Table'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Table dimensions:', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Table dimensions:',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: rowsController,
@@ -241,7 +249,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Rows',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -251,7 +262,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Columns',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ],
@@ -404,7 +418,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Math.tex(
               latex,
-              textStyle: const TextStyle(fontSize: 18),
+              textStyle: const TextStyle(
+                fontFamily: AppTypography.headingFamily,
+                fontSize: AppTypography.sectionTitleSize,
+              ),
               mathStyle: MathStyle.display,
               onErrorFallback: (FlutterMathException exception) {
                 // Fallback to showing the raw LaTeX if rendering fails
@@ -428,14 +445,18 @@ class _SolutionScreenState extends State<SolutionScreen> {
       if (imageUrl != null && imageUrl.startsWith('table://')) {
         try {
           // Extract and decode the table data
-          final encodedTable = imageUrl.substring(8); // Remove 'table://' prefix
+          final encodedTable = imageUrl.substring(
+            8,
+          ); // Remove 'table://' prefix
           final tableJson = utf8.decode(base64Decode(encodedTable));
           final tableData = jsonDecode(tableJson) as Map<String, dynamic>;
 
           final rows = tableData['rows'] as int;
           final cols = tableData['cols'] as int;
           final cells = (tableData['cells'] as List)
-              .map((row) => (row as List).map((cell) => cell.toString()).toList())
+              .map(
+                (row) => (row as List).map((cell) => cell.toString()).toList(),
+              )
               .toList();
 
           // Render editable table
@@ -454,7 +475,9 @@ class _SolutionScreenState extends State<SolutionScreen> {
                 'cells': cells,
               };
 
-              final newEncodedTable = base64Encode(utf8.encode(jsonEncode(updatedTableData)));
+              final newEncodedTable = base64Encode(
+                utf8.encode(jsonEncode(updatedTableData)),
+              );
               final newTableUrl = 'table://$newEncodedTable';
 
               // Find and replace the old embed with the updated one
@@ -490,7 +513,11 @@ class _SolutionScreenState extends State<SolutionScreen> {
 
     // If there's a selection, format the selected text
     if (selection.isValid && !selection.isCollapsed) {
-      _controller!.formatText(selection.start, selection.end - selection.start, attribute);
+      _controller!.formatText(
+        selection.start,
+        selection.end - selection.start,
+        attribute,
+      );
     } else {
       // If no selection, toggle the attribute for future typing
       // Get the current style at cursor position
@@ -514,7 +541,6 @@ class _SolutionScreenState extends State<SolutionScreen> {
 
   /// Shows a dialog to input a LaTeX math equation
   Future<void> _insertMathEquation() async {
-
     if (_controller == null) {
       debugPrint('Controller is null, returning');
       return;
@@ -522,16 +548,21 @@ class _SolutionScreenState extends State<SolutionScreen> {
 
     // Save the current cursor position BEFORE opening the dialog
     final savedSelection = _controller!.selection;
-    final savedIndex = savedSelection.isValid && savedSelection.extentOffset >= 0
+    final savedIndex =
+        savedSelection.isValid && savedSelection.extentOffset >= 0
         ? savedSelection.extentOffset
         : _controller!.document.length - 1;
 
     final TextEditingController latexController = TextEditingController();
 
-    final result = await showDialog<String>(
+    final result = await showAppDialog<String>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('Insert Math Equation'),
           content: SingleChildScrollView(
             child: Column(
@@ -540,16 +571,23 @@ class _SolutionScreenState extends State<SolutionScreen> {
               children: [
                 const Text(
                   'Enter LaTeX equation:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: latexController,
                   autofocus: true,
                   decoration: const InputDecoration(
-                    hintText: r'E = mc^2',
+                    hintText: '',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.all(12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 12,
+                    ),
                   ),
                   maxLines: 3,
                 ),
@@ -557,18 +595,26 @@ class _SolutionScreenState extends State<SolutionScreen> {
                 Text(
                   'Examples:',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
                     color: Colors.grey[700],
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  r'• E = mc^2' '\n'
-                  r'• \frac{a}{b}' '\n'
-                  r'• x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}' '\n'
+                  r'• E = mc^2'
+                  '\n'
+                  r'• \frac{a}{b}'
+                  '\n'
+                  r'• x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}'
+                  '\n'
                   r'• \int_0^1 x^2 dx',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
@@ -597,7 +643,6 @@ class _SolutionScreenState extends State<SolutionScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
-
       if (!mounted) {
         debugPrint('Widget not mounted after dialog, aborting');
         return;
@@ -608,14 +653,11 @@ class _SolutionScreenState extends State<SolutionScreen> {
         return;
       }
 
-
       // Insert directly - no callbacks needed
       _insertMathIntoDocument(result, savedIndex);
-
     } else {
       debugPrint('Result was null or empty, not inserting');
     }
-
   }
 
   /// Remove the MathEmbed class definition and use this instead:
@@ -673,7 +715,6 @@ class _SolutionScreenState extends State<SolutionScreen> {
       if (mounted) {
         showTopSnackBar(context, 'Math equation inserted!');
       }
-
     } catch (e, stackTrace) {
       debugPrint('!!! ERROR in _insertMathIntoDocument: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -699,11 +740,17 @@ class _SolutionScreenState extends State<SolutionScreen> {
               children: [
                 // App bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(CupertinoIcons.back, color: AppColors.iconPrimary),
+                        icon: const Icon(
+                          CupertinoIcons.back,
+                          color: AppColors.iconPrimary,
+                        ),
                         onPressed: () => Navigator.of(context).pop(),
                         tooltip: 'Back',
                       ),
@@ -712,8 +759,9 @@ class _SolutionScreenState extends State<SolutionScreen> {
                         child: Text(
                           projectName,
                           style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                            fontFamily: AppTypography.headingFamily,
+                            fontSize: AppTypography.sectionTitleSize,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.darkText,
                           ),
                         ),
@@ -733,8 +781,7 @@ class _SolutionScreenState extends State<SolutionScreen> {
                               // Navigate to home page
                               navigator.pushAndRemoveUntil(
                                 MaterialPageRoute(
-                                  builder: (context) => const HomeShellScreen(
-                                  ),
+                                  builder: (context) => const HomeShellScreen(),
                                 ),
                                 (route) => false,
                               );
@@ -746,7 +793,11 @@ class _SolutionScreenState extends State<SolutionScreen> {
                             value: 'save',
                             child: Row(
                               children: [
-                                Icon(Icons.save_outlined, size: 20, color: AppColors.darkText),
+                                Icon(
+                                  Icons.save_outlined,
+                                  size: 20,
+                                  color: AppColors.darkText,
+                                ),
                                 SizedBox(width: 12),
                                 Text('Save'),
                               ],
@@ -756,7 +807,11 @@ class _SolutionScreenState extends State<SolutionScreen> {
                             value: 'save_continue',
                             child: Row(
                               children: [
-                                Icon(Icons.arrow_forward, size: 20, color: AppColors.primary),
+                                Icon(
+                                  Icons.arrow_forward,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
                                 SizedBox(width: 12),
                                 Text('Save & Complete'),
                               ],
@@ -794,7 +849,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
                                 runSpacing: 8,
                                 children: tags.map((tag) {
                                   return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFDCF7E4),
                                       borderRadius: BorderRadius.circular(24),
@@ -810,7 +868,7 @@ class _SolutionScreenState extends State<SolutionScreen> {
                                     ),
                                   );
                                 }).toList(),
-                            ),
+                              ),
                           ],
                         ],
                       ),
@@ -841,11 +899,17 @@ class _SolutionScreenState extends State<SolutionScreen> {
                           },
                           child: Container(
                             color: AppColors.white,
-                            padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                            ),
                             child: FleatherEditor(
                               controller: _controller!,
                               focusNode: _focusNode,
-                              padding: const EdgeInsets.only(bottom: 120), // Extra space to scroll past toolbar
+                              padding: const EdgeInsets.only(
+                                bottom: 120,
+                              ), // Extra space to scroll past toolbar
                               autofocus: false,
                               embedBuilder: _embedBuilder,
                             ),
@@ -890,9 +954,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
             color: AppColors.primary,
           ),
           style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
             color: AppColors.primary,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontSize: AppTypography.helperSize,
+            fontWeight: FontWeight.w400,
             letterSpacing: 0.5,
           ),
           dropdownColor: AppColors.accent.withValues(alpha: 0.5),
@@ -902,9 +967,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
               child: Text(
                 'PROJECT NAME',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -914,9 +980,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
               child: Text(
                 'PROBLEM STATEMENT',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -926,9 +993,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
               child: Text(
                 'TIMELINE',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -938,9 +1006,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
               child: Text(
                 'MATERIALS COST',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -950,9 +1019,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
               child: Text(
                 'METRICS',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -962,9 +1032,10 @@ class _SolutionScreenState extends State<SolutionScreen> {
               child: Text(
                 'SOLUTION',
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -972,21 +1043,21 @@ class _SolutionScreenState extends State<SolutionScreen> {
           ],
           onChanged: (value) {
             if (value == 'PROJECT NAME') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CreateProjectScreen(),
-                ),
+              pushAppRoute(
+                context,
+                MaterialPageRoute(builder: (context) => CreateProjectScreen()),
               );
             } else if (value == 'PROBLEM STATEMENT') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => DefineProblemStatementScreen(
-                    projectId: widget.projectId,
-                  ),
+                  builder: (context) =>
+                      DefineProblemStatementScreen(projectId: widget.projectId),
                 ),
               );
             } else if (value == 'TIMELINE') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
                   builder: (context) => InteractiveTimelinePage(
                     projectId: widget.projectId,
@@ -996,7 +1067,8 @@ class _SolutionScreenState extends State<SolutionScreen> {
                 ),
               );
             } else if (value == 'MATERIALS COST') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
                   builder: (context) => MaterialsCostPage(
                     projectId: widget.projectId,
@@ -1006,7 +1078,8 @@ class _SolutionScreenState extends State<SolutionScreen> {
                 ),
               );
             } else if (value == 'METRICS') {
-              Navigator.of(context).push(
+              pushAppRoute(
+                context,
                 MaterialPageRoute(
                   builder: (context) => MetricsPage(
                     projectId: widget.projectId,
@@ -1052,27 +1125,24 @@ class _EditableTableState extends State<_EditableTable> {
     // Create Fleather controllers for each cell
     _controllers = List.generate(
       widget.rows,
-      (row) => List.generate(
-        widget.cols,
-        (col) {
-          // Try to parse existing cell data as Fleather JSON, or create empty doc
-          try {
-            final cellData = widget.initialCells[row][col];
-            if (cellData.isNotEmpty) {
-              final doc = ParchmentDocument.fromJson(jsonDecode(cellData));
-              return FleatherController(document: doc);
-            }
-          } catch (e) {
-            // If not valid JSON, treat as plain text
-            final cellData = widget.initialCells[row][col];
-            if (cellData.isNotEmpty) {
-              final doc = ParchmentDocument()..insert(0, cellData);
-              return FleatherController(document: doc);
-            }
+      (row) => List.generate(widget.cols, (col) {
+        // Try to parse existing cell data as Fleather JSON, or create empty doc
+        try {
+          final cellData = widget.initialCells[row][col];
+          if (cellData.isNotEmpty) {
+            final doc = ParchmentDocument.fromJson(jsonDecode(cellData));
+            return FleatherController(document: doc);
           }
-          return FleatherController();
-        },
-      ),
+        } catch (e) {
+          // If not valid JSON, treat as plain text
+          final cellData = widget.initialCells[row][col];
+          if (cellData.isNotEmpty) {
+            final doc = ParchmentDocument()..insert(0, cellData);
+            return FleatherController(document: doc);
+          }
+        }
+        return FleatherController();
+      }),
     );
 
     _focusNodes = List.generate(
@@ -1115,10 +1185,7 @@ class _EditableTableState extends State<_EditableTable> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Table(
-        border: TableBorder.all(
-          color: Colors.grey[400]!,
-          width: 1.0,
-        ),
+        border: TableBorder.all(color: Colors.grey[400]!, width: 1.0),
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: List.generate(widget.rows, (rowIndex) {
           return TableRow(
@@ -1129,7 +1196,10 @@ class _EditableTableState extends State<_EditableTable> {
                 child: FleatherEditor(
                   controller: _controllers[rowIndex][colIndex],
                   focusNode: _focusNodes[rowIndex][colIndex],
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
                 ),
               );
             }),

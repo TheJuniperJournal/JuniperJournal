@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 
@@ -18,7 +21,6 @@ class MetricsPage extends StatefulWidget {
 }
 
 class _MetricsPageState extends State<MetricsPage> {
-
   // METRIC OPTIONS + THRESHOLDS
   final List<Map<String, dynamic>> metricOptions = [
     {
@@ -116,9 +118,11 @@ class _MetricsPageState extends State<MetricsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        Text(
+          label,
           style: const TextStyle(
-            fontSize: 14,
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w500,
           ),
@@ -139,7 +143,7 @@ class _MetricsPageState extends State<MetricsPage> {
                   controller: ctrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    hintText: "0",
+                    hintText: '',
                     border: InputBorder.none,
                   ),
                 ),
@@ -155,14 +159,16 @@ class _MetricsPageState extends State<MetricsPage> {
                 color: Colors.white,
               ),
               child: Center(
-                child: Text(unit,
+                child: Text(
+                  unit,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ],
@@ -199,19 +205,22 @@ class _MetricsPageState extends State<MetricsPage> {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(label,
+                Text(
+                  label,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
                     color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   impactValue!.toStringAsFixed(0),
                   style: const TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTypography.headingFamily,
+                    fontSize: AppTypography.heroSize,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.primary,
                   ),
                 ),
@@ -224,7 +233,7 @@ class _MetricsPageState extends State<MetricsPage> {
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -241,28 +250,34 @@ class _MetricsPageState extends State<MetricsPage> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.border),
-          onPressed: () => Navigator.pop(context),
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: ContentAlignedBackButton(
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        title: Text(widget.projectName, 
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+        title: Text(widget.projectName, style: AppTypography.pageTitle),
         centerTitle: true,
         actions: const [],
-        shape: const Border(bottom: BorderSide(color: AppColors.divider, width: 0.6)),
+        shape: const Border(
+          bottom: BorderSide(color: AppColors.divider, width: 0.6),
+        ),
       ),
 
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: ListView(
           children: [
-
             // TAGS DISPLAY
             Wrap(
               spacing: 8,
               children: widget.tags.map((tag) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryTint,
                     borderRadius: BorderRadius.circular(24),
@@ -270,30 +285,34 @@ class _MetricsPageState extends State<MetricsPage> {
                   child: Text(
                     tag,
                     style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
                       color: AppColors.primary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontSize: AppTypography.captionSize,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 );
               }).toList(),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // SELECT METRIC
             DropdownButtonFormField<Map<String, dynamic>>(
               initialValue: selectedMetric,
               decoration: InputDecoration(
                 labelText: "Select Impact Metric",
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 14,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.borderLight),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.borderLight),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -301,10 +320,7 @@ class _MetricsPageState extends State<MetricsPage> {
                 ),
               ),
               items: metricOptions.map((opt) {
-                return DropdownMenuItem(
-                  value: opt,
-                  child: Text(opt["name"]),
-                );
+                return DropdownMenuItem(value: opt, child: Text(opt["name"]));
               }).toList(),
               onChanged: (value) {
                 setState(() => selectedMetric = value);
@@ -312,23 +328,26 @@ class _MetricsPageState extends State<MetricsPage> {
               },
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             if (selectedMetric != null)
               Column(
                 children: [
                   buildInputRow("Baseline", baselineCtrl, unit!),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppMetrics.fieldGap),
 
                   buildInputRow("Post", postCtrl, unit),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: AppMetrics.sectionGap),
 
                   if (circleLabel != null) buildImpactCircle(circleLabel),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppMetrics.fieldGap),
 
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: impactColor,
                       borderRadius: BorderRadius.circular(12),
@@ -336,14 +355,15 @@ class _MetricsPageState extends State<MetricsPage> {
                     child: Text(
                       impactLabel,
                       style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        fontSize: AppTypography.bodySize,
                       ),
                     ),
                   ),
                 ],
-              )
+              ),
           ],
         ),
       ),

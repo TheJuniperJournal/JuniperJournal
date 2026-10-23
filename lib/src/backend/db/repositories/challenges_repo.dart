@@ -1,10 +1,11 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:juniper_journal/src/backend/db/models/challenge_participant.dart';
 import 'package:juniper_journal/src/backend/db/models/design_challenge.dart';
 import 'package:juniper_journal/src/backend/db/supabase_database.dart';
 
 class ChallengesRepo {
-  get _client => SupabaseDatabase.instance.client;
+  SupabaseClient get _client => SupabaseDatabase.instance.client;
 
   static const _participantsSelect =
       'challenge_participants(id, user_id, project_id, profiles(avatar_url))';
@@ -63,17 +64,20 @@ class ChallengesRepo {
     bool allDay = false,
   }) async {
     try {
-      await _client.from('design_challenges').update({
-        'type': type,
-        'name': name,
-        'prompt': prompt,
-        'image_url': imageUrl,
-        'scale': scale,
-        'difficulty': difficulty,
-        'starts_at': startsAt?.toUtc().toIso8601String(),
-        'ends_at': endsAt?.toUtc().toIso8601String(),
-        'all_day': allDay,
-      }).eq('id', id);
+      await _client
+          .from('design_challenges')
+          .update({
+            'type': type,
+            'name': name,
+            'prompt': prompt,
+            'image_url': imageUrl,
+            'scale': scale,
+            'difficulty': difficulty,
+            'starts_at': startsAt?.toUtc().toIso8601String(),
+            'ends_at': endsAt?.toUtc().toIso8601String(),
+            'all_day': allDay,
+          })
+          .eq('id', id);
       return true;
     } catch (e) {
       debugPrint('updateChallengeSettings error: $e');
@@ -91,14 +95,17 @@ class ChallengesRepo {
     String? externalLink,
   }) async {
     try {
-      await _client.from('design_challenges').update({
-        'required_journal_entries': requiredJournalEntries,
-        'measurement_required': measurementRequired,
-        'required_metrics': requiredMetrics,
-        'required_patterns': requiredPatterns,
-        'min_group_members': minGroupMembers,
-        'external_link': externalLink,
-      }).eq('id', id);
+      await _client
+          .from('design_challenges')
+          .update({
+            'required_journal_entries': requiredJournalEntries,
+            'measurement_required': measurementRequired,
+            'required_metrics': requiredMetrics,
+            'required_patterns': requiredPatterns,
+            'min_group_members': minGroupMembers,
+            'external_link': externalLink,
+          })
+          .eq('id', id);
       return true;
     } catch (e) {
       debugPrint('updateRequirements error: $e');
@@ -115,11 +122,14 @@ class ChallengesRepo {
     if (budgetMin < 0) return false;
     if (budgetMax != null && budgetMax < budgetMin) return false;
     try {
-      await _client.from('design_challenges').update({
-        'budget_min': budgetMin,
-        'budget_max': budgetMax,
-        'materials': materials,
-      }).eq('id', id);
+      await _client
+          .from('design_challenges')
+          .update({
+            'budget_min': budgetMin,
+            'budget_max': budgetMax,
+            'materials': materials,
+          })
+          .eq('id', id);
       return true;
     } catch (e) {
       debugPrint('updateFundingAndMaterials error: $e');
@@ -131,7 +141,8 @@ class ChallengesRepo {
     try {
       await _client
           .from('design_challenges')
-          .update({'is_published': true}).eq('id', id);
+          .update({'is_published': true})
+          .eq('id', id);
       return true;
     } catch (e) {
       debugPrint('launchChallenge error: $e');
@@ -166,7 +177,8 @@ class ChallengesRepo {
   }
 
   Future<List<DesignChallenge>> getCommunityChallenges(
-      String communityId) async {
+    String communityId,
+  ) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return [];
     try {
@@ -218,7 +230,9 @@ class ChallengesRepo {
     try {
       final row = await _client
           .from('challenge_participants')
-          .select('*, profiles(display_name, username, avatar_url), projects(project_name)')
+          .select(
+            '*, profiles(display_name, username, avatar_url), projects(project_name)',
+          )
           .eq('challenge_id', challengeId)
           .eq('user_id', userId)
           .maybeSingle();
@@ -231,11 +245,14 @@ class ChallengesRepo {
   }
 
   Future<ChallengeParticipant?> getParticipationByProjectId(
-      String projectId) async {
+    String projectId,
+  ) async {
     try {
       final row = await _client
           .from('challenge_participants')
-          .select('*, profiles(display_name, username, avatar_url), projects(project_name)')
+          .select(
+            '*, profiles(display_name, username, avatar_url), projects(project_name)',
+          )
           .eq('project_id', projectId)
           .maybeSingle();
       if (row == null) return null;
@@ -246,12 +263,13 @@ class ChallengesRepo {
     }
   }
 
-  Future<List<ChallengeParticipant>> getParticipants(
-      String challengeId) async {
+  Future<List<ChallengeParticipant>> getParticipants(String challengeId) async {
     try {
       final rows = await _client
           .from('challenge_participants')
-          .select('*, profiles(display_name, username, avatar_url), projects(project_name)')
+          .select(
+            '*, profiles(display_name, username, avatar_url), projects(project_name)',
+          )
           .eq('challenge_id', challengeId)
           .order('joined_at', ascending: true);
       return (rows as List)

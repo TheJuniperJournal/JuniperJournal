@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:juniper_journal/src/backend/db/repositories/learning_module_repo.dart';
@@ -36,7 +40,8 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
   static const _textPrimary = Color(0xFF191919);
   static const _textSecondary = Color(0xFF606060);
   static const _softGreen = Color(0x1A5DB075);
-  static const _screenWidth = 393.0;
+  double get _screenWidth =>
+      JournalPageLayout.widthFor(context, mobileWidth: 393);
   static const Map<String, List<String>> _focusByDomain = {
     'Environment & Sustainability': [
       'Ecosystems & Biodiversity',
@@ -153,7 +158,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(maxWidth: _screenWidth),
             child: Form(
               key: _formKey,
               child: SingleChildScrollView(
@@ -179,7 +184,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                           ),
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 0,
                         right: 0,
                         top: 33,
@@ -187,37 +192,34 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                           'Module Setup',
                           textAlign: TextAlign.center,
                           style: TextStyle(
+                            fontFamily: AppTypography.headingFamily,
                             color: _textPrimary,
-                            fontSize: 18,
+                            fontSize: AppTypography.sectionTitleSize,
                             height: 1.06,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 24,
                         top: 102,
                         child: Text(
                           'Anchoring\nPhenomena',
                           style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
+                            fontFamily: AppTypography.bodyFamily,
+                            color: AppColors.textPrimary,
+                            fontSize: AppTypography.bodySize,
                             height: 1.03,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 24,
                         top: 137,
                         child: Text(
                           'Add specific description of why this answer is correct.',
-                          style: TextStyle(
-                            color: _textSecondary,
-                            fontSize: 13,
-                            height: 1,
-                            fontWeight: FontWeight.w400,
-                          ),
+                          style: AppTypography.helper,
                         ),
                       ),
                       Positioned(
@@ -234,28 +236,27 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                       Positioned(
                         left: 24,
                         top: 248,
-                        width: 345,
-                        height: 49,
+                        width: _screenWidth - 48,
+                        height: 64,
                         child: TextFormField(
                           controller: _moduleNameController,
                           textAlignVertical: TextAlignVertical.center,
                           style: const TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
                             color: _textPrimary,
-                            fontSize: 14,
+                            fontSize: AppTypography.bodySize,
                             height: 1.15,
                             fontWeight: FontWeight.w400,
                           ),
                           decoration: InputDecoration(
-                            hintText: _placeholderForInquiryType(
-                              _selectedInquiryType,
-                            ),
+                            hintText: '',
                             hintStyle: const TextStyle(
                               color: Color(0xFF8C8C8C),
-                              fontSize: 14,
+                              fontSize: AppTypography.helperSize,
                               fontWeight: FontWeight.w400,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 17,
+                              horizontal: 9,
                               vertical: 14,
                             ),
                             enabledBorder: OutlineInputBorder(
@@ -264,10 +265,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: _green,
-                                width: 1.2,
-                              ),
+                              borderSide: const BorderSide(color: _green),
                             ),
                             errorBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -293,27 +291,29 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                           },
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 25,
                         top: 316,
                         child: Text(
                           'Difficulty',
                           style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
+                            fontFamily: AppTypography.bodyFamily,
+                            color: AppColors.textPrimary,
+                            fontSize: AppTypography.bodySize,
                             height: 1,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 24,
                         top: 335,
                         child: Text(
                           'Select a difficulty.',
                           style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
                             color: _textSecondary,
-                            fontSize: 13,
+                            fontSize: AppTypography.bodySize,
                             height: 1,
                             fontWeight: FontWeight.w400,
                           ),
@@ -342,7 +342,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                                 },
                               ),
                               if (index != _difficultyOptions.length - 1)
-                                const SizedBox(width: 15),
+                                SizedBox(width: 15),
                             ],
                           ],
                         ),
@@ -350,7 +350,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                       Positioned(
                         left: 23,
                         top: 504,
-                        width: 348,
+                        width: _screenWidth - 45,
                         height: 140,
                         child: _SubjectPanel(
                           selectedDomain: _selectedSubjectDomain,
@@ -376,7 +376,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                       Positioned(
                         left: 21,
                         top: 684,
-                        width: 345,
+                        width: _screenWidth - 48,
                         height: 48,
                         child: ElevatedButton(
                           onPressed: _submit,
@@ -392,10 +392,11 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                           child: const Text(
                             'Next',
                             style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: Colors.white,
-                              fontSize: 12,
+                              fontSize: AppTypography.buttonSize,
                               height: 1,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -516,7 +517,8 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
     }
 
     if (moduleData != null) {
-      navigator.push(
+      pushAppRoute(
+        context,
         MaterialPageRoute(
           builder: (context) => ModuleDashboardScreen(module: moduleData!),
         ),
@@ -642,8 +644,9 @@ class _DifficultyCard extends StatelessWidget {
             Text(
               option.label,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _CreateTemplateScreenState._textPrimary,
-                fontSize: 15,
+                fontSize: AppTypography.bodySize,
                 height: 1,
                 fontWeight: FontWeight.w400,
               ),
@@ -652,8 +655,9 @@ class _DifficultyCard extends StatelessWidget {
             Text(
               '${option.ecoPoints} EcoPoints',
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _CreateTemplateScreenState._textPrimary,
-                fontSize: 10,
+                fontSize: AppTypography.captionSize,
                 height: 1,
                 fontWeight: FontWeight.w400,
               ),
@@ -689,10 +693,11 @@ class _DropdownChip extends StatelessWidget {
             Text(
               text,
               style: const TextStyle(
-                color: Colors.black,
-                fontSize: 10,
+                fontFamily: AppTypography.bodyFamily,
+                color: AppColors.textPrimary,
+                fontSize: AppTypography.captionSize,
                 height: 1,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(width: 6),
@@ -714,10 +719,11 @@ class _InquiryMenuText extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 12,
+        fontFamily: AppTypography.bodyFamily,
+        color: AppColors.textPrimary,
+        fontSize: AppTypography.helperSize,
         height: 1,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w400,
       ),
     );
   }
@@ -755,10 +761,11 @@ class _SubjectPanel extends StatelessWidget {
           const Text(
             'Subject Domain',
             style: TextStyle(
-              color: Colors.black,
-              fontSize: 15,
+              fontFamily: AppTypography.bodyFamily,
+              color: AppColors.textPrimary,
+              fontSize: AppTypography.bodySize,
               height: 1,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 11),
@@ -771,10 +778,11 @@ class _SubjectPanel extends StatelessWidget {
           const Text(
             'Subject Focus',
             style: TextStyle(
-              color: Colors.black,
-              fontSize: 15,
+              fontFamily: AppTypography.bodyFamily,
+              color: AppColors.textPrimary,
+              fontSize: AppTypography.bodySize,
               height: 1,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 11),
@@ -835,9 +843,10 @@ class _SubjectDropdownState extends State<_SubjectDropdown> {
               child: Text(
                 option,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _CreateTemplateScreenState._green,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -871,10 +880,11 @@ class _SubjectDropdownState extends State<_SubjectDropdown> {
                 widget.text,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _CreateTemplateScreenState._green,
-                  fontSize: 10,
+                  fontSize: AppTypography.captionSize,
                   height: 1,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),

@@ -1,3 +1,4 @@
+import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -47,9 +48,10 @@ class StorageService {
         .replaceAll(RegExp(r'\s+'), '_')
         .replaceAll(RegExp(r'[^\w\-.]'), '');
     final fallbackName = safeName.isEmpty ? 'image.$extension' : safeName;
-    final fileName = '${timestamp}_$fallbackName';
-    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
     final bytes = await imageFile.readAsBytes();
+    final digest = sha256.convert(bytes).toString();
+    final fileName = '${timestamp}_${digest}_$fallbackName';
+    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
 
     await _client.storage
         .from(bucketName)
@@ -83,9 +85,10 @@ class StorageService {
     final safeName = videoFile.name
         .replaceAll(RegExp(r'\s+'), '_')
         .replaceAll(RegExp(r'[^\w\-.]'), '');
-    final fileName = '${timestamp}_$safeName';
-    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
     final bytes = await videoFile.readAsBytes();
+    final digest = sha256.convert(bytes).toString();
+    final fileName = '${timestamp}_${digest}_$safeName';
+    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
 
     await _client.storage
         .from(bucketName)
@@ -117,9 +120,10 @@ class StorageService {
         .replaceAll(RegExp(r'\s+'), '_')
         .replaceAll(RegExp(r'[^\w\-.]'), '');
     final fallbackName = safeName.isEmpty ? 'attachment.$extension' : safeName;
-    final fileName = '${timestamp}_$fallbackName';
-    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
     final bytes = await file.readAsBytes();
+    final digest = sha256.convert(bytes).toString();
+    final fileName = '${timestamp}_${digest}_$fallbackName';
+    final filePath = folder.isEmpty ? fileName : '$folder/$fileName';
 
     await _client.storage
         .from(bucketName)

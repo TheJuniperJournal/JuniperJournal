@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/backend/db/models/user_profile.dart';
@@ -74,8 +76,12 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
       ownerProfile = ownerProfiles.isNotEmpty ? ownerProfiles.first : null;
     }
 
-    final friends = widget.isOwner ? (results[i++] as List<UserProfile>?) ?? [] : <UserProfile>[];
-    final pendingIds = widget.isOwner ? (results[i++] as Set<String>) : <String>{};
+    final friends = widget.isOwner
+        ? (results[i++] as List<UserProfile>?) ?? []
+        : <UserProfile>[];
+    final pendingIds = widget.isOwner
+        ? (results[i++] as Set<String>)
+        : <String>{};
 
     setState(() {
       _ownerProfile = ownerProfile;
@@ -151,7 +157,11 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
                 padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Text(
                   'Collaborators',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontFamily: AppTypography.headingFamily,
+                    fontSize: AppTypography.sectionTitleSize,
+                    fontWeight: FontWeight.w600,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -165,7 +175,7 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
                         children: [
                           _buildCurrentCollaboratorsSection(),
                           if (widget.isOwner) ...[
-                            const SizedBox(height: 20),
+                            const SizedBox(height: AppMetrics.fieldGap),
                             _buildInviteFriendsSection(),
                           ],
                         ],
@@ -191,7 +201,12 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
       children: [
         const Text(
           'Current Collaborators',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black54),
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.helperSize,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 8),
         if (!hasAnyone)
@@ -213,13 +228,15 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
               onRemove: () {},
             ),
           // Accepted collaborators (excluding self)
-          ...visibleCollaborators.map((c) => _CollaboratorTile(
-                profile: c,
-                badge: null,
-                showRemove: widget.isOwner,
-                isRemoving: _removingById[c.id] == true,
-                onRemove: () => _remove(c),
-              )),
+          ...visibleCollaborators.map(
+            (c) => _CollaboratorTile(
+              profile: c,
+              badge: null,
+              showRemove: widget.isOwner,
+              isRemoving: _removingById[c.id] == true,
+              onRemove: () => _remove(c),
+            ),
+          ),
         ],
       ],
     );
@@ -227,9 +244,11 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
 
   Widget _buildInviteFriendsSection() {
     final invitableFriends = _friends
-        .where((f) =>
-            !_collaboratorUserIds.contains(f.id) &&
-            f.id != widget.ownerUserId)
+        .where(
+          (f) =>
+              !_collaboratorUserIds.contains(f.id) &&
+              f.id != widget.ownerUserId,
+        )
         .toList();
 
     return Column(
@@ -237,7 +256,12 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
       children: [
         const Text(
           'Invite a Friend',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black54),
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.helperSize,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 8),
         if (invitableFriends.isEmpty)
@@ -285,7 +309,8 @@ class _CollaboratorTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       leading: CircleAvatar(
         backgroundColor: AppColors.primaryTint,
-        backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+        backgroundImage:
+            (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
             ? NetworkImage(profile.avatarUrl!)
             : null,
         child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
@@ -309,8 +334,9 @@ class _CollaboratorTile extends StatelessWidget {
               child: Text(
                 badge!,
                 style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                   color: AppColors.primary,
                 ),
               ),
@@ -319,20 +345,26 @@ class _CollaboratorTile extends StatelessWidget {
         ],
       ),
       subtitle: profile.username != null && profile.username!.isNotEmpty
-          ? Text('@${profile.username}', style: const TextStyle(fontSize: 12))
+          ? Text(
+              '@${profile.username}',
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+              ),
+            )
           : null,
       trailing: showRemove
           ? isRemoving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : IconButton(
-                  icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                  tooltip: 'Remove collaborator',
-                  onPressed: onRemove,
-                )
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                    tooltip: 'Remove collaborator',
+                    onPressed: onRemove,
+                  )
           : null,
     );
   }
@@ -357,7 +389,8 @@ class _InviteFriendTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       leading: CircleAvatar(
         backgroundColor: AppColors.primaryTint,
-        backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+        backgroundImage:
+            (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
             ? NetworkImage(profile.avatarUrl!)
             : null,
         child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
@@ -369,7 +402,13 @@ class _InviteFriendTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: profile.username != null && profile.username!.isNotEmpty
-          ? Text('@${profile.username}', style: const TextStyle(fontSize: 12))
+          ? Text(
+              '@${profile.username}',
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+              ),
+            )
           : null,
       trailing: isInviting
           ? const SizedBox(
@@ -378,26 +417,30 @@ class _InviteFriendTile extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : isPending
-              ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Invited',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                )
-              : FilledButton(
-                  onPressed: onInvite,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
-                  child: const Text('Invite'),
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text(
+                'Invited',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.helperSize,
+                  color: AppColors.textSecondary,
                 ),
+              ),
+            )
+          : FilledButton(
+              onPressed: onInvite,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+              ),
+              child: const Text('Invite'),
+            ),
     );
   }
 }

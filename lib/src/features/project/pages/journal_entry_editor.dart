@@ -1,3 +1,19 @@
+import 'dart:convert';
+import '../services/journal_text_selection.dart';
+import '../services/journal_collaboration.dart';
+import '../../../backend/db/models/user_profile.dart';
+import '../../../shared/widgets/journal_entry_menu.dart';
+import '../../../shared/widgets/journal_draft_session.dart';
+import '../../../shared/widgets/journal_entry_title.dart';
+import '../../../shared/widgets/journal_action_footer.dart';
+import '../../../shared/widgets/journal_publication.dart';
+import '../../../backend/security/input_validator.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import 'project_development_flow.dart';
+import '../utils/journal_completion.dart';
+import '../../../backend/db/models/journal_entry.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,11 +29,10 @@ import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 // ── Progress options ──────────────────────────────────────────────────────────
 
 const _progressOptions = [
-  'Discovering',
-  'Ideating',
+  'Discovery',
+  'Ideation',
   'Prototyping',
-  'Testing & Iterating',
-  'Implemented',
+  'Implementation',
 ];
 
 // ── Public screen ─────────────────────────────────────────────────────────────
@@ -27,10 +42,14 @@ class JournalEntryEditorScreen extends StatefulWidget {
   final String projectName;
   final List<String> tags;
   final String entryId;
+  final String? entryAuthorId;
   final String initialTitle;
   final List<dynamic> initialContent;
   final String? initialProgress;
   final bool readOnly;
+  final ProjectsRepo? projectsRepo;
+  final bool freeNotes;
+  final Future<String?> Function(ImageSource)? uploadImage;
 
   const JournalEntryEditorScreen({
     super.key,
@@ -38,10 +57,14 @@ class JournalEntryEditorScreen extends StatefulWidget {
     required this.projectName,
     required this.tags,
     required this.entryId,
+    this.entryAuthorId,
     required this.initialTitle,
     required this.initialContent,
     this.initialProgress,
     this.readOnly = false,
+    this.projectsRepo,
+    this.freeNotes = false,
+    this.uploadImage,
   });
 
   @override
@@ -50,17 +73,50 @@ class JournalEntryEditorScreen extends StatefulWidget {
 }
 
 class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
-  final _projectsRepo = ProjectsRepo();
-  final _mediaService = MediaService();
+  late final _projectsRepo = widget.projectsRepo ?? ProjectsRepo();
+  late String _entryId;
+  late final _draftSession = JournalDraftSession(
+    _projectsRepo,
+    widget.projectId,
+    onKept: (id) {
+      if (mounted) setState(() => _entryId = id);
+    },
+    initial: widget.entryId.isEmpty
+        ? null
+        : JournalEntry(
+            id: widget.entryId,
+            authorId: widget.entryAuthorId,
+            projectId: widget.projectId,
+            title: widget.initialTitle,
+            content: widget.initialContent,
+            progress: widget.initialProgress,
+          ),
+  );
+  List<Map<String, dynamic>> _participants = [];
+  late final _participantMembers = _projectsRepo.getProjectMembers(
+    projectId: widget.projectId,
+  );
+  bool _submitted = false;
+  int _entryNumber = 1;
+  bool get _isFreeNotes =>
+      widget.freeNotes ||
+      widget.initialContent.whereType<Map>().any(
+        (row) => row['stage'] == 'free_notes',
+      );
+  late final _mediaService = MediaService();
 
   late final TextEditingController _titleController;
+  final _titleFocus = FocusNode();
   String? _progress;
+  late final String? _startingPhase;
 
   final List<_Block> _blocks = [];
   int? _focusedIndex;
 
+  bool _applyingRemote = false;
   bool _isSaving = false;
   bool _hasChanges = false;
+  bool _showTitleValidation = false;
   DateTime? _lastSavedAt;
   Timer? _autoSaveTimer;
 
@@ -69,35 +125,66 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.initialTitle);
-    _titleController.addListener(() => _hasChanges = true);
-    _progress = widget.initialProgress;
+    _participants = [
+      for (final row in widget.initialContent.whereType<Map>())
+        if (row['involved'] is List)
+          for (final person in (row['involved'] as List).whereType<Map>())
+            Map<String, dynamic>.from(person),
+    ];
+    _titleController = TextEditingController(
+      text: RegExp(r'^Entry \d+:').hasMatch(widget.initialTitle)
+          ? ''
+          : widget.initialTitle,
+    );
+    journalEntryNumber(
+      _projectsRepo,
+      widget.projectId,
+      widget.initialProgress ?? 'Discovery',
+      widget.entryId.isEmpty
+          ? null
+          : JournalEntry(
+              id: widget.entryId,
+              projectId: widget.projectId,
+              title: widget.initialTitle,
+              content: widget.initialContent,
+            ),
+    ).then((number) {
+      if (mounted) setState(() => _entryNumber = number);
+    });
+    _titleController.addListener(() {
+      if (!_applyingRemote) _hasChanges = true;
+    });
+    _progress = switch (normalizePhase(widget.initialProgress)) {
+      'discover' => 'Discovery',
+      'ideating' => 'Ideation',
+      'prototyping' => 'Prototyping',
+      'implementation' => 'Implementation',
+      _ => widget.initialProgress,
+    };
+    _startingPhase = _progress;
+    _entryId = widget.entryId;
+    _submitted = widget.initialContent.whereType<Map>().any(
+      (row) => row['stage'] == 'free_notes' && row['submitted'] == true,
+    );
 
     _initBlocks();
 
     if (!widget.readOnly) {
       _autoSaveTimer = Timer.periodic(
-        const Duration(minutes: 5),
+        const Duration(milliseconds: 700),
         (_) => _autoSave(),
       );
     }
   }
 
   void _initBlocks() {
-    final raw = widget.initialContent;
-    // Detect our custom format: list of maps with a "type" key
-    final isCustom = raw.isNotEmpty &&
-        raw.first is Map &&
-        (raw.first as Map).containsKey('type');
-
-    if (isCustom) {
-      for (final item in raw) {
-        if (item is Map<String, dynamic>) {
-          final block = _Block.fromJson(item);
-          _listenToBlock(block);
-          _blocks.add(block);
-        }
-      }
+    var legacyIndex = 0;
+    for (final item in widget.initialContent.whereType<Map>()) {
+      if (!item.containsKey('type')) continue;
+      final block = _Block.fromJson(Map<String, dynamic>.from(item));
+      block.id = item['id']?.toString() ?? 'legacy-${legacyIndex++}';
+      _listenToBlock(block);
+      _blocks.add(block);
     }
 
     // Always have at least one body block
@@ -106,11 +193,23 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       _listenToBlock(block);
       _blocks.add(block);
     }
+    _focusedIndex = 0;
   }
 
   void _listenToBlock(_Block block) {
-    block.textController?.addListener(() => _hasChanges = true);
-    block.captionController?.addListener(() => _hasChanges = true);
+    block.textController?.addListener(() {
+      if (!_applyingRemote) _hasChanges = true;
+    });
+    block.captionController?.addListener(() {
+      if (!_applyingRemote) _hasChanges = true;
+    });
+    for (final row in block.cells ?? <List<TextEditingController>>[]) {
+      for (final cell in row) {
+        cell.addListener(() {
+          if (!_applyingRemote) _hasChanges = true;
+        });
+      }
+    }
     if (block.focusNode != null) {
       block.focusNode!.addListener(() {
         if (block.focusNode!.hasFocus) {
@@ -137,12 +236,14 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted) return;
                     final end = prev.textController!.text.length;
-                    prev.textController!.selection =
-                        TextSelection.collapsed(offset: end);
+                    prev.textController!.selection = TextSelection.collapsed(
+                      offset: end,
+                    );
                   });
                 }
               }
-              return KeyEventResult.handled; // always consume — never delete content
+              return KeyEventResult
+                  .handled; // always consume — never delete content
             }
           }
         }
@@ -154,6 +255,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _titleFocus.dispose();
     _titleController.dispose();
     for (final b in _blocks) {
       b.dispose();
@@ -163,20 +265,133 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
   // ── Persistence ─────────────────────────────────────────────────────────────
 
-  List<dynamic> _blocksToJson() =>
-      _blocks.map((b) => b.toJson()).toList();
+  List<dynamic> _blocksToJson() => [
+    if (_isFreeNotes)
+      {
+        'stage': 'free_notes',
+        'submitted': _submitted,
+        'involved': _participants,
+      }
+    else
+      {'stage': 'participants', 'involved': _participants},
+    ..._blocks.map((b) => {...b.toJson(), 'id': b.id}),
+  ];
+
+  void _receiveSharedNotes(JournalEntry entry) {
+    if (!mounted ||
+        _hasChanges ||
+        _isSaving ||
+        _blocks.any(
+          (block) =>
+              block.textController?.value.composing.isValid == true &&
+              block.textController?.value.composing.isCollapsed == false,
+        ))
+      return;
+    // Only acknowledged snapshots may replace local controls. Pending edits are
+    // submitted first and merged atomically by the database.
+    _applyingRemote = true;
+    setState(() {
+      _titleController.value = remoteJournalTextValue(
+        _titleController.value,
+        RegExp(r'^Entry \d+:').hasMatch(entry.title) ? '' : entry.title,
+      );
+      _progress = switch (normalizePhase(entry.progress)) {
+        'discover' => 'Discovery',
+        'ideating' => 'Ideation',
+        'prototyping' => 'Prototyping',
+        'implementation' => 'Implementation',
+        _ => entry.progress,
+      };
+      final next = <_Block>[];
+      var legacyIndex = 0;
+      for (final row in entry.content.whereType<Map>()) {
+        if (!row.containsKey('type')) continue;
+        final id = row['id']?.toString() ?? 'legacy-${legacyIndex++}';
+        _Block? existing;
+        for (final block in _blocks) {
+          if (block.id == id && block.toJson()['type'] == row['type']) {
+            existing = block;
+            break;
+          }
+        }
+        // Preserve the focused text controller and selection for remote edits.
+        if (existing?.textController != null) {
+          final ctrl = existing!.textController!;
+          final text = row['text']?.toString() ?? '';
+          ctrl.value = remoteJournalTextValue(ctrl.value, text);
+          next.add(existing);
+        } else {
+          final block = _Block.fromJson(Map<String, dynamic>.from(row))
+            ..id = id;
+          _listenToBlock(block);
+          next.add(block);
+        }
+      }
+      for (final block in _blocks) {
+        if (!next.contains(block)) block.dispose();
+      }
+      _blocks
+        ..clear()
+        ..addAll(next);
+      final meta = entry.content.whereType<Map>().where(
+        (r) => r['stage'] == 'free_notes' || r['stage'] == 'participants',
+      );
+      if (meta.isNotEmpty) {
+        _participants = (meta.first['involved'] as List? ?? [])
+            .whereType<Map>()
+            .map((r) => Map<String, dynamic>.from(r))
+            .toList();
+        _submitted = meta.first['submitted'] == true;
+      }
+      _draftSession.collaboration?.hydrated(entry);
+    });
+    _applyingRemote = false;
+  }
 
   Future<bool> _persist() async {
-    return _projectsRepo.updateJournalEntry(
-      entryId: widget.entryId,
-      title: _titleController.text.trim(),
-      content: _blocksToJson(),
-      progress: _progress,
+    final content = _blocksToJson();
+    final title = journalEntryTitle(
+      _titleController.text,
+      _entryNumber,
+      _progress ?? 'Discovery',
     );
+    if (await _draftSession.skipEmpty(title, content)) {
+      _entryId = '';
+      return true;
+    }
+    if (title.isEmpty) return false;
+    try {
+      if (_entryId.isEmpty) {
+        final created = await _draftSession.createJournalEntry(
+          projectId: widget.projectId,
+          title: title,
+          content: content,
+          progress: _progress,
+        );
+        if (created == null) return false;
+        _entryId = created.id;
+        return true;
+      }
+      return await _draftSession.updateJournalEntry(
+        entryId: _entryId,
+        title: title,
+        content: content,
+        progress: _progress,
+      );
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _autoSave() async {
-    if (_isSaving || !_hasChanges) return;
+    if (_isSaving || !_hasChanges) {
+      return;
+    }
+    final savingFingerprint = jsonEncode([
+      _titleController.text,
+      _progress,
+      _blocksToJson(),
+    ]);
     setState(() => _isSaving = true);
     final ok = await _persist();
     if (!mounted) return;
@@ -184,35 +399,81 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       _isSaving = false;
       if (ok) {
         _lastSavedAt = DateTime.now();
-        _hasChanges = false;
+        _hasChanges =
+            savingFingerprint !=
+            jsonEncode([_titleController.text, _progress, _blocksToJson()]);
       }
     });
   }
 
-  Future<void> _saveAndPop() async {
+  Future<void> _saveAndPop({bool submit = false}) async {
     if (_isSaving) return;
+    final hasContent = freeNotesHaveContent(_blocksToJson());
+    final titleError = _titleController.text.trim().isEmpty
+        ? null
+        : InputValidator.journalTitle(_titleController.text);
+    if ((hasContent || _entryId.isNotEmpty) && titleError != null) {
+      journalValidationIssues(context).value = [
+        JournalValidationIssue(
+          titleError,
+          () =>
+              mounted &&
+              InputValidator.journalTitle(_titleController.text) != null,
+          changes: _titleController,
+        ),
+      ];
+      _titleFocus.requestFocus();
+      setState(() => _showTitleValidation = true);
+      return;
+    }
     setState(() => _isSaving = true);
-    final ok = await _persist();
+    final previouslySubmitted = _submitted;
+    if (submit) _submitted = true;
+    final ok = await _persist() && await _draftSession.keep();
     if (!mounted) return;
     setState(() => _isSaving = false);
     if (!ok) {
-      showTopSnackBar(context, 'Failed to save entry', isError: true);
+      _submitted = previouslySubmitted;
+      showTopSnackBar(
+        context,
+        _projectsRepo.lastJournalSaveError ??
+            'Failed to save entry. Your notes are still here.',
+        isError: true,
+      );
       return;
     }
-    Navigator.of(context).pop();
+    if (submit) {
+      JournalPublication.returnHome(context);
+    } else {
+      Navigator.of(context).pop(true);
+    }
   }
 
   String? get _savedLabel {
-    if (_lastSavedAt == null) return null;
+    if (_lastSavedAt == null ||
+        (!_draftSession.kept && _draftSession.current == null))
+      return null;
     final h = _lastSavedAt!.hour % 12 == 0 ? 12 : _lastSavedAt!.hour % 12;
     final m = _lastSavedAt!.minute.toString().padLeft(2, '0');
     final ampm = _lastSavedAt!.hour < 12 ? 'AM' : 'PM';
-    return 'Saved $h:$m $ampm';
+    return '${!_draftSession.kept
+        ? 'Saved'
+        : _isFreeNotes && !_submitted
+        ? 'Draft saved'
+        : 'Saved'} $h:$m $ampm';
   }
 
   // ── Block operations ────────────────────────────────────────────────────────
 
   void _insertAfterFocused(_Block newBlock) {
+    final focused = _focusedIndex == null ? null : _blocks[_focusedIndex!];
+    if (newBlock.type == _BlockType.body &&
+        focused?.type == _BlockType.body &&
+        focused!.textController!.text.isEmpty) {
+      newBlock.dispose();
+      focused.focusNode?.requestFocus();
+      return;
+    }
     _listenToBlock(newBlock);
     final insertAt = (_focusedIndex ?? _blocks.length - 1) + 1;
     setState(() {
@@ -236,14 +497,65 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     });
   }
 
+  Future<void> _showBlockActions() async {
+    final index = _focusedIndex;
+    if (index == null || index >= _blocks.length) return;
+    final action = await showAppModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (index > 0)
+              ListTile(
+                leading: const Icon(Icons.arrow_upward),
+                title: const Text('Move up'),
+                onTap: () => Navigator.pop(context, 'up'),
+              ),
+            if (index < _blocks.length - 1)
+              ListTile(
+                leading: const Icon(Icons.arrow_downward),
+                title: const Text('Move down'),
+                onTap: () => Navigator.pop(context, 'down'),
+              ),
+            if (_blocks.length > 1)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remove block'),
+                onTap: () => Navigator.pop(context, 'remove'),
+              ),
+            ListTile(
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'remove') {
+      _removeBlock(index);
+      return;
+    }
+    setState(() {
+      final destination = action == 'up' ? index - 1 : index + 1;
+      final block = _blocks.removeAt(index);
+      _blocks.insert(destination, block);
+      _focusedIndex = destination;
+      _hasChanges = true;
+    });
+  }
+
   void _toggleHeaderBody() {
     final idx = _focusedIndex;
     if (idx == null || idx >= _blocks.length) return;
     final block = _blocks[idx];
-    if (block.type != _BlockType.header && block.type != _BlockType.body) return;
+    if (block.type != _BlockType.header && block.type != _BlockType.body)
+      return;
     setState(() {
-      block.type =
-          block.type == _BlockType.header ? _BlockType.body : _BlockType.header;
+      block.type = block.type == _BlockType.header
+          ? _BlockType.body
+          : _BlockType.header;
       _hasChanges = true;
     });
   }
@@ -278,22 +590,34 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       newBlock.focusNode?.requestFocus();
-      newBlock.textController?.selection =
-          const TextSelection.collapsed(offset: 0);
+      newBlock.textController?.selection = const TextSelection.collapsed(
+        offset: 0,
+      );
     });
   }
 
   Future<void> _insertImage(ImageSource source) async {
-    final url = await _mediaService.pickAndUploadImage(
-      source,
-      folder: 'journal-images',
-    );
-    if (url == null || !mounted) return;
-    _insertAfterFocused(_Block.image(url: url));
+    try {
+      final url = widget.uploadImage != null
+          ? await widget.uploadImage!(source)
+          : await _mediaService.pickAndUploadImage(
+              source,
+              folder: 'journal-images',
+            );
+      if (url == null || !mounted) return;
+      _insertAfterFocused(_Block.image(url: url));
+    } catch (_) {
+      if (mounted)
+        showTopSnackBar(
+          context,
+          'Could not add image. Please try again.',
+          isError: true,
+        );
+    }
   }
 
   Future<void> _showInsertTableDialog() async {
-    final result = await showDialog<({int rows, int cols})>(
+    final result = await showAppDialog<({int rows, int cols})>(
       context: context,
       builder: (_) => const _TableSizeDialog(),
     );
@@ -302,7 +626,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   }
 
   Future<void> _showInsertMathDialog() async {
-    final latex = await showDialog<String>(
+    final latex = await showAppDialog<String>(
       context: context,
       builder: (_) => const _MathInputDialog(),
     );
@@ -314,6 +638,37 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.initialContent.whereType<Map>().any(
+      (row) => row['stage'] == 'prototyping' && row['entryType'] != null,
+    )) {
+      return PrototypingJournalEntryPage(
+        projectId: widget.projectId,
+        projectsRepo: _projectsRepo,
+        entry: JournalEntry(
+          id: widget.entryId,
+          title: widget.initialTitle,
+          content: widget.initialContent,
+          projectId: widget.projectId,
+          progress: widget.initialProgress,
+        ),
+        readOnly: widget.readOnly,
+      );
+    }
+
+    if (widget.readOnly &&
+        widget.initialContent.whereType<Map>().any(
+          (stage) => stage['stage'] == 'analyze',
+        )) {
+      return DiscoveryEntryPreviewPage(
+        entry: JournalEntry(
+          id: widget.entryId,
+          title: widget.initialTitle,
+          content: widget.initialContent,
+          projectId: widget.projectId,
+          progress: widget.initialProgress,
+        ),
+      );
+    }
     if (widget.readOnly) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -325,17 +680,21 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: Row(
                   children: [
-                    const Text(
-                      'Progress',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
+                    Text(
+                      _isFreeNotes ? 'Free Notes · Phase' : 'Phase',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(999),
@@ -343,9 +702,10 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                       child: Text(
                         _progress!,
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
                           color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -370,16 +730,26 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       );
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _saveAndPop();
-      },
+    return JournalDraftGuard(
+      session: _draftSession,
+      flush: _persist,
+      section: 'free_notes',
+      onRemoteEntry: _receiveSharedNotes,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: _buildAppBar(),
         body: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: TextField(
+                controller: _titleController,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'Entry Title (optional)',
+                ),
+              ),
+            ),
             // Progress selector
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -387,10 +757,11 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Progress',
+                    'Phase',
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
                   ),
@@ -400,14 +771,98 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                     placeholder: 'Select phase',
                     items: _progressOptions,
                     onChanged: (v) => setState(() {
+                      if (_isFreeNotes &&
+                          widget.initialTitle.endsWith(': Free Notes') &&
+                          (_titleController.text == widget.initialTitle ||
+                              _titleController.text ==
+                                  '$_progress: Free Notes')) {
+                        _titleController.text = '$v: Free Notes';
+                      }
                       _progress = v;
                       _hasChanges = true;
                     }),
                   ),
+                  if (_isFreeNotes && _progress != null) ...[
+                    const SizedBox(height: 8),
+                    Semantics(
+                      liveRegion: true,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _startingPhase != null &&
+                                      _progress != _startingPhase
+                                  ? 'Saving moves this entry to the $_progress dashboard instead of $_startingPhase.'
+                                  : 'This entry appears in the $_progress dashboard.',
+                              style: AppTypography.helper,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
 
+            if (!widget.readOnly)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: FutureBuilder<List<UserProfile>>(
+                  future: _participantMembers,
+                  builder: (context, snapshot) {
+                    final members = snapshot.data ?? const <UserProfile>[];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Who is involved?',
+                          style: AppTypography.fieldLabel,
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Selected participants can edit this journal entry.',
+                          style: AppTypography.helper,
+                        ),
+                        JournalInvolvedPeopleField(
+                          creatorId:
+                              widget.entryAuthorId ??
+                              journalRepoUserId(_projectsRepo),
+                          members: members,
+                          selectedIds: _participants
+                              .map((p) => p['id'].toString())
+                              .toSet(),
+                          onToggle: (id) => setState(() {
+                            if (_participants.any((p) => p['id'] == id)) {
+                              _participants.removeWhere((p) => p['id'] == id);
+                            } else {
+                              final person = members.firstWhere(
+                                (p) => p.id == id,
+                              );
+                              _participants.add({
+                                'id': id,
+                                'name': person.resolvedDisplayName,
+                                'avatarUrl': person.avatarUrl,
+                              });
+                            }
+                            _hasChanges = true;
+                          }),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             const SizedBox(height: 12),
             const Divider(height: 1, color: AppColors.divider),
 
@@ -436,10 +891,52 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                       behavior: HitTestBehavior.translucent,
                       child: const SizedBox(height: 80, width: double.infinity),
                     ),
+                    JournalActionFooter(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton(
+                            onPressed: _isSaving
+                                ? null
+                                : () => Navigator.of(context).maybePop(),
+                            child: const Text('Back'),
+                          ),
+                          const SizedBox(width: 16),
+                          FilledButton(
+                            onPressed: _isSaving
+                                ? null
+                                : () => _saveAndPop(submit: !_submitted),
+                            child: Text(
+                              _isSaving
+                                  ? 'Saving...'
+                                  : _submitted
+                                  ? 'Done'
+                                  : 'Submit',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
+            if (!widget.readOnly && _savedLabel != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    _savedLabel!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -448,35 +945,71 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
+      toolbarHeight: 72,
       backgroundColor: Colors.white,
       elevation: 0,
+      centerTitle: true,
       scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios,
-            size: 18, color: AppColors.primary),
-        onPressed: widget.readOnly
-            ? () => Navigator.of(context).pop()
-            : _saveAndPop,
+      leadingWidth: 88,
+      titleSpacing: 8,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: ContentAlignedBackButton(
+          onPressed: widget.readOnly
+              ? () => Navigator.of(context).pop()
+              : () async {
+                  await _persist();
+                  if (mounted) Navigator.of(context).maybePop();
+                },
+        ),
       ),
       title: widget.readOnly
           ? Text(
               _titleController.text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
+                fontFamily: AppTypography.headingFamily,
                 color: Colors.black87,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.pageTitleSize,
+                fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             )
           : TextField(
               controller: _titleController,
+              onChanged: (_) => setState(() {}),
+              focusNode: _titleFocus,
               style: const TextStyle(
+                fontFamily: AppTypography.headingFamily,
                 color: Colors.black87,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.pageTitleSize,
+                fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
-              decoration: const InputDecoration(
+              textAlignVertical: TextAlignVertical.center,
+              decoration: InputDecoration(
+                errorText:
+                    _showTitleValidation &&
+                        _titleController.text.trim().isNotEmpty
+                    ? InputValidator.journalTitle(_titleController.text)
+                    : null,
+                errorStyle: AppTypography.requirement,
+                errorBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.red),
+                ),
+                focusedErrorBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.red, width: 1.5),
+                ),
+                hintText: journalEntryTitle(
+                  '',
+                  _entryNumber,
+                  _progress ?? 'Discovery',
+                ),
+                constraints: BoxConstraints(minHeight: 48),
+                filled: false,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
@@ -484,49 +1017,32 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
             ),
       actions: widget.readOnly
           ? [
+              JournalEntryMenu(
+                repo: _projectsRepo,
+                entry: JournalEntry(
+                  id: _entryId,
+                  authorId: widget.entryAuthorId,
+                  projectId: widget.projectId,
+                  title: widget.initialTitle,
+                  content: widget.initialContent,
+                  progress: widget.initialProgress,
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: Center(
                   child: Text(
-                    'Read Only',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                    'Preview',
+                    style: TextStyle(
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: Colors.grey.shade400,
+                    ),
                   ),
                 ),
               ),
             ]
-          : [
-              if (_isSaving)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              else ...[
-                if (_savedLabel != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Center(
-                      child: Text(
-                        _savedLabel!,
-                        style: const TextStyle(fontSize: 11, color: Colors.black38),
-                      ),
-                    ),
-                  ),
-                TextButton(
-                  onPressed: _saveAndPop,
-                  child: const Text(
-                    'Save',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
+          : const [],
       shape: const Border(
         bottom: BorderSide(color: AppColors.divider, width: 0.6),
       ),
@@ -534,39 +1050,37 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   }
 
   Widget _buildToolbar() {
-    final focusedBlock = _focusedIndex != null && _focusedIndex! < _blocks.length
+    final focusedBlock =
+        _focusedIndex != null && _focusedIndex! < _blocks.length
         ? _blocks[_focusedIndex!]
         : null;
-    final isTextBlock = focusedBlock?.type == _BlockType.header ||
+    final isTextBlock =
+        focusedBlock?.type == _BlockType.header ||
         focusedBlock?.type == _BlockType.body;
     final isHeader = focusedBlock?.type == _BlockType.header;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           // TT — toggle header/body
           _ToolbarBtn(
-            child: _TtIcon(
-              active: isHeader,
-              enabled: isTextBlock,
-            ),
+            child: _TtIcon(active: isHeader, enabled: isTextBlock),
             active: isHeader,
             onTap: isTextBlock ? _toggleHeaderBody : null,
             tooltip: 'Toggle header / body',
           ),
-          // Square — no-op
           _ToolbarBtn(
-            icon: Icons.crop_square_outlined,
-            disabled: true,
-            tooltip: 'Selection',
+            icon: Icons.notes_outlined,
+            onTap: () => _insertAfterFocused(_Block.body('')),
+            tooltip: 'Add text',
           ),
-          // Paintbrush — no-op
           _ToolbarBtn(
-            icon: Icons.brush_outlined,
-            disabled: true,
-            tooltip: 'Style',
+            icon: Icons.more_vert,
+            onTap: _showBlockActions,
+            tooltip: 'Move or remove block',
           ),
           Container(width: 1, height: 28, color: AppColors.divider),
           // Camera
@@ -623,65 +1137,60 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               block.textController?.text ?? '',
               style: isHeader
                   ? const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.displaySize,
+                      fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     )
                   : const TextStyle(
-                      fontSize: 15,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
                       color: Colors.black87,
                       height: 1.55,
                     ),
             )
           : TextField(
+              key: ValueKey('free-notes-body-$index'),
               controller: block.textController,
               focusNode: block.focusNode,
+              minLines: isHeader ? 1 : 5,
               maxLines: isHeader ? 1 : null,
               textInputAction: isHeader
                   ? TextInputAction.newline
                   : TextInputAction.newline,
               onSubmitted: isHeader ? (_) => _splitLineAtCursor(block) : null,
-              onChanged: isHeader
-                  ? (_) => _hasChanges = true
-                  : (value) {
-                      _hasChanges = true;
-                      if (!value.contains('\n')) return;
-                      final idx = value.indexOf('\n');
-                      final before = value.substring(0, idx);
-                      final after = value.substring(idx + 1);
-                      block.textController!.value = TextEditingValue(
-                        text: before,
-                        selection: TextSelection.collapsed(offset: before.length),
-                      );
-                      final newBlock = _Block.body(after);
-                      _listenToBlock(newBlock);
-                      final blockIdx = _blocks.indexOf(block);
-                      setState(() {
-                        _blocks.insert(blockIdx + 1, newBlock);
-                        _focusedIndex = blockIdx + 1;
-                      });
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted) return;
-                        newBlock.focusNode?.requestFocus();
-                        newBlock.textController?.selection =
-                            TextSelection.collapsed(offset: 0);
-                      });
-                    },
+              onChanged: (_) => setState(() => _hasChanges = true),
               style: isHeader
                   ? const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.sectionTitleSize,
+                      fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     )
                   : const TextStyle(
-                      fontSize: 15,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
                       color: Colors.black87,
                       height: 1.55,
                     ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
+                hintText:
+                    index == 0 &&
+                        _blocks.every(
+                          (b) =>
+                              (b.type == _BlockType.body ||
+                                  b.type == _BlockType.header) &&
+                              b.textController!.text.isEmpty,
+                        )
+                    ? 'Write something…'
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 2),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
               ),
             ),
     );
@@ -693,7 +1202,9 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       child: _ImageBlockWidget(
         block: block,
         isSelected: !widget.readOnly && _focusedIndex == index,
-        onSelect: widget.readOnly ? null : () => setState(() => _focusedIndex = index),
+        onSelect: widget.readOnly
+            ? null
+            : () => setState(() => _focusedIndex = index),
         onRemove: widget.readOnly ? null : () => _removeBlock(index),
         onMarkChanged: widget.readOnly ? null : () => _hasChanges = true,
       ),
@@ -738,14 +1249,17 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         child: TextField(
                           controller: colEntry.value,
                           readOnly: widget.readOnly,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
                             fontWeight: isFirstRow
-                                ? FontWeight.w600
+                                ? FontWeight.w500
                                 : FontWeight.w400,
                           ),
                           decoration: const InputDecoration(
@@ -753,7 +1267,9 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
-                          onChanged: widget.readOnly ? null : (_) => _hasChanges = true,
+                          onChanged: widget.readOnly
+                              ? null
+                              : (_) => _hasChanges = true,
                         ),
                       );
                     }).toList(),
@@ -789,18 +1305,21 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       child: Stack(
         children: [
           GestureDetector(
-            onTap: widget.readOnly ? null : () async {
-              final newLatex = await showDialog<String>(
-                context: context,
-                builder: (_) => _MathInputDialog(initialLatex: block.latex),
-              );
-              if (newLatex != null && mounted) {
-                setState(() {
-                  block.latex = newLatex;
-                  _hasChanges = true;
-                });
-              }
-            },
+            onTap: widget.readOnly
+                ? null
+                : () async {
+                    final newLatex = await showAppDialog<String>(
+                      context: context,
+                      builder: (_) =>
+                          _MathInputDialog(initialLatex: block.latex),
+                    );
+                    if (newLatex != null && mounted) {
+                      setState(() {
+                        block.latex = newLatex;
+                        _hasChanges = true;
+                      });
+                    }
+                  },
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -808,17 +1327,23 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 color: AppColors.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.2)),
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
               ),
               child: Center(
                 child: Math.tex(
                   block.latex ?? '',
-                  textStyle:
-                      const TextStyle(fontSize: 18, color: Colors.black87),
+                  textStyle: const TextStyle(
+                    fontFamily: AppTypography.headingFamily,
+                    fontSize: AppTypography.sectionTitleSize,
+                    color: Colors.black87,
+                  ),
                   onErrorFallback: (err) => Text(
                     block.latex ?? '',
                     style: const TextStyle(
-                        fontFamily: 'monospace', color: Colors.red),
+                      fontFamily: 'monospace',
+                      color: Colors.red,
+                    ),
                   ),
                 ),
               ),
@@ -873,8 +1398,10 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxW = constraints.maxWidth;
-        final imgW =
-            (maxW * widget.block.widthFraction).clamp(maxW * 0.25, maxW);
+        final imgW = (maxW * widget.block.widthFraction).clamp(
+          maxW * 0.25,
+          maxW,
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -891,19 +1418,25 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                         widget.block.imageUrl!,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        loadingBuilder: (_, child, progress) =>
-                            progress == null
-                                ? child
-                                : AspectRatio(
-                                    aspectRatio: 16 / 9,
-                                    child: Container(
-                                      color: Colors.grey.shade100,
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      ),
+                        errorBuilder: (_, _, _) => const SizedBox(
+                          height: 160,
+                          child: Center(
+                            child: Icon(Icons.broken_image_outlined),
+                          ),
+                        ),
+                        loadingBuilder: (_, child, progress) => progress == null
+                            ? child
+                            : AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: Container(
+                                  color: Colors.grey.shade100,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
                                     ),
                                   ),
+                                ),
+                              ),
                       ),
                     ),
                     if (widget.onRemove != null)
@@ -918,8 +1451,11 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             padding: const EdgeInsets.all(4),
-                            child: const Icon(Icons.close,
-                                color: Colors.white, size: 16),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -937,16 +1473,19 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                 readOnly: widget.onMarkChanged == null,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                   color: Colors.black87,
                 ),
                 decoration: InputDecoration(
-                  hintText: widget.onMarkChanged == null ? null : 'Add caption…',
+                  hintText: '',
                   hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400),
+                    fontFamily: AppTypography.bodyFamily,
+                    color: Colors.grey.shade400,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
+                  ),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
@@ -959,8 +1498,11 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.photo_size_select_large_outlined,
-                      size: 16, color: Colors.black38),
+                  const Icon(
+                    Icons.photo_size_select_large_outlined,
+                    size: 16,
+                    color: Colors.black38,
+                  ),
                   Expanded(
                     child: Slider(
                       value: widget.block.widthFraction,
@@ -979,7 +1521,10 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                     child: Text(
                       '${(widget.block.widthFraction * 100).round()}%',
                       style: const TextStyle(
-                          fontSize: 11, color: Colors.black45),
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        color: AppColors.textSecondary,
+                      ),
                       textAlign: TextAlign.end,
                     ),
                   ),
@@ -1001,7 +1546,6 @@ class _ToolbarBtn extends StatelessWidget {
     this.child,
     this.onTap,
     this.active = false,
-    this.disabled = false,
     this.tooltip,
   });
 
@@ -1009,16 +1553,11 @@ class _ToolbarBtn extends StatelessWidget {
   final Widget? child;
   final VoidCallback? onTap;
   final bool active;
-  final bool disabled;
   final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    final color = disabled
-        ? Colors.black26
-        : active
-            ? AppColors.primary
-            : Colors.black54;
+    final color = onTap == null ? Colors.black26 : AppColors.primary;
 
     Widget inner = child ?? Icon(icon, size: 24, color: color);
 
@@ -1038,7 +1577,7 @@ class _ToolbarBtn extends StatelessWidget {
       content = Tooltip(message: tooltip!, child: content);
     }
 
-    if (disabled || onTap == null) return content;
+    if (onTap == null) return content;
 
     return GestureDetector(onTap: onTap, child: content);
   }
@@ -1055,7 +1594,7 @@ class _TtIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = AppColors.primary;
-    final inactiveColor = enabled ? Colors.black54 : Colors.black26;
+    final inactiveColor = enabled ? AppColors.primary : Colors.black26;
 
     // Big "T" on the left, small "T" on the right, baseline-aligned
     return Row(
@@ -1066,7 +1605,7 @@ class _TtIcon extends StatelessWidget {
           'T',
           style: TextStyle(
             fontSize: active ? 22 : 18,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w500,
             color: active ? activeColor : inactiveColor,
             height: 1,
           ),
@@ -1100,7 +1639,9 @@ class _TableSizeDialogState extends State<_TableSizeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Text('Insert Table'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1116,8 +1657,7 @@ class _TableSizeDialogState extends State<_TableSizeDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () =>
-              Navigator.pop(context, (rows: _rows, cols: _cols)),
+          onPressed: () => Navigator.pop(context, (rows: _rows, cols: _cols)),
           style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
           child: const Text('Insert'),
         ),
@@ -1125,14 +1665,18 @@ class _TableSizeDialogState extends State<_TableSizeDialog> {
     );
   }
 
-  Widget _counter(String label, int value, ValueChanged<int> onChanged,
-      int min, int max) {
+  Widget _counter(
+    String label,
+    int value,
+    ValueChanged<int> onChanged,
+    int min,
+    int max,
+  ) {
     return Row(
       children: [
         SizedBox(width: 64, child: Text(label)),
         IconButton(
-          onPressed:
-              value > min ? () => onChanged(value - 1) : null,
+          onPressed: value > min ? () => onChanged(value - 1) : null,
           icon: const Icon(Icons.remove),
         ),
         SizedBox(
@@ -1141,12 +1685,14 @@ class _TableSizeDialogState extends State<_TableSizeDialog> {
             '$value',
             textAlign: TextAlign.center,
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600),
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         IconButton(
-          onPressed:
-              value < max ? () => onChanged(value + 1) : null,
+          onPressed: value < max ? () => onChanged(value + 1) : null,
           icon: const Icon(Icons.add),
         ),
       ],
@@ -1184,7 +1730,9 @@ class _MathInputDialogState extends State<_MathInputDialog> {
   @override
   Widget build(BuildContext context) {
     final latex = _controller.text;
-    return AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Text('Insert Formula'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1194,16 +1742,19 @@ class _MathInputDialogState extends State<_MathInputDialog> {
             controller: _controller,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: r'E = mc^2',
+              hintText: '',
               labelText: 'LaTeX',
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 9,
+                vertical: 14,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.borderLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(color: AppColors.borderLight),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1215,7 +1766,11 @@ class _MathInputDialogState extends State<_MathInputDialog> {
             const SizedBox(height: 16),
             const Text(
               'Preview',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -1228,11 +1783,17 @@ class _MathInputDialogState extends State<_MathInputDialog> {
               child: Center(
                 child: Math.tex(
                   latex,
-                  textStyle: const TextStyle(fontSize: 18),
+                  textStyle: const TextStyle(
+                    fontFamily: AppTypography.headingFamily,
+                    fontSize: AppTypography.pageTitleSize,
+                  ),
                   onErrorFallback: (err) => Text(
                     'Invalid formula',
                     style: TextStyle(
-                        color: AppColors.error, fontSize: 13),
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.error,
+                      fontSize: AppTypography.bodySize,
+                    ),
                   ),
                 ),
               ),
@@ -1262,6 +1823,7 @@ class _MathInputDialogState extends State<_MathInputDialog> {
 enum _BlockType { header, body, image, table, math }
 
 class _Block {
+  String id = journalEditorSessionId();
   _BlockType type;
 
   // text / header
@@ -1340,9 +1902,8 @@ class _Block {
       case _BlockType.table:
         return {
           'type': 'table',
-          'rows': cells
-                  ?.map((row) => row.map((c) => c.text).toList())
-                  .toList() ??
+          'rows':
+              cells?.map((row) => row.map((c) => c.text).toList()).toList() ??
               [],
         };
       case _BlockType.math:

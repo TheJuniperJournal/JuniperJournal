@@ -1,3 +1,10 @@
+import '../../../shared/widgets/evidence_description_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:juniper_journal/src/features/learning_module/pages/assessment_block.dart';
@@ -138,7 +145,7 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
 
   void _save() {
     setState(() => _showValidation = true);
-    if (!_validUrl || !_assessment.isValid || _saving) return;
+    if (!_validUrl || _saving) return;
     setState(() => _saving = true);
     final now = DateTime.now();
     final initial = widget.initialData;
@@ -167,7 +174,12 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -178,13 +190,13 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _Label('Content'),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _Label('Title', optional: true),
                         const SizedBox(height: 10),
                         _InputBox(
                           controller: _titleController,
                           maxLength: 100,
-                          height: 34,
+                          height: 64,
                         ),
                         const SizedBox(height: 10),
                         const _Label('URL'),
@@ -197,17 +209,40 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
                           error: showUrlError,
                         ),
                         if (showUrlError) ...[
+                          if (_validUrl)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () async {
+                                  final opened = await launchUrl(
+                                    Uri.parse(_urlController.text.trim()),
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                  if (!opened && context.mounted)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Could not open this link.',
+                                        ),
+                                      ),
+                                    );
+                                },
+                                icon: const Icon(Icons.open_in_new, size: 18),
+                                label: const Text('Open Link'),
+                              ),
+                            ),
                           const SizedBox(height: 7),
                           const Text(
                             'Enter a valid http or https URL.',
                             style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: _error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
-                        const SizedBox(height: 30),
+                        const SizedBox(height: AppMetrics.sectionGap),
                         _LinkPreview(
                           title: _titleController.text.trim(),
                           url: _urlController.text.trim(),
@@ -232,7 +267,7 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: AppMetrics.sectionGap),
                         _Label('Description', optional: true),
                         const SizedBox(height: 10),
                         _InputBox(
@@ -241,22 +276,8 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
                           height: 56,
                           maxLines: 2,
                         ),
-                        const SizedBox(height: 20),
-                        InquiryLensSelector(
-                          data: _inquiryLensData,
-                          onChanged: (value) =>
-                              setState(() => _inquiryLensData = value),
-                        ),
-                        const SizedBox(height: 20),
-                        _Label('Assessment', optional: true),
-                        const SizedBox(height: 11),
-                        AssessmentBlockSection(
-                          value: _assessment,
-                          showValidation: _showValidation,
-                          onChanged: (value) {
-                            setState(() => _assessment = value);
-                          },
-                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+
                         const SizedBox(height: 44),
                         Center(
                           child: SizedBox(
@@ -280,8 +301,9 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
                                     ? 'Saving...'
                                     : (_isEditing ? 'Save' : 'Add Block'),
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -301,53 +323,11 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
-
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 28,
-            child: Text(
-              'Link Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF1F2024),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 25,
-            top: 23,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 20,
-                height: 24,
-                child: CustomPaint(painter: _BackChevronPainter()),
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(height: 1, thickness: 1, color: Color(0xFFD1D1D1)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Link Block', onBack: onBack);
 }
 
 class _Label extends StatelessWidget {
@@ -362,17 +342,19 @@ class _Label extends StatelessWidget {
       TextSpan(
         text: label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _LinkBlockEditorScreenState._text,
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.bodySize,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
             const TextSpan(
               text: ' (optional)',
               style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _LinkBlockEditorScreenState._muted,
-                fontSize: 12,
+                fontSize: AppTypography.helperSize,
               ),
             ),
         ],
@@ -400,6 +382,7 @@ class _InputBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (maxLines > 1) return EvidenceDescriptionField(controller: controller);
     return SizedBox(
       height: height + (showCounter ? 13 : 0),
       child: Stack(
@@ -407,6 +390,13 @@ class _InputBox extends StatelessWidget {
           SizedBox(
             height: height,
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: maxLength,
               maxLines: maxLines,
@@ -435,29 +425,19 @@ class _InputBox extends StatelessWidget {
                     color: error
                         ? _LinkBlockEditorScreenState._error
                         : _LinkBlockEditorScreenState._green,
-                    width: 1.3,
                   ),
                 ),
               ),
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _LinkBlockEditorScreenState._text,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           if (showCounter)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Text(
-                '${controller.text.length}/$maxLength',
-                style: const TextStyle(
-                  color: _LinkBlockEditorScreenState._text,
-                  fontSize: 8,
-                ),
-              ),
-            ),
+            Positioned(right: 0, bottom: 0, child: const SizedBox.shrink()),
         ],
       ),
     );
@@ -480,7 +460,7 @@ class _LinkPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 328,
+      width: double.infinity,
       height: 175,
       margin: const EdgeInsets.only(left: 8),
       decoration: BoxDecoration(
@@ -520,9 +500,10 @@ class _LinkPreview extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.textPrimary,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -531,9 +512,10 @@ class _LinkPreview extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0x80000000),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.textSecondary,
+                          fontSize: AppTypography.helperSize,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -542,9 +524,10 @@ class _LinkPreview extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0x80000000),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.textSecondary,
+                          fontSize: AppTypography.helperSize,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
@@ -563,8 +546,8 @@ class _LinkPreview extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0x33000000),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -609,7 +592,7 @@ class _SmallButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: label == 'Replace' ? 92 : 85,
-        height: 21,
+        height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: fill,
@@ -619,10 +602,11 @@ class _SmallButton extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
             color: color,
-            fontSize: 12,
+            fontSize: AppTypography.buttonSize,
             height: 1,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -659,9 +643,10 @@ class _DropdownField extends StatelessWidget {
             child: Text(
               option,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _LinkBlockEditorScreenState._text,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -680,9 +665,10 @@ class _DropdownField extends StatelessWidget {
               child: Text(
                 displayValue,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _LinkBlockEditorScreenState._text,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -695,26 +681,4 @@ class _DropdownField extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BackChevronPainter extends CustomPainter {
-  const _BackChevronPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _LinkBlockEditorScreenState._green
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..moveTo(size.width * 0.68, size.height * 0.12)
-      ..lineTo(size.width * 0.24, size.height * 0.50)
-      ..lineTo(size.width * 0.68, size.height * 0.88);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

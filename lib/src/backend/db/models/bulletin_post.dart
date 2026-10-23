@@ -37,8 +37,10 @@ class BulletinPost {
     return 'Member';
   }
 
-  factory BulletinPost.fromMap(Map<String, dynamic> map,
-      {Map<String, dynamic>? profile}) {
+  factory BulletinPost.fromMap(
+    Map<String, dynamic> map, {
+    Map<String, dynamic>? profile,
+  }) {
     final rawUrls = map['image_urls'];
     final imageUrls = rawUrls is List
         ? List<String>.from(rawUrls.map((e) => e.toString()))
@@ -50,7 +52,8 @@ class BulletinPost {
       title: map['title']?.toString() ?? '',
       category: map['category']?.toString() ?? '',
       body: map['body']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.now(),
       imageUrls: imageUrls,
       commentCount: (map['comment_count'] as int?) ?? 0,

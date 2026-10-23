@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
@@ -58,17 +60,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.border),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: AppColors.border,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Change Password',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: const Text('Change Password', style: AppTypography.pageTitle),
         centerTitle: true,
         shape: const Border(
           bottom: BorderSide(color: AppColors.divider, width: 0.6),
@@ -83,7 +82,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               controller: _currentCtrl,
               label: 'Current Password',
               obscure: _obscureCurrent,
-              onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+              onToggle: () =>
+                  setState(() => _obscureCurrent = !_obscureCurrent),
               validator: (v) =>
                   (v ?? '').isEmpty ? 'Enter your current password' : null,
             ),
@@ -96,8 +96,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               validator: (v) {
                 final value = v ?? '';
                 if (value.isEmpty) return 'Enter a new password';
-                if (value.length < 8) return 'Password must be at least 8 characters';
-                if (value.contains(RegExp(r'\s'))) return 'Password cannot contain spaces';
+                if (value.length < 8)
+                  return 'Password must be at least 8 characters';
+                if (value.contains(RegExp(r'\s')))
+                  return 'Password cannot contain spaces';
                 return null;
               },
             ),
@@ -106,14 +108,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               controller: _confirmCtrl,
               label: 'Confirm Password',
               obscure: _obscureConfirm,
-              onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+              onToggle: () =>
+                  setState(() => _obscureConfirm = !_obscureConfirm),
               validator: (v) {
                 if ((v ?? '').isEmpty) return 'Confirm your new password';
                 if (v != _newCtrl.text) return 'Passwords do not match';
                 return null;
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppMetrics.sectionGap),
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -131,15 +134,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(
                         'Update Password',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.buttonSize,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
               ),

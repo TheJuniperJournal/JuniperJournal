@@ -1,13 +1,28 @@
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'dart:ui' show PointerDeviceKind;
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 
 /// Shows the same scroll-wheel date picker used in the project timeline.
 /// Returns the selected [DateTime] or null if dismissed.
 Future<DateTime?> showWheelDatePicker(
-    BuildContext context, DateTime initial) async {
+  BuildContext context,
+  DateTime initial,
+) async {
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   const baseYear = 2020;
   const yearCount = 16;
@@ -20,7 +35,7 @@ Future<DateTime?> showWheelDatePicker(
   final dayCtrl = FixedExtentScrollController(initialItem: selDay);
   final yearCtrl = FixedExtentScrollController(initialItem: selYear);
 
-  return showDialog<DateTime>(
+  return showAppDialog<DateTime>(
     context: context,
     barrierColor: Colors.black26,
     builder: (dCtx) => StatefulBuilder(
@@ -38,22 +53,31 @@ Future<DateTime?> showWheelDatePicker(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       GestureDetector(
                         onTap: () => Navigator.pop(dCtx),
-                        child: const Icon(Icons.close,
-                            size: 20, color: AppColors.textSecondary),
+                        child: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const Expanded(
-                        child: Text('Select Date',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary)),
+                        child: Text(
+                          'Select Date',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 20),
                     ],
@@ -77,7 +101,7 @@ Future<DateTime?> showWheelDatePicker(
                         children: [
                           Expanded(
                             flex: 3,
-                            child: ListWheelScrollView.useDelegate(
+                            child: _PickerWheel(
                               controller: monthCtrl,
                               itemExtent: 44,
                               diameterRatio: 4,
@@ -86,19 +110,26 @@ Future<DateTime?> showWheelDatePicker(
                                   setDState(() => selMonth = i),
                               childDelegate: ListWheelChildLoopingListDelegate(
                                 children: months
-                                    .map((m) => Center(
-                                          child: Text(m,
-                                              style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: AppColors.textPrimary)),
-                                        ))
+                                    .map(
+                                      (m) => Center(
+                                        child: Text(
+                                          m,
+                                          style: const TextStyle(
+                                            fontFamily:
+                                                AppTypography.bodyFamily,
+                                            fontSize: AppTypography.bodySize,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    )
                                     .toList(),
                               ),
                             ),
                           ),
                           Expanded(
                             flex: 2,
-                            child: ListWheelScrollView.useDelegate(
+                            child: _PickerWheel(
                               controller: dayCtrl,
                               itemExtent: 44,
                               diameterRatio: 4,
@@ -107,19 +138,24 @@ Future<DateTime?> showWheelDatePicker(
                                   setDState(() => selDay = i),
                               childDelegate: ListWheelChildLoopingListDelegate(
                                 children: List.generate(
-                                    31,
-                                    (i) => Center(
-                                          child: Text('${i + 1}',
-                                              style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: AppColors.textPrimary)),
-                                        )),
+                                  31,
+                                  (i) => Center(
+                                    child: Text(
+                                      '${i + 1}',
+                                      style: const TextStyle(
+                                        fontFamily: AppTypography.bodyFamily,
+                                        fontSize: AppTypography.bodySize,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                           Expanded(
                             flex: 2,
-                            child: ListWheelScrollView.useDelegate(
+                            child: _PickerWheel(
                               controller: yearCtrl,
                               itemExtent: 44,
                               diameterRatio: 4,
@@ -128,13 +164,18 @@ Future<DateTime?> showWheelDatePicker(
                                   setDState(() => selYear = i),
                               childDelegate: ListWheelChildListDelegate(
                                 children: List.generate(
-                                    yearCount,
-                                    (i) => Center(
-                                          child: Text('${baseYear + i}',
-                                              style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: AppColors.textPrimary)),
-                                        )),
+                                  yearCount,
+                                  (i) => Center(
+                                    child: Text(
+                                      '${baseYear + i}',
+                                      style: const TextStyle(
+                                        fontFamily: AppTypography.bodyFamily,
+                                        fontSize: AppTypography.bodySize,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -152,11 +193,15 @@ Future<DateTime?> showWheelDatePicker(
                     final day = ((selDay % 31) + 1).clamp(1, maxDay);
                     Navigator.pop(dCtx, DateTime(year, month, day));
                   },
-                  child: const Text('Apply',
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Apply',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.primary,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -170,7 +215,11 @@ Future<DateTime?> showWheelDatePicker(
 /// Shows the same scroll-wheel time picker used in the project timeline.
 /// Returns `{'hour': int, 'minute': int, 'amPm': String}` or null if dismissed.
 Future<Map<String, dynamic>?> showWheelTimePicker(
-    BuildContext context, int hour, int minute, String amPm) async {
+  BuildContext context,
+  int hour,
+  int minute,
+  String amPm,
+) async {
   int selHour = hour.clamp(1, 12);
   int selMinute = minute.clamp(0, 59);
   String selAmPm = amPm;
@@ -178,7 +227,7 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
   final hourCtrl = FixedExtentScrollController(initialItem: selHour - 1);
   final minuteCtrl = FixedExtentScrollController(initialItem: selMinute);
 
-  return showDialog<Map<String, dynamic>>(
+  return showAppDialog<Map<String, dynamic>>(
     context: context,
     barrierColor: Colors.black26,
     builder: (dCtx) => StatefulBuilder(
@@ -196,22 +245,31 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       GestureDetector(
                         onTap: () => Navigator.pop(dCtx),
-                        child: const Icon(Icons.close,
-                            size: 20, color: AppColors.textSecondary),
+                        child: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const Expanded(
-                        child: Text('Select Time',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary)),
+                        child: Text(
+                          'Select Time',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 20),
                     ],
@@ -228,8 +286,7 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
                           children: [
                             Container(
                               height: 44,
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 8),
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryTint,
                                 borderRadius: BorderRadius.circular(10),
@@ -238,33 +295,36 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
                             Row(
                               children: [
                                 Expanded(
-                                  child: ListWheelScrollView.useDelegate(
+                                  child: _PickerWheel(
                                     controller: hourCtrl,
                                     itemExtent: 44,
                                     diameterRatio: 4,
                                     physics: const FixedExtentScrollPhysics(),
-                                    onSelectedItemChanged: (i) => setDState(
-                                        () => selHour = (i % 12) + 1),
+                                    onSelectedItemChanged: (i) =>
+                                        setDState(() => selHour = (i % 12) + 1),
                                     childDelegate:
                                         ListWheelChildLoopingListDelegate(
-                                      children: List.generate(
-                                          12,
-                                          (i) => Center(
-                                                child: Text(
-                                                  (i + 1)
-                                                      .toString()
-                                                      .padLeft(2, '0'),
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      color: AppColors
-                                                          .textPrimary),
+                                          children: List.generate(
+                                            12,
+                                            (i) => Center(
+                                              child: Text(
+                                                (i + 1).toString().padLeft(
+                                                  2,
+                                                  '0',
                                                 ),
-                                              )),
-                                    ),
+                                                style: const TextStyle(
+                                                  fontSize:
+                                                      AppTypography.bodySize,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                   ),
                                 ),
                                 Expanded(
-                                  child: ListWheelScrollView.useDelegate(
+                                  child: _PickerWheel(
                                     controller: minuteCtrl,
                                     itemExtent: 44,
                                     diameterRatio: 4,
@@ -273,18 +333,20 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
                                         setDState(() => selMinute = i % 60),
                                     childDelegate:
                                         ListWheelChildLoopingListDelegate(
-                                      children: List.generate(
-                                          60,
-                                          (i) => Center(
-                                                child: Text(
-                                                  i.toString().padLeft(2, '0'),
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      color: AppColors
-                                                          .textPrimary),
+                                          children: List.generate(
+                                            60,
+                                            (i) => Center(
+                                              child: Text(
+                                                i.toString().padLeft(2, '0'),
+                                                style: const TextStyle(
+                                                  fontSize:
+                                                      AppTypography.bodySize,
+                                                  color: AppColors.textPrimary,
                                                 ),
-                                              )),
-                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                   ),
                                 ),
                               ],
@@ -309,11 +371,15 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
                     'minute': selMinute,
                     'amPm': selAmPm,
                   }),
-                  child: const Text('Apply',
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Apply',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.primary,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -325,7 +391,11 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
 }
 
 class WheelAmPmToggle extends StatelessWidget {
-  const WheelAmPmToggle({super.key, required this.value, required this.onChanged});
+  const WheelAmPmToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
 
   final String value;
   final ValueChanged<String> onChanged;
@@ -371,8 +441,9 @@ class WheelAmPmToggle extends StatelessWidget {
                     child: Text(
                       label,
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                         color: selected
                             ? AppColors.white
                             : AppColors.textSecondary,
@@ -387,4 +458,60 @@ class WheelAmPmToggle extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Supports direct row selection and desktop dragging as well as touch scrolling.
+class _PickerWheel extends StatelessWidget {
+  const _PickerWheel({
+    required this.controller,
+    required this.itemExtent,
+    required this.diameterRatio,
+    required this.physics,
+    required this.onSelectedItemChanged,
+    required this.childDelegate,
+  });
+
+  final FixedExtentScrollController controller;
+  final double itemExtent;
+  final double diameterRatio;
+  final ScrollPhysics physics;
+  final ValueChanged<int> onSelectedItemChanged;
+  final ListWheelChildDelegate childDelegate;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        scrollbars: false,
+        dragDevices: {
+          ...ScrollConfiguration.of(context).dragDevices,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+        },
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) {
+          if (!controller.hasClients) return;
+          final delta =
+              ((details.localPosition.dy - constraints.maxHeight / 2) /
+                      itemExtent)
+                  .round();
+          controller.animateToItem(
+            controller.selectedItem + delta,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+          );
+        },
+        child: ListWheelScrollView.useDelegate(
+          controller: controller,
+          itemExtent: itemExtent,
+          diameterRatio: diameterRatio,
+          physics: physics,
+          onSelectedItemChanged: onSelectedItemChanged,
+          childDelegate: childDelegate,
+        ),
+      ),
+    ),
+  );
 }

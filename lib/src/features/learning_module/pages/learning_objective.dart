@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -24,7 +26,8 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
   static const _textSecondary = Color(0xFF555555);
   static const _border = Color(0xFFCFCFCF);
   static const _error = Color(0xFFFD1212);
-  static const _screenWidth = 427.0;
+  double get _screenWidth =>
+      JournalPageLayout.widthFor(context, mobileWidth: 427);
   static const _maxObjectives = 4;
 
   final List<_ObjectiveRowData> _rows = [];
@@ -302,14 +305,14 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(maxWidth: _screenWidth),
             child: SingleChildScrollView(
               child: SizedBox(
                 width: _screenWidth,
                 height: 812,
                 child: Stack(
                   children: [
-                    const Positioned(
+                    Positioned(
                       left: 0,
                       right: 0,
                       top: 22,
@@ -317,10 +320,11 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                         'Learning Objectives',
                         textAlign: TextAlign.center,
                         style: TextStyle(
+                          fontFamily: AppTypography.headingFamily,
                           color: _textPrimary,
-                          fontSize: 18,
+                          fontSize: AppTypography.sectionTitleSize,
                           height: 1,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -335,7 +339,7 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                         child: const _BackChevron(),
                       ),
                     ),
-                    const Positioned(
+                    Positioned(
                       left: 0,
                       right: 0,
                       top: 63,
@@ -351,31 +355,27 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                       child: Text(
                         'Learning Objectives (${_rows.length}/$_maxObjectives)',
                         style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
                           color: _textPrimary,
-                          fontSize: 15,
+                          fontSize: AppTypography.bodySize,
                           height: 1.1,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    const Positioned(
+                    Positioned(
                       left: 31,
                       top: 114,
-                      width: 351,
+                      width: _screenWidth - 76,
                       child: Text(
                         'Add specific description of why this answer is correct.',
-                        style: TextStyle(
-                          color: _textSecondary,
-                          fontSize: 15,
-                          height: 1.05,
-                          fontWeight: FontWeight.w400,
-                        ),
+                        style: AppTypography.helper,
                       ),
                     ),
                     Positioned(
                       left: 29,
                       top: 156,
-                      width: 354,
+                      width: _screenWidth - 73,
                       child: _ObjectiveList(
                         rows: _rows,
                         objectiveOptions: _learningObjectiveOptions,
@@ -412,9 +412,10 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                         child: const Text(
                           '+ Add Objective',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.buttonSize,
                             height: 1,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -422,7 +423,7 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                     Positioned(
                       left: 40,
                       top: 513,
-                      width: 345,
+                      width: _screenWidth - 82,
                       height: 48,
                       child: ElevatedButton(
                         onPressed: _save,
@@ -437,10 +438,11 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                         child: const Text(
                           'Save',
                           style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: AppTypography.buttonSize,
                             height: 1,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -555,7 +557,7 @@ class _ObjectiveRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 123,
+      height: 224,
       child: Stack(
         children: [
           Positioned(
@@ -572,10 +574,11 @@ class _ObjectiveRow extends StatelessWidget {
               child: Text(
                 '${index + 1}',
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: AppTypography.helperSize,
                   height: 1,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -616,14 +619,16 @@ class _ObjectiveRow extends StatelessWidget {
             left: 52,
             top: 47,
             width: 254,
-            height: 60,
+            height: 152,
             child: TextField(
               controller: row.descriptionController,
               onChanged: (_) => onChanged(),
-              maxLines: 3,
+              minLines: 5,
+              maxLines: null,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _LearningObjectiveScreenState._textPrimary,
-                fontSize: 14,
+                fontSize: AppTypography.bodySize,
                 height: 1.2,
                 fontWeight: FontWeight.w400,
               ),
@@ -644,8 +649,12 @@ class _ObjectiveRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(9),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: _LearningObjectiveScreenState._green,
+                  borderSide: BorderSide(
+                    color:
+                        showValidation &&
+                            row.descriptionController.text.trim().isEmpty
+                        ? _LearningObjectiveScreenState._error
+                        : _LearningObjectiveScreenState._border,
                   ),
                   borderRadius: BorderRadius.circular(9),
                 ),
@@ -654,7 +663,7 @@ class _ObjectiveRow extends StatelessWidget {
           ),
           Positioned(
             right: 13,
-            top: 63,
+            top: 111,
             width: 20,
             height: 22,
             child: GestureDetector(
@@ -723,9 +732,10 @@ class _AnchoredChipMenuState extends State<_AnchoredChipMenu> {
               child: Text(
                 option,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _LearningObjectiveScreenState._textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontSize: AppTypography.helperSize,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -762,12 +772,13 @@ class _AnchoredChipMenuState extends State<_AnchoredChipMenu> {
                 widget.value ?? widget.hint,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: widget.value == null
                       ? _LearningObjectiveScreenState._textSecondary
                       : _LearningObjectiveScreenState._textPrimary,
-                  fontSize: 10,
+                  fontSize: AppTypography.captionSize,
                   height: 1,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),

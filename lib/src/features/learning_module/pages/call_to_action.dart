@@ -1,3 +1,6 @@
+import 'assessment_block.dart';
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,8 +9,6 @@ import 'package:juniper_journal/src/features/home_page/home_page.dart';
 import 'package:juniper_journal/src/features/learning_module/learning_module.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
-
-
 
 class CallToAction extends StatefulWidget {
   final Map<String, dynamic>? existingModule;
@@ -59,8 +60,9 @@ class _CallToActionScreenState extends State<CallToAction> {
       return DateFormat('EEEE, MMMM d').format(DateTime.now());
     }
     try {
-      return DateFormat('EEEE, MMMM d')
-          .format(DateTime.parse(createdAt).toLocal());
+      return DateFormat(
+        'EEEE, MMMM d',
+      ).format(DateTime.parse(createdAt).toLocal());
     } catch (_) {
       return 'Date';
     }
@@ -99,8 +101,9 @@ class _CallToActionScreenState extends State<CallToAction> {
                           Text(
                             moduleName,
                             style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
+                              fontFamily: AppTypography.headingFamily,
+                              fontSize: AppTypography.sectionTitleSize,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.darkText,
                             ),
                           ),
@@ -108,7 +111,8 @@ class _CallToActionScreenState extends State<CallToAction> {
                           Text(
                             formattedDate,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
                               color: AppColors.lightGrey,
                             ),
                           ),
@@ -123,21 +127,20 @@ class _CallToActionScreenState extends State<CallToAction> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 8,
-                  children: [
-                    _buildNavigationDropdown(widgetModule),
-                  ],
+                  children: [_buildNavigationDropdown(widgetModule)],
                 ),
                 const SizedBox(height: 16),
 
                 // Single text area for call to action
                 TextFormField(
+                  minLines: 5,
                   controller: _controller,
-                  maxLines: 6,
+                  maxLines: null,
                   decoration: InputDecoration(
-                    hintText: 'End the module with a clear next step that guides the user on what to do or explore...',
+                    hintText: '',
                     hintStyle: const TextStyle(color: AppColors.hintText),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 9,
                       vertical: 14,
                     ),
                     enabledBorder: OutlineInputBorder(
@@ -150,7 +153,7 @@ class _CallToActionScreenState extends State<CallToAction> {
                     focusedBorder: OutlineInputBorder(
                       borderSide: const BorderSide(
                         color: AppColors.primary,
-                        width: 1.5,
+                        width: 1,
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -192,42 +195,52 @@ class _CallToActionScreenState extends State<CallToAction> {
                       ),
                     ),
                     onPressed: () async {
-  if (_formKey.currentState!.validate()) {
-    try {
-      final repo = LearningModuleRepo();
-      final widgetModule = widget.existingModule ?? {};
-      final moduleId = widgetModule['id']?.toString();
+                      if (_formKey.currentState!.validate()) {
+                        try {
+                          final repo = LearningModuleRepo();
+                          final widgetModule = widget.existingModule ?? {};
+                          final moduleId = widgetModule['id']?.toString();
 
-      if (moduleId == null || moduleId == 'null') {
-        showTopSnackBar(context, 'Module ID missing – cannot save call to action', isError: true);
-        return;
-      }
+                          if (moduleId == null || moduleId == 'null') {
+                            showTopSnackBar(
+                              context,
+                              'Module ID missing – cannot save call to action',
+                              isError: true,
+                            );
+                            return;
+                          }
 
-      final ok = await repo.updateCallToAction(
-        id: moduleId,
-        callToAction: _controller.text.trim(),
-      );
+                          final ok = await repo.updateCallToAction(
+                            id: moduleId,
+                            callToAction: _controller.text.trim(),
+                          );
 
-      if (ok) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const HomeShellScreen(
-            ),
-          ),
-          (route) => false,
-        );
-      } else {
-        showTopSnackBar(context, 'Failed to save call to action', isError: true);
-      }
-    } catch (e, st) {
-      debugPrint('Error saving call to action: $e');
-      debugPrint('Stack trace: $st');
+                          if (ok) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const HomeShellScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          } else {
+                            showTopSnackBar(
+                              context,
+                              'Failed to save call to action',
+                              isError: true,
+                            );
+                          }
+                        } catch (e, st) {
+                          debugPrint('Error saving call to action: $e');
+                          debugPrint('Stack trace: $st');
 
-      showTopSnackBar(context, 'Error saving call to action: $e', isError: true);
-    }
-  }
-},
-
+                          showTopSnackBar(
+                            context,
+                            'Error saving call to action: $e',
+                            isError: true,
+                          );
+                        }
+                      }
+                    },
 
                     child: const Text('Complete'),
                   ),
@@ -240,144 +253,123 @@ class _CallToActionScreenState extends State<CallToAction> {
     );
   }
 
- Widget _buildNavigationDropdown(Map<String, dynamic> module) {
-  return Container(
-    height: 28,
-    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-    decoration: BoxDecoration(
-      color: AppColors.accent,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: _selectedNavigation,
-        icon: const Icon(
-          Icons.keyboard_arrow_down,
-          size: 20,
-          color: AppColors.primary,
-        ),
-        style: const TextStyle(
-          color: AppColors.primary,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
-        dropdownColor: AppColors.accent.withValues(alpha: 0.5),
-        items: const [
-          DropdownMenuItem(
-            value: 'TITLE',
-            child: Text('TITLE'),
-          ),
-          DropdownMenuItem(
-            value: 'ANCHORING PHENOMENON',
-            child: Text('ANCHORING PHENOMENON'),
-          ),
-          DropdownMenuItem(
-            value: 'OBJECTIVE',
-            child: Text('OBJECTIVE'),
-          ),
-          DropdownMenuItem(
-            value: 'LEARNING',
-            child: Text('LEARNING'),
-          ),
-          DropdownMenuItem(
-            value: 'CONCEPT EXPLORATION',
-            child: Text('CONCEPT EXPLORATION'),
-          ),
-          DropdownMenuItem(
-            value: 'ACTIVITY',
-            child: Text('ACTIVITY'),
-          ),
-          DropdownMenuItem(
-            value: 'CALL TO ACTION',   // 👈 exactly once
-            child: Text('CALL TO ACTION'),
-          ),
-          DropdownMenuItem(
-            value: 'ASSESSMENT',
-            child: Text('ASSESSMENT'),
-          ),
-          DropdownMenuItem(
-            value: 'SUMMARY',
-            child: Text('SUMMARY'),
-          ),
-        ],
-        onChanged: (value) {
-          if (value == null) return;
-
-          setState(() {
-            _selectedNavigation = value;
-          });
-
-          if (value == 'TITLE') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => CreateTemplateScreen(
-                  existingModule: module,
-                ),
-              ),
-            );
-          } else if (value == 'ANCHORING PHENOMENON') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => AnchoringPhenomenon(
-                  existingModule: module,
-                ),
-              ),
-            );
-          } else if (value == 'OBJECTIVE') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => LearningObjectiveScreen(
-                  module: module,
-                ),
-              ),
-            );
-          } else if (value == 'LEARNING') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ThreeDLearning(
-                  module: module,
-                ),
-              ),
-            );
-          } else if (value == 'CONCEPT EXPLORATION') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ConceptExplorationScreen(
-                  module: module,
-                ),
-              ),
-            );
-          } else if (value == 'ACTIVITY') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ActivityScreen(
-                  module: module,
-                ),
-              ),
-            );
-          } else if (value == 'ASSESSMENT') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => Assessment(
-                  module: module,
-                ),
-              ),
-            );
-          } else if (value == 'SUMMARY') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => Summary(
-                  module: module,
-                ),
-              ),
-            );
-          }
-        },
+  Widget _buildNavigationDropdown(Map<String, dynamic> module) {
+    return Container(
+      height: MediaQuery.sizeOf(context).width >= 1000
+          ? AppMetrics.controlHeight
+          : 28,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        borderRadius: BorderRadius.circular(20),
       ),
-    ),
-  );
-}
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedNavigation,
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            size: 20,
+            color: AppColors.primary,
+          ),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            color: AppColors.primary,
+            fontSize: AppTypography.helperSize,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.5,
+          ),
+          dropdownColor: AppColors.accent.withValues(alpha: 0.5),
+          items: const [
+            DropdownMenuItem(value: 'TITLE', child: Text('TITLE')),
+            DropdownMenuItem(
+              value: 'ANCHORING PHENOMENON',
+              child: Text('ANCHORING PHENOMENON'),
+            ),
+            DropdownMenuItem(value: 'OBJECTIVE', child: Text('OBJECTIVE')),
+            DropdownMenuItem(value: 'LEARNING', child: Text('LEARNING')),
+            DropdownMenuItem(
+              value: 'CONCEPT EXPLORATION',
+              child: Text('CONCEPT EXPLORATION'),
+            ),
+            DropdownMenuItem(value: 'ACTIVITY', child: Text('ACTIVITY')),
+            DropdownMenuItem(
+              value: 'CALL TO ACTION', // 👈 exactly once
+              child: Text('CALL TO ACTION'),
+            ),
+            if (assessmentFeaturesEnabled)
+              DropdownMenuItem(value: 'ASSESSMENT', child: Text('ASSESSMENT')),
+            DropdownMenuItem(value: 'SUMMARY', child: Text('SUMMARY')),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
 
+            setState(() {
+              _selectedNavigation = value;
+            });
 
+            if (value == 'TITLE') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      CreateTemplateScreen(existingModule: module),
+                ),
+              );
+            } else if (value == 'ANCHORING PHENOMENON') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      AnchoringPhenomenon(existingModule: module),
+                ),
+              );
+            } else if (value == 'OBJECTIVE') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LearningObjectiveScreen(module: module),
+                ),
+              );
+            } else if (value == 'LEARNING') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ThreeDLearning(module: module),
+                ),
+              );
+            } else if (value == 'CONCEPT EXPLORATION') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ConceptExplorationScreen(module: module),
+                ),
+              );
+            } else if (value == 'ACTIVITY') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ActivityScreen(module: module),
+                ),
+              );
+            } else if (value == 'ASSESSMENT') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Assessment(module: module),
+                ),
+              );
+            } else if (value == 'SUMMARY') {
+              pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Summary(module: module),
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
 }

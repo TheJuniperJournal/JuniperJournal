@@ -38,7 +38,7 @@ class UsersRepo {
     try {
       final rows = await _client
           .from(profilesTable)
-          .select('id, display_name, username, avatar_url, is_public_profile')
+          .select('*')
           .eq('id', currentUserId)
           .limit(1);
 
@@ -102,7 +102,11 @@ class UsersRepo {
     try {
       await _client
           .from(profilesTable)
-          .upsert(_profileSeedDataFromUser(user), onConflict: 'id', ignoreDuplicates: true);
+          .upsert(
+            _profileSeedDataFromUser(user),
+            onConflict: 'id',
+            ignoreDuplicates: true,
+          );
     } catch (e, st) {
       debugPrint('ensureProfileExists error: $e\n$st');
     }
@@ -110,6 +114,7 @@ class UsersRepo {
 
   Future<bool> updateCurrentUserProfile({
     String? avatarUrl,
+    String? bio,
     String? displayName,
     bool? isPublicProfile,
   }) async {
@@ -122,6 +127,10 @@ class UsersRepo {
     }
 
     final data = <String, dynamic>{};
+    if (bio != null) {
+      if (bio.trim().length > 500) return false;
+      data['bio'] = bio.trim();
+    }
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
     if (displayName != null) data['display_name'] = displayName.trim();
     if (isPublicProfile != null) data['is_public_profile'] = isPublicProfile;
@@ -129,10 +138,7 @@ class UsersRepo {
     if (data.isEmpty) return true;
 
     try {
-      await _client
-          .from(profilesTable)
-          .update(data)
-          .eq('id', currentUserId);
+      await _client.from(profilesTable).update(data).eq('id', currentUserId);
       return true;
     } catch (e, st) {
       debugPrint('updateCurrentUserProfile error: $e\n$st');
@@ -145,9 +151,11 @@ class UsersRepo {
     try {
       final rows = await _client
           .from(profilesTable)
-          .select('id, display_name, username, avatar_url')
+          .select('*')
           .inFilter('id', ids);
-      return List<Map<String, dynamic>>.from(rows).map(UserProfile.fromMap).toList();
+      return List<Map<String, dynamic>>.from(
+        rows,
+      ).map(UserProfile.fromMap).toList();
     } catch (e, st) {
       debugPrint('getProfilesByIds error: $e\n$st');
       return [];
@@ -162,7 +170,7 @@ class UsersRepo {
       final currentUserId = _client.auth.currentUser?.id;
       var request = _client
           .from(profilesTable)
-          .select('id, display_name, username, avatar_url, is_public_profile')
+          .select('*')
           .eq('is_public_profile', true);
 
       if (currentUserId != null) {
@@ -182,6 +190,37 @@ class UsersRepo {
       ).map(UserProfile.fromMap).toList();
     } catch (e, st) {
       debugPrint('searchPublicUsers error: $e\n$st');
+      return null;
+    }
+  }
+
+  Future<List<UserProfile>?> searchProjectInvitees({
+    required String query,
+  }) async {
+    final queryErr = InputValidator.searchQuery(query);
+    if (queryErr != null) return null;
+
+    try {
+      final currentUserId = _client.auth.currentUser?.id;
+      var request = _client.from(profilesTable).select('*');
+
+      if (currentUserId != null) {
+        request = request.neq('id', currentUserId);
+      }
+
+      final trimmed = query.trim();
+      if (trimmed.isNotEmpty) {
+        request = request.or(
+          'display_name.ilike.%$trimmed%,username.ilike.%$trimmed%',
+        );
+      }
+
+      final rows = await request.limit(30);
+      return List<Map<String, dynamic>>.from(
+        rows,
+      ).map(UserProfile.fromMap).toList();
+    } catch (e, st) {
+      debugPrint('searchProjectInvitees error: $e\n$st');
       return null;
     }
   }

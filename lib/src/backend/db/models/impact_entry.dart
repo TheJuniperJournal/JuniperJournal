@@ -1,5 +1,3 @@
-import 'package:juniper_journal/src/features/project/utils/eco_points_calculator.dart';
-
 /// Human-readable measurement + unit, e.g. "0 units", "1 unit", "3 people".
 String formatMeasurement(double value, String? unit) {
   final isWhole = value == value.roundToDouble();
@@ -68,14 +66,7 @@ class ImpactEntry {
         ? (map['measurement'] as num).toDouble()
         : null,
     measurementUnit: map['measurement_unit']?.toString(),
-    ecoPoints: calculateEcoPoints(
-      impactScale: map['impact_scale']?.toString(),
-      confidenceScore: map['confidence_score']?.toString(),
-      measurement: map['measurement'] != null
-          ? (map['measurement'] as num).toDouble()
-          : null,
-      measurementUnit: map['measurement_unit']?.toString(),
-    ),
+    ecoPoints: (map['eco_points'] as num? ?? 0).toDouble(),
     linkedJournalEntryId: map['linked_journal_entry_id']?.toString(),
     createdAt: DateTime.tryParse(map['created_at']?.toString() ?? ''),
     updatedAt: DateTime.tryParse(map['updated_at']?.toString() ?? ''),

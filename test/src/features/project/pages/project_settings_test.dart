@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:juniper_journal/src/backend/db/supabase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/backend/db/models/project.dart';
@@ -28,12 +30,23 @@ class _FakeProjectsRepo extends ProjectsRepo {
     String? difficulty,
     String? projectScale,
     String? visibility,
+    String? projectType,
+    List<Map<String, dynamic>>? communityLinks,
+    List<Map<String, dynamic>>? learningObjectives,
+    bool? shareFriends,
+    List<String>? sharedCommunityIds,
   }) async {
     return true;
   }
 }
 
 void main() {
+  setUpAll(() {
+    SupabaseDatabase.instance.client = SupabaseClient(
+      'https://example.supabase.co',
+      'test-key',
+    );
+  });
   testWidgets('ProjectSettingsScreen loads and shows existing metadata', (
     WidgetTester tester,
   ) async {

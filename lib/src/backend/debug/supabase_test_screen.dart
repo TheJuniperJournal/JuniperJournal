@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,7 +20,7 @@ class SupabaseTestScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Supabase Connection Test')),
       body: Center(
         child: FutureBuilder(
-          future: supabase.from('test').select(), 
+          future: supabase.from('test').select(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const CircularProgressIndicator();
@@ -30,7 +31,10 @@ class SupabaseTestScreen extends StatelessWidget {
               return Text(
                 'Connected!\nRows fetched: ${data.length}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18),
+                style: const TextStyle(
+                  fontFamily: AppTypography.headingFamily,
+                  fontSize: AppTypography.sectionTitleSize,
+                ),
               );
             }
           },

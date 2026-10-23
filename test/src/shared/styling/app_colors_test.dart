@@ -6,7 +6,7 @@ void main() {
   test('AppColors exposes expected core palette values', () {
     expect(AppColors.primary, const Color(0xFF5DB075));
     expect(AppColors.background, Colors.white);
-    expect(AppColors.error, Colors.red);
+    expect(AppColors.error, const Color(0xFFFD1212));
     expect(AppColors.tagText, const Color(0xFF5DB075));
   });
 }

@@ -1,3 +1,9 @@
+import '../../../shared/widgets/evidence_description_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -104,7 +110,14 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
   final _storage = StorageService();
   final Set<int> _uploadingIndexes = {};
   String? _uploadError;
-  bool _showValidation = false;
+  bool _showContentError = false;
+  bool get _hasImageContent =>
+      _images.isNotEmpty &&
+      _images.every(
+        (image) =>
+            image.storagePath.trim().isNotEmpty ||
+            image.publicUrl.trim().isNotEmpty,
+      );
 
   bool get _isEditing => widget.initialData != null;
 
@@ -166,7 +179,7 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
   }
 
   void _showUploadSheet(int index) {
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
@@ -253,11 +266,10 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
   }
 
   void _saveBlock() {
-    if (widget.showAssessment && !_assessment.isValid) {
-      setState(() => _showValidation = true);
+    if (!_hasImageContent || _uploadingIndexes.isNotEmpty) {
+      setState(() => _showContentError = true);
       return;
     }
-
     Navigator.of(context).pop(
       ImageBlockData(
         title: _titleController.text.trim(),
@@ -282,7 +294,12 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -293,16 +310,16 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _FieldLabel(label: 'Content'),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _FieldLabel(label: 'Title', optional: true),
                         const SizedBox(height: 11),
                         _TextFieldBox(
                           controller: _titleController,
                           maxLength: 100,
-                          height: 35,
+                          height: 64,
                           singleLine: true,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _ImagesSection(
                           images: _images,
                           controllers: _imageControllers,
@@ -311,48 +328,41 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
                           onRemove: _removeImage,
                           onUpload: _showUploadSheet,
                         ),
+                        if (_showContentError &&
+                            (!_hasImageContent ||
+                                _uploadingIndexes.isNotEmpty)) ...[
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Upload at least one image and finish any pending uploads.',
+                            style: AppTypography.requirement,
+                          ),
+                        ],
                         if (_uploadError != null) ...[
                           const SizedBox(height: 8),
                           Text(
                             _uploadError!,
                             style: const TextStyle(
                               color: Color(0xFFD12E2E),
-                              fontSize: 12,
+                              fontSize: AppTypography.helperSize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
-                        const SizedBox(height: 14),
-                        _FieldLabel(label: 'Caption', optional: true),
+                        const SizedBox(height: AppMetrics.labelGap),
+                        _FieldLabel(
+                          label: 'Image collection description',
+                          optional: true,
+                        ),
                         const SizedBox(height: 11),
                         _TextFieldBox(
                           controller: _captionController,
                           maxLength: 300,
                           height: 56,
                           maxLines: 2,
-                          hintText: 'Write a caption...',
+                          hintText: '',
                         ),
-                        if (widget.showInquiryLens) ...[
-                          const SizedBox(height: 20),
-                          InquiryLensSelector(
-                            data: _inquiryLensData,
-                            onChanged: (value) =>
-                                setState(() => _inquiryLensData = value),
-                          ),
-                        ],
-                        if (widget.showAssessment) ...[
-                          const SizedBox(height: 20),
-                          _FieldLabel(label: 'Assessment', optional: true),
-                          const SizedBox(height: 11),
-                          AssessmentBlockSection(
-                            value: _assessment,
-                            showValidation: _showValidation,
-                            onChanged: (value) {
-                              setState(() => _assessment = value);
-                            },
-                          ),
-                        ],
-                        const SizedBox(height: 26),
+
+                        const SizedBox(height: AppMetrics.fieldGap),
                         Center(
                           child: SizedBox(
                             width: 130,
@@ -370,8 +380,9 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
                               child: Text(
                                 _isEditing ? 'Save' : 'Add Block',
                                 style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -391,52 +402,11 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
-
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 27,
-            child: Text(
-              'Image Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _ImageBlockEditorScreenState._text,
-                fontSize: 17,
-                height: 1,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 25,
-            top: 23,
-            width: 20,
-            height: 20,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const _BackChevron(),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(height: 1, thickness: 1, color: Color(0xFFD1D1D1)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Image Block', onBack: onBack);
 }
 
 class _FieldLabel extends StatelessWidget {
@@ -451,9 +421,10 @@ class _FieldLabel extends StatelessWidget {
       TextSpan(
         text: label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _ImageBlockEditorScreenState._text,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.bodySize,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
@@ -461,7 +432,7 @@ class _FieldLabel extends StatelessWidget {
               text: ' (optional)',
               style: TextStyle(
                 color: _ImageBlockEditorScreenState._muted,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
         ],
@@ -489,6 +460,7 @@ class _TextFieldBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!singleLine) return EvidenceDescriptionField(controller: controller);
     return SizedBox(
       height: height + 14,
       child: Stack(
@@ -496,18 +468,25 @@ class _TextFieldBox extends StatelessWidget {
           SizedBox(
             height: height,
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: maxLength,
               maxLines: singleLine ? 1 : maxLines,
               decoration: InputDecoration(
                 counterText: '',
-                hintText: hintText,
+                hintText: '',
                 hintStyle: const TextStyle(
                   color: Color(0xFFBEBEBE),
-                  fontSize: 13,
+                  fontSize: AppTypography.helperSize,
                 ),
                 contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
+                  horizontal: 9,
                   vertical: singleLine ? 7 : 10,
                 ),
                 enabledBorder: OutlineInputBorder(
@@ -523,20 +502,13 @@ class _TextFieldBox extends StatelessWidget {
                   ),
                 ),
               ),
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-          Positioned(
-            right: 4,
-            bottom: 0,
-            child: Text(
-              '${controller.text.length}/$maxLength',
               style: const TextStyle(
-                color: _ImageBlockEditorScreenState._text,
-                fontSize: 8,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
               ),
             ),
           ),
+          Positioned(right: 4, bottom: 0, child: const SizedBox.shrink()),
         ],
       ),
     );
@@ -569,9 +541,10 @@ class _ImagesSection extends StatelessWidget {
             Text(
               'Images (${images.length} of 10)',
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _ImageBlockEditorScreenState._text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
@@ -592,7 +565,11 @@ class _ImagesSection extends StatelessWidget {
                 ),
                 child: const Text(
                   '+  Add Image',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -650,8 +627,8 @@ class _ImageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 82,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           const SizedBox(width: 7),
@@ -714,11 +691,11 @@ class _ImageRow extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         const Text(
-                          'Click to upload',
+                          'Upload',
                           style: TextStyle(
                             color: Color(0xFFC8C8C8),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -734,17 +711,22 @@ class _ImageRow extends StatelessWidget {
                 Text(
                   'Image ${index + 1}',
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: _ImageBlockEditorScreenState._text,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 9),
-                SizedBox(
-                  height: 35,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 100),
                   child: TextField(
                     controller: controller,
+                    minLines: 3,
+                    maxLines: null,
                     decoration: InputDecoration(
+                      labelText: 'Image ${index + 1} caption',
+                      hintText: 'Explain what this image shows.',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 9,
                         vertical: 7,
@@ -762,7 +744,10 @@ class _ImageRow extends StatelessWidget {
                         ),
                       ),
                     ),
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                    ),
                   ),
                 ),
               ],
@@ -804,9 +789,10 @@ class _NumberBadge extends StatelessWidget {
       child: Text(
         '$number',
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _ImageBlockEditorScreenState._green,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -863,9 +849,10 @@ class _DropdownShell extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _ImageBlockEditorScreenState._text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -921,7 +908,7 @@ class _UploadAction extends StatelessWidget {
               color: isCancel
                   ? const Color(0xFFD12E2E)
                   : _ImageBlockEditorScreenState._text,
-              fontSize: 16,
+              fontSize: AppTypography.bodySize,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -929,38 +916,4 @@ class _UploadAction extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BackChevron extends StatelessWidget {
-  const _BackChevron();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(12, 20),
-      painter: _BackChevronPainter(),
-    );
-  }
-}
-
-class _BackChevronPainter extends CustomPainter {
-  const _BackChevronPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _ImageBlockEditorScreenState._green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path()
-      ..moveTo(size.width * 0.75, 1)
-      ..lineTo(size.width * 0.2, size.height / 2)
-      ..lineTo(size.width * 0.75, size.height - 1);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

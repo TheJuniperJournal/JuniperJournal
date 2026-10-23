@@ -1,3 +1,8 @@
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -26,7 +31,8 @@ class _ConceptExplorationPreviewScreenState
   static const _green = Color(0xFF5DB075);
   static const _text = Color(0xFF1F2024);
   static const _border = Color(0xFFD8D0D0);
-  static const _screenWidth = 393.0;
+  double get _screenWidth =>
+      JournalPageLayout.widthFor(context, mobileWidth: 393);
 
   final _repo = LearningModuleRepo();
   final _picker = ImagePicker();
@@ -129,7 +135,7 @@ class _ConceptExplorationPreviewScreenState
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(maxWidth: _screenWidth),
             child: SizedBox(
               width: _screenWidth,
               child: Column(
@@ -170,7 +176,7 @@ class _ConceptExplorationPreviewScreenState
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
       itemCount: _blocks.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 16),
+      separatorBuilder: (_, _) => SizedBox(height: 16),
       itemBuilder: (context, index) {
         final block = _blocks[index];
         return _PreviewListCard(
@@ -191,15 +197,16 @@ class _ConceptExplorationPreviewScreenState
           child: Text(
             'Block ${index + 1} of ${_blocks.length}',
             style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _text,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _ProgressDots(current: index, total: _blocks.length),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
@@ -281,7 +288,7 @@ class _ConceptExplorationPreviewScreenState
   }
 
   Future<void> _pickPreviewImage(String blockId) async {
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showAppModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.white,
       builder: (context) => SafeArea(
@@ -314,6 +321,7 @@ class _ConceptExplorationPreviewScreenState
   }
 
   Widget? _buildAssessment(_PreviewBlock block) {
+    if (!assessmentFeaturesEnabled) return null;
     final assessment = block.assessment;
     if (assessment.isEmpty || assessment.type == null) return null;
     return _AssessmentPreviewSection(
@@ -652,9 +660,10 @@ class _Header extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _ConceptExplorationPreviewScreenState._text,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -743,9 +752,10 @@ class _PreviewListCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         if (block.subtitle.isNotEmpty) ...[
@@ -755,7 +765,7 @@ class _PreviewListCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: AppTypography.helperSize,
                               color: Color(0x99000000),
                             ),
                           ),
@@ -807,20 +817,8 @@ class _PreviewDetailCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _BlockTypeBadge(block: block),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppMetrics.labelGap),
             _BlockContent(block: block),
-            if (inquiry != null) ...[
-              const SizedBox(height: 18),
-              const Divider(height: 1, color: Color(0xFFD8D0D0)),
-              const SizedBox(height: 16),
-              inquiry!,
-            ],
-            if (assessment != null) ...[
-              const SizedBox(height: 18),
-              const Divider(height: 1, color: Color(0xFFD8D0D0)),
-              const SizedBox(height: 16),
-              assessment!,
-            ],
           ],
         ),
       ),
@@ -864,26 +862,37 @@ class _TextContent extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             block.data['content'].toString(),
-            style: const TextStyle(fontSize: 13, height: 1.25),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              height: 1.25,
+            ),
           ),
         ],
         for (final item in media) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: AppMetrics.labelGap),
           if ((item['public_url']?.toString().isNotEmpty ?? false))
             _RoundedNetworkImage(url: item['public_url'].toString()),
           if ((item['label']?.toString().trim() ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               item['label'].toString(),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ],
         if ((block.data['caption']?.toString().trim() ?? '').isNotEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: AppMetrics.labelGap),
           Text(
             block.data['caption'].toString(),
-            style: const TextStyle(fontSize: 13),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+            ),
           ),
         ],
       ],
@@ -919,9 +928,10 @@ class _ImageContent extends StatelessWidget {
                 child: Text(
                   '${index + 1}',
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -930,8 +940,9 @@ class _ImageContent extends StatelessWidget {
                 child: Text(
                   images[index]['description']?.toString() ?? '',
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -945,10 +956,13 @@ class _ImageContent extends StatelessWidget {
               : const _MediaPlaceholder(),
         ],
         if ((block.data['caption']?.toString().trim() ?? '').isNotEmpty) ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: AppMetrics.labelGap),
           Text(
             block.data['caption'].toString(),
-            style: const TextStyle(fontSize: 13),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+            ),
           ),
         ],
       ],
@@ -974,7 +988,11 @@ class _SketchContent extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             data.caption,
-            style: const TextStyle(fontSize: 13, height: 1.25),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              height: 1.25,
+            ),
           ),
         ],
       ],
@@ -1021,11 +1039,21 @@ class _VideoContent extends StatelessWidget {
               : fileName.isNotEmpty
               ? fileName
               : 'Video unavailable.',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         if (description.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(description, style: const TextStyle(fontSize: 13)),
+          Text(
+            description,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+            ),
+          ),
         ],
       ],
     );
@@ -1066,9 +1094,15 @@ class _GraphContent extends StatelessWidget {
         _Title(data.title.trim().isEmpty ? block.title : data.title),
         if (data.caption.trim().isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(data.caption, style: const TextStyle(fontSize: 13)),
+          Text(
+            data.caption,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+            ),
+          ),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: AppMetrics.labelGap),
         _ChartBox(
           rows: data.rows,
           graphType: data.graphType,
@@ -1099,9 +1133,12 @@ class _LinkContent extends StatelessWidget {
           description.isEmpty
               ? 'Open the link to view the following material.'
               : description,
-          style: const TextStyle(fontSize: 13),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+          ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: AppMetrics.sectionGap),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
@@ -1134,8 +1171,9 @@ class _LinkContent extends StatelessWidget {
                     Text(
                       block.title,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -1145,8 +1183,8 @@ class _LinkContent extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF777777),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1195,15 +1233,16 @@ class _InquiryPreviewSection extends StatelessWidget {
                 Text(
                   inquiry.lens,
                   style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 if (focus.isNotEmpty)
                   Text(
                     focus,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: AppTypography.captionSize,
                       color: Color(0xFF333333),
                     ),
                   ),
@@ -1215,18 +1254,29 @@ class _InquiryPreviewSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             inquiry.studentInstruction,
-            style: const TextStyle(fontSize: 13, height: 1.25),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              height: 1.25,
+            ),
           ),
         ],
         const SizedBox(height: 16),
         Text(
           _responseTitle(inquiry.studentResponse),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 2),
         const Text(
           'Respond below.',
-          style: TextStyle(fontSize: 10, color: Color(0xFF777777)),
+          style: TextStyle(
+            fontSize: AppTypography.captionSize,
+            color: Color(0xFF777777),
+          ),
         ),
         const SizedBox(height: 8),
         response,
@@ -1235,9 +1285,10 @@ class _InquiryPreviewSection extends StatelessWidget {
           child: Text(
             'Save',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _ConceptExplorationPreviewScreenState._green,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontSize: AppTypography.buttonSize,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -1468,7 +1519,7 @@ class _GraphResponse extends StatelessWidget {
           decoration: _inputDecoration(label: 'Y-Axis Label'),
           onChanged: (_) => onChanged(),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppMetrics.labelGap),
         _ChartBox(
           rows: state.graphRows,
           graphType: state.type,
@@ -1622,7 +1673,7 @@ class _AssessmentPreviewSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _AssessmentHeader(type: type),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppMetrics.labelGap),
         switch (type) {
           AssessmentType.multipleChoice => _MultipleChoicePreview(
             data: assessment.data,
@@ -1669,17 +1720,18 @@ class _AssessmentPreviewSection extends StatelessWidget {
               child: Text(
                 result!.label,
                 style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: result!.correct
                       ? _ConceptExplorationPreviewScreenState._green
                       : Colors.red,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  fontSize: AppTypography.helperSize,
                 ),
               ),
             ),
           ),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: AppMetrics.labelGap),
         Center(
           child: SizedBox(
             width: 180,
@@ -1744,7 +1796,10 @@ class _MultipleChoicePreview extends StatelessWidget {
       children: [
         Text(
           data['question']?.toString() ?? '',
-          style: const TextStyle(fontSize: 13),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+          ),
         ),
         const SizedBox(height: 12),
         for (var index = 0; index < options.length; index++)
@@ -1784,8 +1839,9 @@ class _MultipleChoicePreview extends StatelessWidget {
                     child: Text(
                       options[index],
                       style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -1829,7 +1885,10 @@ class _TrueFalsePreview extends StatelessWidget {
                 Expanded(
                   child: Text(
                     questions[index]['text']?.toString() ?? '',
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                    ),
                   ),
                 ),
                 _SegmentButton(
@@ -1873,9 +1932,12 @@ class _MatchingPreview extends StatelessWidget {
       children: [
         const Text(
           'Match the following terms.',
-          style: TextStyle(fontSize: 15),
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+          ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppMetrics.labelGap),
         for (var index = 0; index < count; index++)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -1953,7 +2015,10 @@ class _NumericPreview extends StatelessWidget {
       children: [
         Text(
           data['question']?.toString() ?? '',
-          style: const TextStyle(fontSize: 13),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+          ),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -1986,10 +2051,16 @@ class _ParagraphPreview extends StatelessWidget {
       children: [
         Text(
           data['question']?.toString() ?? '',
-          style: const TextStyle(fontSize: 13),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+          ),
         ),
         const SizedBox(height: 12),
         TextField(
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  null,
           controller: controller,
           maxLength: max,
           minLines: 5,
@@ -2024,7 +2095,11 @@ class _AssessmentHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           type.selectorTitle,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -2171,9 +2246,10 @@ class _Title extends StatelessWidget {
     return Text(
       text.isEmpty ? 'Untitled Block' : text,
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontFamily: AppTypography.headingFamily,
+        color: AppColors.textPrimary,
+        fontSize: AppTypography.sectionTitleSize,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
@@ -2203,9 +2279,10 @@ class _BlockTypeBadge extends StatelessWidget {
         Text(
           block.displayType,
           style: const TextStyle(
-            color: Colors.black,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontFamily: AppTypography.bodyFamily,
+            color: AppColors.textPrimary,
+            fontSize: AppTypography.helperSize,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -2286,7 +2363,14 @@ class _NavButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (leading) const Icon(Icons.chevron_left, size: 18),
-            Text(label, style: const TextStyle(fontSize: 12)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.buttonSize,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             if (!leading) const Icon(Icons.chevron_right, size: 18),
           ],
         ),
@@ -2314,9 +2398,10 @@ class _NumberCircle extends StatelessWidget {
       child: Text(
         '$number',
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _ConceptExplorationPreviewScreenState._green,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.captionSize,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -2358,7 +2443,10 @@ class _MediaPlaceholder extends StatelessWidget {
       alignment: Alignment.center,
       child: const Text(
         'Media unavailable',
-        style: TextStyle(color: Color(0xFF777777), fontSize: 12),
+        style: TextStyle(
+          color: Color(0xFF777777),
+          fontSize: AppTypography.helperSize,
+        ),
       ),
     );
   }
@@ -2371,7 +2459,10 @@ class _MalformedContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Text(
       'This block could not be previewed, but the rest of the module is still available.',
-      style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
+      style: TextStyle(
+        fontSize: AppTypography.bodySize,
+        color: Color(0xFF666666),
+      ),
     );
   }
 }
@@ -2389,7 +2480,10 @@ class _EmptyPreviewState extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF666666)),
+          style: const TextStyle(
+            fontSize: AppTypography.bodySize,
+            color: Color(0xFF666666),
+          ),
         ),
       ),
     );
@@ -2423,7 +2517,14 @@ class _SmallOutlineButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Text(label, style: const TextStyle(fontSize: 12)),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.buttonSize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
@@ -2441,7 +2542,11 @@ class _TableHeaderCell extends StatelessWidget {
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
+        ),
       ),
     );
   }
@@ -2456,7 +2561,13 @@ class _TableBodyCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      child: Text(text, style: const TextStyle(fontSize: 12)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
+        ),
+      ),
     );
   }
 }
@@ -2503,9 +2614,10 @@ class _LetterBadge extends StatelessWidget {
       child: Text(
         String.fromCharCode(65 + index),
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -2536,7 +2648,7 @@ class _SegmentButton extends StatelessWidget {
           border: Border.all(color: const Color(0xFFCCCCCC)),
           borderRadius: BorderRadius.circular(5),
         ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -2581,7 +2693,11 @@ class _MatchBox extends StatelessWidget {
         textAlign: TextAlign.center,
         maxLines: 4,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
+        ),
       ),
     );
   }
@@ -2890,10 +3006,9 @@ InputDecoration _inputDecoration({String? label}) {
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(
         color: _ConceptExplorationPreviewScreenState._green,
-        width: 1.4,
       ),
     ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 12),
   );
 }
 

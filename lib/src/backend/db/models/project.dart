@@ -1,4 +1,9 @@
 class Project {
+  final bool shareFriends;
+  final List<String> sharedCommunityIds;
+  final String projectType;
+  final List<Map<String, dynamic>> communityLinks;
+  final List<Map<String, dynamic>> learningObjectives;
   final String id;
   final String projectName;
   final List<String> tags;
@@ -16,6 +21,11 @@ class Project {
   final Set<String> journalProgressValues;
 
   const Project({
+    this.shareFriends = false,
+    this.sharedCommunityIds = const [],
+    this.projectType = 'collaborative',
+    this.communityLinks = const [],
+    this.learningObjectives = const [],
     required this.id,
     required this.projectName,
     required this.tags,
@@ -34,6 +44,19 @@ class Project {
   });
 
   factory Project.fromMap(Map<String, dynamic> map) => Project(
+    shareFriends: map['share_friends'] == true,
+    sharedCommunityIds: (map['shared_community_ids'] as List? ?? [])
+        .map((id) => id.toString())
+        .toList(),
+    projectType: map['project_type']?.toString() ?? 'collaborative',
+    communityLinks: (map['community_links'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(),
+    learningObjectives: (map['learning_objectives'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(),
     id: map['id']?.toString() ?? '',
     projectName: map['project_name']?.toString() ?? '',
     tags: map['tags'] is List

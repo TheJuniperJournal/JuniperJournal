@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -226,7 +229,12 @@ class _SummaryState extends State<Summary> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -245,12 +253,14 @@ class _SummaryState extends State<Summary> {
                                 focus: _subjectFocus,
                               ),
                               const SizedBox(height: 29),
-                              const _SectionTitle('Three Dimensional Learning'),
+                              const _SectionTitle(
+                                'The Three Dimensions of Learning',
+                              ),
                               const SizedBox(height: 9),
                               const _SectionCopy(
                                 'These NGSS 3D learning components have been generated based on your input.',
                               ),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: AppMetrics.labelGap),
                               _ChecklistCard(
                                 title: 'DCI',
                                 subtitle: 'Disciplinary Core Ideas',
@@ -298,7 +308,7 @@ class _SummaryState extends State<Summary> {
                               const _SectionCopy(
                                 'Review the key details that define your learning module before it is generated.',
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: AppMetrics.fieldGap),
                               _ModuleOverviewCard(
                                 title: _title,
                                 subjectDomain: _subjectDomain,
@@ -311,13 +321,13 @@ class _SummaryState extends State<Summary> {
                               const _SectionCopy(
                                 'Review the learning objectives that define the intended student outcomes.',
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: AppMetrics.fieldGap),
                               _ObjectivesCard(objectives: _objectives),
                               const SizedBox(height: 31),
                               const _SectionTitle(
                                 'NGSS Performance Expectations',
                               ),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: AppMetrics.labelGap),
                               const _SectionCopy(
                                 'The follow NGSS Performance Expectations align with the modules generated 3D components.',
                               ),
@@ -362,9 +372,10 @@ class _Header extends StatelessWidget {
               'Learning Summary',
               textAlign: TextAlign.center,
               style: TextStyle(
+                fontFamily: AppTypography.headingFamily,
                 color: _SummaryState._text,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.sectionTitleSize,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -414,9 +425,10 @@ class _LearningCodeCard extends StatelessWidget {
           const Text(
             'Juniper Learning Code',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _SummaryState._green,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 15),
@@ -445,9 +457,10 @@ class _LearningCodeCard extends StatelessWidget {
                     Text(
                       code,
                       style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: _SummaryState._text,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 7),
@@ -456,8 +469,9 @@ class _LearningCodeCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: _SummaryState._text,
-                        fontSize: 12,
+                        fontSize: AppTypography.helperSize,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -494,7 +508,7 @@ class _ChecklistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 353,
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(21, 17, 14, 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -514,16 +528,18 @@ class _ChecklistCard extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: accent,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       subtitle,
                       style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
                         color: _SummaryState._muted,
-                        fontSize: 10,
+                        fontSize: AppTypography.captionSize,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -541,15 +557,16 @@ class _ChecklistCard extends StatelessWidget {
                 child: Text(
                   '$generatedCount Generated',
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: _SummaryState._green,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 17),
+          const SizedBox(height: AppMetrics.labelGap),
           for (final entry in options.entries) ...[
             _ChecklistRow(
               label: entry.key,
@@ -599,9 +616,10 @@ class _ChecklistRow extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _SummaryState._text,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -633,21 +651,21 @@ class _ModuleOverviewCard extends StatelessWidget {
           label: 'Lesson Title',
           value: title,
         ),
-        const SizedBox(height: 26),
+        const SizedBox(height: AppMetrics.fieldGap),
         _InfoRow(
           iconAsset: 'assets/learning_module/summary_domain.svg',
           label: 'Subject Domain',
           value: subjectDomain,
         ),
         if (subjectFocus.isNotEmpty) ...[
-          const SizedBox(height: 26),
+          const SizedBox(height: AppMetrics.fieldGap),
           _InfoRow(
             iconAsset: 'assets/learning_module/summary_domain.svg',
             label: 'Subject Focus',
             value: subjectFocus,
           ),
         ],
-        const SizedBox(height: 26),
+        const SizedBox(height: AppMetrics.fieldGap),
         _InfoRow(
           iconAsset: 'assets/learning_module/summary_difficulty.svg',
           label: 'Difficulty',
@@ -670,12 +688,13 @@ class _ObjectivesCard extends StatelessWidget {
         const Text(
           'Objectives',
           style: TextStyle(
+            fontFamily: AppTypography.bodyFamily,
             color: _SummaryState._muted,
-            fontSize: 12,
+            fontSize: AppTypography.helperSize,
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 17),
+        const SizedBox(height: AppMetrics.labelGap),
         for (var index = 0; index < objectives.length; index++) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,9 +710,10 @@ class _ObjectivesCard extends StatelessWidget {
                 child: Text(
                   '${index + 1}',
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -702,16 +722,18 @@ class _ObjectivesCard extends StatelessWidget {
                 child: Text(
                   objectives[index],
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: _SummaryState._text,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                     height: 1.2,
                   ),
                 ),
               ),
             ],
           ),
-          if (index != objectives.length - 1) const SizedBox(height: 14),
+          if (index != objectives.length - 1)
+            const SizedBox(height: AppMetrics.labelGap),
         ],
       ],
     );
@@ -726,7 +748,7 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 353,
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 15, 14, 20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -771,8 +793,9 @@ class _InfoRow extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _SummaryState._muted,
-                  fontSize: 12,
+                  fontSize: AppTypography.helperSize,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -780,9 +803,10 @@ class _InfoRow extends StatelessWidget {
               Text(
                 value,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _SummaryState._text,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -803,9 +827,10 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
+        fontFamily: AppTypography.bodyFamily,
         color: _SummaryState._text,
-        fontSize: 16,
-        fontWeight: FontWeight.w800,
+        fontSize: AppTypography.bodySize,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -821,8 +846,9 @@ class _SectionCopy extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
+        fontFamily: AppTypography.bodyFamily,
         color: _SummaryState._muted,
-        fontSize: 15,
+        fontSize: AppTypography.bodySize,
         height: 1.1,
         fontWeight: FontWeight.w500,
       ),
@@ -848,9 +874,10 @@ class _NgssTag extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _SummaryState._text,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );

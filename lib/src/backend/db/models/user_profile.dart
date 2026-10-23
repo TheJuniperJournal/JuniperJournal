@@ -1,5 +1,6 @@
 class UserProfile {
   final String id;
+  final String bio;
   final String? displayName;
   final String? username;
   final String? avatarUrl;
@@ -8,6 +9,7 @@ class UserProfile {
 
   const UserProfile({
     required this.id,
+    this.bio = '',
     this.displayName,
     this.username,
     this.avatarUrl,
@@ -17,6 +19,7 @@ class UserProfile {
 
   factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
     id: map['id']?.toString() ?? '',
+    bio: map['bio']?.toString() ?? '',
     displayName: map['display_name']?.toString(),
     username: map['username']?.toString(),
     avatarUrl: map['avatar_url']?.toString(),

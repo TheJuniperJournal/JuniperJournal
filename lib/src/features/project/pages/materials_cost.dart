@@ -1,3 +1,12 @@
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import '../../../backend/db/models/journal_entry.dart';
+import '../../../shared/widgets/currency_amount_input.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
+import 'package:juniper_journal/src/shared/widgets/item_action_menu.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 
@@ -6,7 +15,7 @@ const _yellow = Color(0xFFFFC93D);
 const _red = Color(0xFFFD1212);
 const _text = Color(0xFF1F2024);
 const _divider = Color(0xFFE8E8E8);
-const _fieldBorder = Color(0xFFE8EBEC);
+const _fieldBorder = AppColors.primary;
 const _placeholder = Color(0xFFA0A8AC);
 const _canvasWidth = 402.0;
 
@@ -48,6 +57,7 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
   final List<_MaterialItem> _allItems = [];
   final List<_MaterialItem> _items = [];
   final Set<String> _selectedIds = {};
+  final Set<String> _components = {};
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isEditing = false;
@@ -61,6 +71,27 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
 
   Future<void> _loadMaterials() async {
     final materials = await _projectsRepo.getMaterialsCost(widget.projectId);
+    List<JournalEntry>? entries;
+    try {
+      entries = await _projectsRepo.getJournalEntries(
+        projectId: widget.projectId,
+      );
+    } catch (_) {
+      entries = [];
+    }
+    void collect(dynamic node) {
+      if (node is Map) {
+        if (node['features'] is List &&
+            node['name'] is String &&
+            node['id'] != null)
+          _components.add(node['name'] as String);
+        for (final value in node.values) collect(value);
+      } else if (node is List) {
+        for (final value in node) collect(value);
+      }
+    }
+
+    for (final entry in entries ?? []) collect(entry.content);
     if (!mounted) return;
 
     setState(() {
@@ -122,20 +153,17 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
     Navigator.of(context).pop(true);
   }
 
-  Future<void> _onSaveTapped() async {
-    if (widget.isOwner && !widget.readOnly) await _saveMaterials();
-    if (!mounted) return;
-    final onComplete = widget.onSaveComplete;
-    if (onComplete != null) await onComplete();
-  }
-
   Future<void> _addItem() async {
     if (!widget.isOwner) return;
-    final item = await showModalBottomSheet<_MaterialItem>(
+    final item = await showAppModalBottomSheet<_MaterialItem>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _AddMaterialSheet(),
+      builder: (_) => _AddMaterialSheet(
+        components: _components.toList()..sort(),
+        currency: _allItems.isEmpty ? 'USD' : _allItems.first.currency,
+        currencyLocked: _allItems.isNotEmpty,
+      ),
     );
     if (item == null || !mounted) return;
 
@@ -147,6 +175,33 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
             : item.copyWith(component: componentName),
       ),
     );
+    await _saveMaterials();
+  }
+
+  Future<void> _editItem(_MaterialItem existing) async {
+    if (!widget.isOwner || widget.readOnly) return;
+    final updated = await showAppModalBottomSheet<_MaterialItem>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddMaterialSheet(
+        components: _components.toList()..sort(),
+        item: existing,
+        currency: existing.currency,
+        currencyLocked: _allItems.length > 1,
+      ),
+    );
+    if (updated == null || !mounted) return;
+    setState(
+      () =>
+          _items[_items.indexWhere((item) => item.id == existing.id)] = updated,
+    );
+    await _saveMaterials();
+  }
+
+  Future<void> _deleteItem(_MaterialItem item) async {
+    if (!widget.isOwner || widget.readOnly) return;
+    setState(() => _items.removeWhere((existing) => existing.id == item.id));
     await _saveMaterials();
   }
 
@@ -179,7 +234,12 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _canvasWidth),
+              constraints: BoxConstraints(
+                maxWidth: JournalPageLayout.widthFor(
+                  context,
+                  mobileWidth: _canvasWidth,
+                ),
+              ),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : Stack(
@@ -190,14 +250,17 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 128),
+                                const SizedBox(height: 80),
                                 Center(
                                   child: _TotalSpentCircle(
                                     total: _totalCost,
+                                    currency: _allItems.isEmpty
+                                        ? 'USD'
+                                        : _allItems.first.currency,
                                     color: _costColor,
                                   ),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: AppMetrics.fieldGap),
                                 Center(
                                   child: _CostPill(
                                     label: _costLabel,
@@ -208,30 +271,49 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
                                 const Text(
                                   'Itemized Budget List',
                                   style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
+                                    fontFamily: AppTypography.bodyFamily,
+                                    color: AppColors.textPrimary,
+                                    fontSize: AppTypography.bodySize,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 const Text(
                                   'Input materials and cost of items used to build this component.',
                                   style: TextStyle(
-                                    color: Color(0x80000000),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
+                                    fontFamily: AppTypography.bodyFamily,
+                                    color: AppColors.textSecondary,
+                                    fontSize: AppTypography.helperSize,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
-                                const SizedBox(height: 26),
+                                const SizedBox(height: AppMetrics.fieldGap),
                                 for (final item in _items)
                                   _ExpenseRow(
                                     item: item,
                                     indicatorColor: _costLevelFor(
                                       item.cost,
                                     ).color,
+                                    onEdit:
+                                        widget.isOwner &&
+                                            !widget.readOnly &&
+                                            !_isEditing
+                                        ? () => _editItem(item)
+                                        : null,
+                                    onDelete:
+                                        widget.isOwner &&
+                                            !widget.readOnly &&
+                                            !_isEditing
+                                        ? () => _deleteItem(item)
+                                        : null,
+                                    onRemove: _isEditing
+                                        ? () => _deleteItem(item)
+                                        : null,
                                     isEditing: _isEditing,
                                     isSelected: _selectedIds.contains(item.id),
-                                    onTap: () => _toggleSelected(item.id),
+                                    onTap: () => _isEditing
+                                        ? _toggleSelected(item.id)
+                                        : _editItem(item),
                                   ),
                                 if (widget.isOwner && !widget.readOnly) ...[
                                   const SizedBox(height: 11),
@@ -251,48 +333,24 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
                           ),
                         ),
                         Positioned(
-                          left: 15,
-                          top: 22,
-                          width: 32,
-                          height: 32,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: _close,
-                            icon: const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: _BackChevronIcon(),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 90,
-                          right: 90,
-                          top: 32,
-                          child: Text(
-                            'Component: ${widget.componentName ?? widget.projectName}',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 36,
-                          top: 32,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: _onSaveTapped,
-                            child: Text(
-                              _isSaving ? 'Saving...' : 'Save',
-                              style: const TextStyle(
-                                color: _green,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          child: _BudgetHeader(
+                            title: widget.componentName == null
+                                ? 'Materials & Cost'
+                                : 'Component: ${widget.componentName}',
+                            onBack: _close,
+                            onSave:
+                                widget.isOwner && !widget.readOnly && !_isSaving
+                                ? () => setState(() {
+                                    _isEditing = !_isEditing;
+                                    _selectedIds.clear();
+                                  })
+                                : null,
+                            saveLabel: widget.isOwner && !widget.readOnly
+                                ? (_isEditing ? 'Done' : 'Edit')
+                                : '',
                           ),
                         ),
                         if (_isEditing && _selectedIds.isNotEmpty)
@@ -305,8 +363,8 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
                                 'Delete',
                                 style: TextStyle(
                                   color: Color(0xFFD64545),
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -322,7 +380,12 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
 }
 
 class _TotalSpentCircle extends StatelessWidget {
-  const _TotalSpentCircle({required this.total, required this.color});
+  const _TotalSpentCircle({
+    required this.total,
+    required this.color,
+    this.currency = 'USD',
+  });
+  final String currency;
 
   final double total;
   final Color color;
@@ -336,30 +399,40 @@ class _TotalSpentCircle extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: color, width: 3),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            _formatCurrency(total),
-            maxLines: 1,
-            style: TextStyle(
-              color: color,
-              fontSize: 40,
-              height: 1,
-              fontWeight: FontWeight.w500,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _formatCurrency(total, currency),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: AppTypography.headingFamily,
+                    color: color,
+                    fontSize: AppTypography.heroSize,
+                    height: 1,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 35),
-          const Text(
-            'Total Spent',
-            style: TextStyle(
-              color: Color(0xFFAFAFAF),
-              fontSize: 14,
-              height: 1,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: AppMetrics.fieldGap),
+            const Text(
+              'Total Spent',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFAFAFAF),
+                fontSize: AppTypography.bodySize,
+                height: 1,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -385,10 +458,11 @@ class _CostPill extends StatelessWidget {
         label,
         maxLines: 1,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: Colors.white,
-          fontSize: 16,
+          fontSize: AppTypography.bodySize,
           height: 1,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           letterSpacing: 0.8,
         ),
       ),
@@ -403,8 +477,14 @@ class _ExpenseRow extends StatelessWidget {
     required this.isEditing,
     required this.isSelected,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
+    this.onRemove,
   });
 
+  final VoidCallback? onRemove;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
   final _MaterialItem item;
   final Color indicatorColor;
   final bool isEditing;
@@ -415,83 +495,78 @@ class _ExpenseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtitle = [
       if (item.component.isNotEmpty) item.component,
-      if (item.buildLog.isNotEmpty) item.buildLog,
       _shortDate(item.createdAt),
     ].join(' • ');
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: SizedBox(
-        width: 343,
-        height: 51,
-        child: Stack(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Positioned(
-              left: 0,
-              top: 2,
+            SizedBox(
               width: 16,
               height: 16,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFD64545) : indicatorColor,
-                  shape: BoxShape.circle,
-                ),
-                child: isEditing && isSelected ? const _CheckMarkIcon() : null,
+              child: isEditing
+                  ? GestureDetector(
+                      onTap: onRemove,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: _red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.remove,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: indicatorColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.body,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.helper,
+                  ),
+                ],
               ),
             ),
-            Positioned(
-              left: 32,
-              top: 0,
-              width: 210,
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 88,
               child: Text(
-                item.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 32,
-              top: 20,
-              width: 210,
-              child: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFFA1A1A1),
-                  fontSize: 10,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Text(
-                _formatCurrency(item.cost),
+                _formatCurrency(item.cost, item.currency),
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  height: 1,
-                  fontWeight: FontWeight.w400,
-                ),
+                style: AppTypography.body,
               ),
             ),
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Divider(height: 1, thickness: 1, color: _divider),
-            ),
+            if (onEdit != null)
+              SizedBox(
+                width: 32,
+                child: ItemActionMenu(onEdit: onEdit, onDelete: onDelete),
+              ),
           ],
         ),
       ),
@@ -514,23 +589,27 @@ class _AddItemRow extends StatelessWidget {
         height: 32,
         child: Row(
           children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                color: _green,
-                shape: BoxShape.circle,
+            Transform.translate(
+              offset: const Offset(-4, 0),
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  color: _green,
+                  shape: BoxShape.circle,
+                ),
+                child: const _PlusIcon(),
               ),
-              child: const _PlusIcon(),
             ),
             const SizedBox(width: 18),
             const Text(
               'Add Item',
               style: TextStyle(
-                color: _text,
-                fontSize: 16,
+                fontFamily: AppTypography.bodyFamily,
+                color: AppColors.primary,
+                fontSize: AppTypography.buttonSize,
                 height: 1,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -541,7 +620,17 @@ class _AddItemRow extends StatelessWidget {
 }
 
 class _AddMaterialSheet extends StatefulWidget {
-  const _AddMaterialSheet();
+  const _AddMaterialSheet({
+    this.components = const [],
+    this.item,
+    this.currency = 'USD',
+    this.currencyLocked = false,
+  });
+  final String currency;
+  final bool currencyLocked;
+  final List<String> components;
+
+  final _MaterialItem? item;
 
   @override
   State<_AddMaterialSheet> createState() => _AddMaterialSheetState();
@@ -551,30 +640,83 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
   final _itemController = TextEditingController();
   final _costController = TextEditingController();
   final _componentController = TextEditingController();
-  final _buildLogController = TextEditingController();
+  late String _currency = widget.item?.currency ?? widget.currency;
+  bool _saveAttempted = false;
 
   @override
   void dispose() {
     _itemController.dispose();
     _costController.dispose();
     _componentController.dispose();
-    _buildLogController.dispose();
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.item;
+    if (item != null) {
+      _itemController.text = item.name;
+      _costController.text = item.cost.toStringAsFixed(2);
+      _componentController.text = item.component;
+    }
+    _itemController.addListener(_updateValidation);
+    _costController.addListener(_updateValidation);
+  }
+
+  void _updateValidation() => setState(() {});
+
+  bool get _validCost {
+    final cost = double.tryParse(_costController.text.trim());
+    return cost != null && cost.isFinite && cost >= 0;
+  }
+
+  bool get _canSave => _itemController.text.trim().isNotEmpty && _validCost;
+
   void _save() {
     final name = _itemController.text.trim();
-    final cost = double.tryParse(_costController.text.trim()) ?? 0;
-    if (name.isEmpty) return;
+    if (!_canSave) {
+      setState(() => _saveAttempted = true);
+      final missing = <String>[
+        if (name.isEmpty) 'Item is required.',
+        if (_costController.text.trim().isEmpty)
+          'Cost is required.'
+        else if (!_validCost)
+          'Cost only accepts numbers of 0 or more.',
+      ];
+      showAppDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(Icons.error_outline, color: _red),
+          title: const Text(
+            'Check required fields',
+            style: TextStyle(color: _red),
+          ),
+          content: Text(
+            missing.join('\n'),
+            style: const TextStyle(color: _red),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final cost = double.parse(_costController.text.trim());
 
     Navigator.of(context).pop(
       _MaterialItem(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        id: widget.item?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
         name: name,
+        currency: _currency,
         cost: cost,
         component: _componentController.text.trim(),
-        buildLog: _buildLogController.text.trim(),
-        createdAt: DateTime.now(),
+        buildLog: widget.item?.buildLog ?? '',
+        createdAt: widget.item?.createdAt ?? DateTime.now(),
       ),
     );
   }
@@ -585,88 +727,98 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        height: 399,
+        constraints: BoxConstraints(
+          maxHeight: (MediaQuery.sizeOf(context).height - bottomInset - 32)
+              .clamp(0.0, 600.0),
+        ),
         margin: const EdgeInsets.symmetric(horizontal: 30),
-        padding: const EdgeInsets.fromLTRB(18, 18, 22, 24),
+        padding: const EdgeInsets.fromLTRB(18, 8, 22, 24),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 24,
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: -10,
-                    top: -8,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: _CloseIcon(),
-                      ),
-                    ),
-                  ),
-                  const Positioned.fill(
-                    child: Center(
-                      child: Text(
-                        'Add Item',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          height: 1,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 4,
-                    child: GestureDetector(
-                      onTap: _save,
-                      child: const Text(
-                        'Save',
-                        style: TextStyle(
-                          color: _green,
-                          fontSize: 14,
-                          height: 1,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BudgetHeader(
+                title: widget.item == null ? 'Add Item' : 'Edit Item',
+                close: true,
+                inset: 0,
+                onBack: () => Navigator.of(context).pop(),
+                onSave: _save,
               ),
-            ),
-            const SizedBox(height: 17),
-            _SheetLabel('Item'),
-            const SizedBox(height: 8),
-            _SheetTextField(controller: _itemController),
-            const SizedBox(height: 18),
-            _SheetLabel('Cost'),
-            const SizedBox(height: 8),
-            _CostField(controller: _costController),
-            const SizedBox(height: 13),
-            _SheetLabel('Component'),
-            const SizedBox(height: 8),
-            _SheetTextField(
-              controller: _componentController,
-              hintText: 'Search for component',
-            ),
-            const SizedBox(height: 13),
-            _SheetLabel('Build Log'),
-            const SizedBox(height: 8),
-            _SheetTextField(
-              controller: _buildLogController,
-              hintText: 'Search for Build',
-            ),
-          ],
+              const SizedBox(height: AppMetrics.labelGap),
+              _SheetLabel('Item'),
+              const SizedBox(height: 8),
+              _SheetTextField(
+                controller: _itemController,
+                invalid: _saveAttempted && _itemController.text.trim().isEmpty,
+              ),
+              const SizedBox(height: AppMetrics.labelGap),
+              _SheetLabel('Cost'),
+              const SizedBox(height: 8),
+              DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _saveAttempted && !_validCost
+                        ? _red
+                        : Colors.transparent,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _CostField(
+                  controller: _costController,
+                  currency: _currency,
+                  onCurrencyChanged: widget.currencyLocked
+                      ? null
+                      : (value) => setState(() => _currency = value),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                (!_saveAttempted || _validCost)
+                    ? 'Only numbers are accepted. Use 0 for a free item.'
+                    : 'Required — only numbers are accepted (e.g. 1.00 or 0).',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.helperSize,
+                  color: _saveAttempted && !_validCost ? _red : _placeholder,
+                ),
+              ),
+              const SizedBox(height: 13),
+              _SheetLabel('Component', optional: true),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue:
+                    widget.components.contains(_componentController.text)
+                    ? _componentController.text
+                    : '',
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                isExpanded: true,
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('None')),
+                  for (final component in widget.components)
+                    DropdownMenuItem(
+                      value: component,
+                      child: Text(component, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (value) => _componentController.text = value ?? '',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -674,17 +826,38 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
 }
 
 class _SheetLabel extends StatelessWidget {
-  const _SheetLabel(this.text);
+  const _SheetLabel(
+    this.text, {
+    this.optional = false,
+    this.requiredField = false,
+  });
 
   final String text;
+  final bool optional;
+  final bool requiredField;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
+    return Text.rich(
+      TextSpan(
+        text: text,
+        children: [
+          if (requiredField)
+            const TextSpan(
+              text: ' (Required)',
+              style: TextStyle(color: _red),
+            ),
+          if (optional)
+            const TextSpan(
+              text: ' (optional)',
+              style: TextStyle(color: _placeholder),
+            ),
+        ],
+      ),
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 14,
+        fontFamily: AppTypography.bodyFamily,
+        color: AppColors.textPrimary,
+        fontSize: AppTypography.bodySize,
         height: 1,
         fontWeight: FontWeight.w500,
       ),
@@ -693,32 +866,41 @@ class _SheetLabel extends StatelessWidget {
 }
 
 class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({required this.controller, this.hintText});
+  const _SheetTextField({
+    required this.controller,
+    this.hintText,
+    this.invalid = false,
+  });
 
   final TextEditingController controller;
   final String? hintText;
+  final bool invalid;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 56,
       child: TextField(
         controller: controller,
         textInputAction: TextInputAction.next,
-        style: const TextStyle(fontSize: 14, height: 21 / 14),
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.bodySize,
+          height: 1.4,
+        ),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: const TextStyle(color: _placeholder),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 11,
+            horizontal: 9,
             vertical: 10,
           ),
           enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: _fieldBorder),
+            borderSide: BorderSide(color: invalid ? _red : _fieldBorder),
             borderRadius: BorderRadius.circular(8),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: _green),
+            borderSide: BorderSide(color: invalid ? _red : _fieldBorder),
             borderRadius: BorderRadius.circular(8),
           ),
         ),
@@ -728,117 +910,20 @@ class _SheetTextField extends StatelessWidget {
 }
 
 class _CostField extends StatelessWidget {
-  const _CostField({required this.controller});
-
+  const _CostField({
+    required this.controller,
+    this.currency = 'USD',
+    this.onCurrencyChanged,
+  });
   final TextEditingController controller;
-
+  final String currency;
+  final ValueChanged<String>? onCurrencyChanged;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              border: Border(
-                left: BorderSide(color: _fieldBorder),
-                top: BorderSide(color: _fieldBorder),
-                bottom: BorderSide(color: _fieldBorder),
-              ),
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
-            ),
-            child: const Text(
-              r'$',
-              style: TextStyle(
-                color: Color(0xFF323639),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              textInputAction: TextInputAction.next,
-              style: const TextStyle(
-                color: Color(0xFF323639),
-                fontSize: 14,
-                height: 21 / 14,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                hintStyle: TextStyle(color: _placeholder),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _fieldBorder),
-                  borderRadius: BorderRadius.zero,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _green),
-                  borderRadius: BorderRadius.zero,
-                ),
-              ),
-            ),
-          ),
-          Container(
-            width: 100,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: _fieldBorder),
-              borderRadius: const BorderRadius.horizontal(
-                right: Radius.circular(8),
-              ),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('🇺🇸', style: TextStyle(fontSize: 14)),
-                SizedBox(width: 8),
-                Text(
-                  'USD',
-                  style: TextStyle(
-                    color: Color(0xFF323639),
-                    fontSize: 14,
-                    height: 21 / 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(width: 8),
-                SizedBox(width: 15, height: 15, child: _UpDownIcon()),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackChevronIcon extends StatelessWidget {
-  const _BackChevronIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _BackChevronPainter());
-  }
-}
-
-class _CloseIcon extends StatelessWidget {
-  const _CloseIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _ClosePainter());
-  }
+  Widget build(BuildContext context) => CurrencyAmountInput(
+    controller: controller,
+    currency: currency,
+    onCurrencyChanged: onCurrencyChanged,
+  );
 }
 
 class _PlusIcon extends StatelessWidget {
@@ -847,15 +932,6 @@ class _PlusIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(painter: _PlusPainter());
-  }
-}
-
-class _CheckMarkIcon extends StatelessWidget {
-  const _CheckMarkIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _CheckPainter());
   }
 }
 
@@ -884,34 +960,6 @@ abstract class _MaterialLinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _BackChevronPainter extends _MaterialLinePainter {
-  _BackChevronPainter() : super(_green);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawLine(
-      Offset(size.width * .68, size.height * .08),
-      Offset(size.width * .25, size.height * .5),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .25, size.height * .5),
-      Offset(size.width * .68, size.height * .92),
-      stroke,
-    );
-  }
-}
-
-class _ClosePainter extends _MaterialLinePainter {
-  _ClosePainter() : super(_green);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawLine(Offset.zero, Offset(size.width, size.height), stroke);
-    canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), stroke);
-  }
-}
-
 class _PlusPainter extends _MaterialLinePainter {
   _PlusPainter() : super(Colors.white);
 
@@ -925,24 +973,6 @@ class _PlusPainter extends _MaterialLinePainter {
     canvas.drawLine(
       Offset(size.width * .25, size.height * .5),
       Offset(size.width * .75, size.height * .5),
-      stroke,
-    );
-  }
-}
-
-class _CheckPainter extends _MaterialLinePainter {
-  _CheckPainter() : super(Colors.white);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawLine(
-      Offset(size.width * .2, size.height * .52),
-      Offset(size.width * .42, size.height * .74),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .42, size.height * .74),
-      Offset(size.width * .82, size.height * .28),
       stroke,
     );
   }
@@ -981,6 +1011,7 @@ class _MaterialItem {
     required this.id,
     required this.name,
     required this.cost,
+    this.currency = 'USD',
     required this.component,
     required this.buildLog,
     required this.createdAt,
@@ -989,6 +1020,7 @@ class _MaterialItem {
   final String id;
   final String name;
   final double cost;
+  final String currency;
   final String component;
   final String buildLog;
   final DateTime createdAt;
@@ -1000,6 +1032,7 @@ class _MaterialItem {
           DateTime.now().microsecondsSinceEpoch.toString(),
       name: map['name']?.toString() ?? '',
       cost: (map['cost'] as num?)?.toDouble() ?? 0,
+      currency: map['currency']?.toString() ?? 'USD',
       component: map['component']?.toString() ?? '',
       buildLog: map['buildLog']?.toString() ?? '',
       createdAt:
@@ -1013,6 +1046,7 @@ class _MaterialItem {
       'id': id,
       'name': name,
       'cost': cost,
+      'currency': currency,
       'component': component,
       'buildLog': buildLog,
       'createdAt': createdAt.toIso8601String(),
@@ -1024,6 +1058,7 @@ class _MaterialItem {
       id: id,
       name: name,
       cost: cost,
+      currency: currency,
       component: component ?? this.component,
       buildLog: buildLog,
       createdAt: createdAt,
@@ -1048,7 +1083,8 @@ _CostLevel _costLevelFor(double cost) {
   return const _CostLevel(label: 'HIGH COST PROJECT', color: _red);
 }
 
-String _formatCurrency(double value) => '\$${value.toStringAsFixed(2)}';
+String _formatCurrency(double value, [String currency = 'USD']) =>
+    '${currencySymbol(currency)}${value.toStringAsFixed(2)}';
 
 String _shortDate(DateTime value) {
   const months = [
@@ -1066,4 +1102,88 @@ String _shortDate(DateTime value) {
     'Dec',
   ];
   return '${months[value.month - 1]} ${value.day}';
+}
+
+class _BudgetHeader extends StatelessWidget {
+  const _BudgetHeader({
+    required this.title,
+    required this.onBack,
+    required this.onSave,
+    this.saveLabel = 'Save',
+    this.close = false,
+    this.inset = 24,
+  });
+  final String title;
+  final VoidCallback onBack;
+  final VoidCallback? onSave;
+  final String saveLabel;
+  final bool close;
+  final double inset;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 56,
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: inset),
+      child: Stack(
+        children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 64),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  color: _text,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: close
+                ? IconButton(
+                    onPressed: onBack,
+                    tooltip: 'Close',
+                    iconSize: 18,
+                    color: _green,
+                    icon: const Icon(Icons.close),
+                    constraints: const BoxConstraints.tightFor(
+                      width: 44,
+                      height: 44,
+                    ),
+                    padding: EdgeInsets.zero,
+                  )
+                : ContentAlignedBackButton(onPressed: onBack),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: onSave,
+              style: TextButton.styleFrom(
+                overlayColor: Colors.transparent,
+                foregroundColor: _green,
+                disabledForegroundColor: _placeholder,
+                minimumSize: const Size(48, 44),
+                padding: EdgeInsets.zero,
+              ),
+              child: Text(
+                saveLabel,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.buttonSize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

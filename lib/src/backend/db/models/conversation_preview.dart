@@ -47,7 +47,9 @@ class ConversationPreview {
         otherUsername: map['other_username']?.toString(),
         otherAvatarUrl: map['other_avatar_url']?.toString(),
         lastMessage: map['last_message']?.toString(),
-        lastMessageAt: DateTime.tryParse(map['last_message_at']?.toString() ?? ''),
+        lastMessageAt: DateTime.tryParse(
+          map['last_message_at']?.toString() ?? '',
+        ),
         unreadCount: (map['unread_count'] as num?)?.toInt() ?? 0,
         myDeletedAt: DateTime.tryParse(map['my_deleted_at']?.toString() ?? ''),
       );
@@ -59,7 +61,9 @@ class ConversationPreview {
         isGroup: true,
         groupName: map['group_name']?.toString(),
         lastMessage: map['last_message']?.toString(),
-        lastMessageAt: DateTime.tryParse(map['last_message_at']?.toString() ?? ''),
+        lastMessageAt: DateTime.tryParse(
+          map['last_message_at']?.toString() ?? '',
+        ),
         unreadCount: (map['unread_count'] as num?)?.toInt() ?? 0,
       );
 }

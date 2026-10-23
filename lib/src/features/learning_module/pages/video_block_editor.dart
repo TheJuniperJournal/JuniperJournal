@@ -1,3 +1,8 @@
+import '../../../shared/widgets/evidence_description_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -253,7 +258,7 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
 
   void _save() {
     setState(() => _showValidation = true);
-    if (!_hasRequiredVideo || !_assessment.isValid || _saving) return;
+    if (!_hasRequiredVideo || _saving) return;
     setState(() => _saving = true);
     final now = DateTime.now();
     final initial = widget.initialData;
@@ -288,7 +293,12 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -299,15 +309,15 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _Label('Content'),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         const _Label('Title', optional: true),
                         const SizedBox(height: 11),
                         _InputBox(
                           controller: _titleController,
                           maxLength: 100,
-                          height: 35,
+                          height: 64,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppMetrics.labelGap),
                         Center(
                           child: _ModeControl(
                             mode: _mode,
@@ -325,7 +335,7 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                             showCounter: false,
                             error: showError && !_validUrl,
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: AppMetrics.labelGap),
                         ],
                         _VideoPreview(
                           mode: _mode,
@@ -342,9 +352,10 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                           Text(
                             _uploadError!,
                             style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: _error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ] else if (showError) ...[
@@ -354,9 +365,10 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                                 ? 'Upload a video before adding this block.'
                                 : 'Enter a valid http or https video URL.',
                             style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: _error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -384,7 +396,7 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: AppMetrics.fieldGap),
                         const _Label('Description', optional: true),
                         const SizedBox(height: 11),
                         _InputBox(
@@ -393,23 +405,9 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                           height: 56,
                           maxLines: 2,
                         ),
-                        const SizedBox(height: 20),
-                        InquiryLensSelector(
-                          data: _inquiryLensData,
-                          onChanged: (value) =>
-                              setState(() => _inquiryLensData = value),
-                        ),
-                        const SizedBox(height: 20),
-                        const _Label('Assessment', optional: true),
-                        const SizedBox(height: 11),
-                        AssessmentBlockSection(
-                          value: _assessment,
-                          showValidation: _showValidation,
-                          onChanged: (value) {
-                            setState(() => _assessment = value);
-                          },
-                        ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: AppMetrics.fieldGap),
+
+                        const SizedBox(height: AppMetrics.sectionGap),
                         Center(
                           child: SizedBox(
                             width: 130,
@@ -434,8 +432,9 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
                                     ? 'Saving...'
                                     : (_isEditing ? 'Save' : 'Add Block'),
                                 style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -455,48 +454,11 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 27,
-            child: Text(
-              'Video Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-            ),
-          ),
-          Positioned(
-            left: 25,
-            top: 19,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 20,
-                height: 24,
-                child: CustomPaint(painter: _BackChevronPainter()),
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(height: 1, color: Color(0xFFD1D1D1)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Video Block', onBack: onBack);
 }
 
 class _Label extends StatelessWidget {
@@ -510,9 +472,10 @@ class _Label extends StatelessWidget {
       TextSpan(
         text: text,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _VideoBlockEditorScreenState._text,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.bodySize,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
@@ -545,6 +508,7 @@ class _InputBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (maxLines > 1) return EvidenceDescriptionField(controller: controller);
     return SizedBox(
       height: height + (showCounter ? 14 : 0),
       child: Stack(
@@ -552,13 +516,20 @@ class _InputBox extends StatelessWidget {
           SizedBox(
             height: height,
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: maxLength,
               maxLines: maxLines,
               decoration: InputDecoration(
                 counterText: '',
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
+                  horizontal: 9,
                   vertical: 8,
                 ),
                 enabledBorder: OutlineInputBorder(
@@ -578,18 +549,14 @@ class _InputBox extends StatelessWidget {
                   ),
                 ),
               ),
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+              ),
             ),
           ),
           if (showCounter)
-            Positioned(
-              right: 4,
-              bottom: 0,
-              child: Text(
-                '${controller.text.length}/$maxLength',
-                style: const TextStyle(fontSize: 8),
-              ),
-            ),
+            Positioned(right: 4, bottom: 0, child: const SizedBox.shrink()),
         ],
       ),
     );
@@ -633,8 +600,8 @@ class _ModeControl extends StatelessWidget {
                       color: option == mode
                           ? _VideoBlockEditorScreenState._text
                           : const Color(0xFF777777),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontSize: AppTypography.helperSize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -766,8 +733,8 @@ class _VideoPreview extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFFC8C8C8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -790,7 +757,7 @@ class _UrlPreviewPlaceholder extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'Video URL',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            style: TextStyle(fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -805,28 +772,6 @@ class _VideoUrlIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return SvgPicture.asset('assets/learning_module/concept_video.svg');
   }
-}
-
-class _BackChevronPainter extends CustomPainter {
-  const _BackChevronPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _VideoBlockEditorScreenState._green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path()
-      ..moveTo(size.width * 0.75, 2)
-      ..lineTo(size.width * 0.2, size.height / 2)
-      ..lineTo(size.width * 0.75, size.height - 2);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _SmallButton extends StatelessWidget {
@@ -854,7 +799,11 @@ class _SmallButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.buttonSize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -906,7 +855,11 @@ class _DropdownShell extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           SvgPicture.asset(

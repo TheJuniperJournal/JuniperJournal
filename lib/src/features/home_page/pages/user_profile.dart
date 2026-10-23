@@ -1,28 +1,53 @@
+import '../../../shared/widgets/persistent_desktop_shell.dart';
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:flutter/cupertino.dart';
+import 'public_user_profile.dart';
+import '../../../shared/widgets/desktop_page_scroll.dart';
+import '../../../shared/widgets/eco_reward_notice_host.dart'
+    show ecoRewardNavigatorKey;
+import '../../../shared/widgets/app_tab_transition.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'explore_page.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/backend/db/models/user_profile.dart';
 import 'package:juniper_journal/src/backend/db/repositories/friends_repo.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/backend/db/repositories/users_repo.dart';
 import 'package:juniper_journal/src/features/home_page/pages/search.dart';
-import 'package:juniper_journal/src/services/media_service.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
 class UserProfilePage extends StatefulWidget {
-  const UserProfilePage({super.key, this.onProfileUpdated});
+  const UserProfilePage({
+    super.key,
+    this.onProfileUpdated,
+    this.compact = false,
+    this.onSettings,
+    this.onLogout,
+    this.onNotifications,
+    this.onMessages,
+    this.notificationCount = 0,
+    this.unreadMessageCount = 0,
+  });
 
   final Future<void> Function()? onProfileUpdated;
+  final bool compact;
+  final VoidCallback? onSettings, onLogout, onNotifications, onMessages;
+  final int notificationCount, unreadMessageCount;
 
   @override
   State<UserProfilePage> createState() => UserProfilePageState();
 }
 
 class UserProfilePageState extends State<UserProfilePage> {
+  BuildContext get _navigationContext => widget.compact
+      ? (ecoRewardNavigatorKey.currentState?.overlay?.context ?? context)
+      : context;
   final _authService = AuthService.instance;
-  final _mediaService = MediaService();
   final _friendsRepo = FriendsRepo();
   final _projectsRepo = ProjectsRepo();
   final _usersRepo = UsersRepo();
@@ -34,6 +59,10 @@ class UserProfilePageState extends State<UserProfilePage> {
   List<UserProfile> _friends = const [];
   Map<String, double> _friendPoints = {};
   double _totalPoints = 0;
+  Map<String, double> _subjectPoints = {};
+  String _friendQuery = '';
+  bool _showFriends = false;
+  bool _editingFriends = false;
 
   @override
   void initState() {
@@ -83,9 +112,11 @@ class UserProfilePageState extends State<UserProfilePage> {
   }
 
   Future<void> _deleteFriend(UserProfile friend) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(backgroundColor: AppColors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    final confirmed = await showAppDialog<bool>(
+      context: _navigationContext,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Remove friend?'),
         content: Text(
           '${friend.resolvedDisplayName} will be removed from your friends.',
@@ -116,114 +147,65 @@ class UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _loadAchievements() async {
     final points = await _projectsRepo.getTotalEcoPoints();
-    if (!mounted) return;
-    setState(() => _totalPoints = points);
-  }
-
-  Future<void> _pickProfileImage(ImageSource source) async {
-    setState(() => _isUploading = true);
-    final imageUrl = await _mediaService.pickAndUploadImage(
-      source,
-      folder: 'profile-images',
-    );
-    if (!mounted) return;
-    if (imageUrl == null) {
-      setState(() => _isUploading = false);
-      showTopSnackBar(context, 'Failed to upload profile image', isError: true);
-      return;
-    }
-    await _usersRepo.updateCurrentUserProfile(avatarUrl: imageUrl);
-    if (widget.onProfileUpdated != null) {
-      await widget.onProfileUpdated!();
-    }
+    final subjects = await _projectsRepo.getCurrentUserSubjectEcoPoints();
     if (!mounted) return;
     setState(() {
-      _avatarUrl = imageUrl;
-      _isUploading = false;
+      _totalPoints = points;
+      _subjectPoints = subjects;
     });
-    showTopSnackBar(context, 'Profile image updated');
-  }
-
-  void _showImageSourceSheet() {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (_) => CupertinoActionSheet(
-        title: const Text('Profile Photo'),
-        message: const Text('Choose image source'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _pickProfileImage(ImageSource.camera);
-            },
-            child: const Text('Take Photo'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _pickProfileImage(ImageSource.gallery);
-            },
-            child: const Text('Choose from Gallery'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
   }
 
   // ── Avatar ────────────────────────────────────────────────────────────────
 
   Widget _buildAvatar() {
-    return GestureDetector(
-      onTap: _isUploading ? null : _showImageSourceSheet,
-      child: Stack(
-        alignment: Alignment.bottomRight,
-        children: [
-          Container(
-            width: 112,
-            height: 112,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.white, width: 4),
-            ),
-            child: ClipOval(
-              child: CircleAvatar(
-                radius: 52,
-                backgroundColor: AppColors.avatarBackground,
-                backgroundImage: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                    ? NetworkImage(_avatarUrl!)
-                    : null,
-                child: (_avatarUrl == null || _avatarUrl!.isEmpty)
-                    ? const Icon(
-                        Icons.person,
-                        size: 50,
-                        color: AppColors.avatarIcon,
-                      )
-                    : null,
+    return Semantics(
+      button: true,
+      label: 'View your profile',
+      child: GestureDetector(
+        onTap: () {
+          final id = _authService.currentUser?.id;
+          if (id != null) openUserProfile(_navigationContext, id);
+        },
+        child: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Container(
+              width: widget.compact ? 80 : 112,
+              height: widget.compact ? 80 : 112,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.white, width: 4),
+              ),
+              child: ClipOval(
+                child: CircleAvatar(
+                  radius: 52,
+                  backgroundColor: AppColors.avatarBackground,
+                  backgroundImage:
+                      (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                      ? NetworkImage(_avatarUrl!)
+                      : null,
+                  child: (_avatarUrl == null || _avatarUrl!.isEmpty)
+                      ? const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: AppColors.avatarIcon,
+                        )
+                      : null,
+                ),
               ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: _isUploading
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.camera_alt, size: 14, color: AppColors.white),
-          ),
-        ],
+            if (_isUploading)
+              const Positioned.fill(
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -240,29 +222,31 @@ class UserProfilePageState extends State<UserProfilePage> {
       ),
       child: Row(
         children: [
-          _buildStatItem(
-            Icons.star_border_outlined,
-            'ECOPOINTS',
-            _totalPoints.toStringAsFixed(0),
-          ),
+          _buildStatItem('ECOPOINTS', _totalPoints.toStringAsFixed(0)),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value) {
+  Widget _buildStatItem(String label, String value) {
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white70, size: 22),
+          SvgPicture.asset(
+            'assets/project_setup/card_eco_leaf.svg',
+            width: 26,
+            height: 26,
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          ),
           const SizedBox(height: 4),
           Text(
             label,
             style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: Colors.white70,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
+              fontSize: AppTypography.captionSize,
+              fontWeight: FontWeight.w400,
               letterSpacing: 0.5,
             ),
           ),
@@ -270,9 +254,10 @@ class UserProfilePageState extends State<UserProfilePage> {
           Text(
             value,
             style: const TextStyle(
+              fontFamily: AppTypography.headingFamily,
               color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontSize: AppTypography.sectionTitleSize,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -283,6 +268,13 @@ class UserProfilePageState extends State<UserProfilePage> {
   // ── Tab bar ───────────────────────────────────────────────────────────────
 
   Widget _buildFriendsContent() {
+    final matching = _friends
+        .where(
+          (friend) => ('${friend.resolvedDisplayName} ${friend.username ?? ''}')
+              .toLowerCase()
+              .contains(_friendQuery.trim().toLowerCase()),
+        )
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -294,20 +286,34 @@ class UserProfilePageState extends State<UserProfilePage> {
               Text(
                 '${_friends.length} Friends',
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.person_add_outlined, size: 22),
+                  IconButton.outlined(
+                    tooltip: _editingFriends
+                        ? 'Done editing'
+                        : 'Manage friends',
+                    onPressed: () =>
+                        setState(() => _editingFriends = !_editingFriends),
+                    icon: Icon(
+                      _editingFriends ? Icons.check : Icons.edit_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.outlined(
+                    icon: const Icon(Icons.add, size: 22),
                     tooltip: 'Add friend',
                     onPressed: () async {
-                      await Navigator.push(
-                        context,
+                      await pushAppRoute(
+                        _navigationContext,
                         MaterialPageRoute(
-                          builder: (_) => const HomeSearchScreen(),
+                          builder: (_) => const HomeSearchScreen(
+                            initialScope: SearchScope.friends,
+                          ),
                         ),
                       );
                       if (!mounted) return;
@@ -324,92 +330,259 @@ class UserProfilePageState extends State<UserProfilePage> {
             ],
           ),
         ),
-        if (_friends.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: TextField(
+            onChanged: (value) => setState(() => _friendQuery = value),
+            decoration: const InputDecoration(
+              hintText: 'Search friends',
+              prefixIcon: Icon(Icons.search),
+              isDense: true,
+            ),
+          ),
+        ),
+        if (matching.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Center(
               child: Text(
-                'No friends yet.\nSearch for people to connect with!',
+                _friends.isEmpty
+                    ? 'No friends yet.\nSearch for people to connect with!'
+                    : 'No friends match your search.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54, fontSize: 15),
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.textSecondary,
+                  fontSize: AppTypography.helperSize,
+                ),
               ),
             ),
           )
         else
-          ...List.generate(_friends.length, (index) {
-            final friend = _friends[index];
-            final avatarUrl = friend.avatarUrl;
-            return Container(
-              margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.borderLight),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height.clamp(400.0, 800.0) * .42,
+            child: ListView.builder(
+              primary: false,
+              itemCount: matching.length,
+              itemBuilder: (context, index) {
+                final friend = matching[index];
+                final avatarUrl = friend.avatarUrl;
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppColors.avatarBackground,
-                    backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: (avatarUrl == null || avatarUrl.isEmpty)
-                        ? const Icon(
-                            Icons.person,
-                            color: AppColors.avatarIcon,
-                            size: 22,
-                          )
-                        : null,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.borderLight),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          friend.resolvedDisplayName,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () =>
+                            openUserProfile(_navigationContext, friend.id),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.avatarBackground,
+                          backgroundImage:
+                              (avatarUrl != null && avatarUrl.isNotEmpty)
+                              ? NetworkImage(avatarUrl)
+                              : null,
+                          child: (avatarUrl == null || avatarUrl.isEmpty)
+                              ? const Icon(
+                                  Icons.person,
+                                  color: AppColors.avatarIcon,
+                                  size: 22,
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => pushAppRoute(
+                            _navigationContext,
+                            MaterialPageRoute(
+                              builder: (_) => PublicUserProfilePage(
+                                userId: friend.id,
+                                profile: friend,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                friend.resolvedDisplayName,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.bodySize,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '${(_friendPoints[friend.id] ?? 0).toStringAsFixed(0)} EcoPoints',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.bodySize,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          '${(_friendPoints[friend.id] ?? 0).toStringAsFixed(0)} Points',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade500,
+                      ),
+                      if (_editingFriends)
+                        IconButton.outlined(
+                          tooltip: 'Remove friend',
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Colors.grey.shade400,
+                            size: 20,
                           ),
+                          onPressed: () => _deleteFriend(friend),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildProfileTabs() => CupertinoSlidingSegmentedControl<bool>(
+    groupValue: _showFriends,
+    children: const {
+      false: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Text('Progress'),
+      ),
+      true: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Text('Friends'),
+      ),
+    },
+    onValueChanged: (value) {
+      if (value != null) setState(() => _showFriends = value);
+    },
+  );
+
+  Widget _buildProgressContent() {
+    const subjects = [
+      ('Environment & Sustainability', 'environment', Color(0xFF12B85A)),
+      ('Engineering & Design', 'engineering', Color(0xFF009ECB)),
+      ('Energy & Systems', 'energy', Color(0xFFE0B900)),
+      ('Community & Built Environment', 'community', Color(0xFFE85870)),
+    ];
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: widget.compact ? 0 : 28),
+      child: Column(
+        children: [
+          for (final subject in subjects)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Material(
+                color: Colors.white,
+                elevation: 2,
+                shadowColor: const Color(0x18000000),
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => pushAppRoute(
+                    _navigationContext,
+                    MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: Text(subject.$1)),
+                        body: ProjectBrowsePage(
+                          library: true,
+                          initialSubject: subject.$1,
+                        ),
+                      ),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          padding: const EdgeInsets.all(11),
+                          decoration: BoxDecoration(
+                            color: subject.$3,
+                            shape: BoxShape.circle,
+                          ),
+                          child: SvgPicture.asset(
+                            'assets/project_setup/subject_${subject.$2}.svg',
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(subject.$1, style: AppTypography.fieldLabel),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${(_subjectPoints[subject.$1] ?? 0).toStringAsFixed(0)} EcoPoints',
+                                style: AppTypography.helper,
+                              ),
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(
+                                value: _totalPoints == 0
+                                    ? 0
+                                    : ((_subjectPoints[subject.$1] ?? 0) /
+                                              _totalPoints)
+                                          .clamp(0, 1),
+                                color: subject.$3,
+                                backgroundColor: const Color(0xFFF2F5F3),
+                                minHeight: 7,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.primary,
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: Colors.grey.shade400,
-                      size: 20,
-                    ),
-                    onPressed: () => _deleteFriend(friend),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            );
-          }),
-      ],
+            ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 0, 12, 16),
+            child: Text(
+              'EcoPoints by subject',
+              style: AppTypography.helper,
+              textAlign: TextAlign.center,
+              softWrap: true,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -417,6 +590,93 @@ class UserProfilePageState extends State<UserProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.compact) {
+      return AnimatedBuilder(
+        animation: desktopRouteObserver.changes,
+        builder: (context, _) => DesktopSideScroll(
+          key: const ValueKey('desktop-profile-progress'),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: const Color(0xFFE2E8E3)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          tooltip: 'Notifications',
+                          onPressed: widget.onNotifications,
+                          icon: Badge(
+                            isLabelVisible: widget.notificationCount > 0,
+                            label: Text('${widget.notificationCount}'),
+                            child: const Icon(Icons.notifications_outlined),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Sign out',
+                          onPressed: widget.onLogout,
+                          icon: const Icon(Icons.logout),
+                        ),
+                      ],
+                    ),
+                    _buildAvatar(),
+                    const SizedBox(height: 16),
+                    Text(
+                      _displayName,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.sectionTitle,
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        final id = _authService.currentUser?.id;
+                        if (id != null) openUserProfile(_navigationContext, id);
+                      },
+                      child: const Text('View profile'),
+                    ),
+                    if (!desktopRouteObserver.showingProfile) ...[
+                      const SizedBox(height: 16),
+                      _buildStatsCard(),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: widget.onMessages,
+                icon: Badge(
+                  isLabelVisible: widget.unreadMessageCount > 0,
+                  label: Text('${widget.unreadMessageCount}'),
+                  child: const Icon(Icons.chat_bubble_outline),
+                ),
+                label: const Text('Messages'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+              ),
+              if (!desktopRouteObserver.showingProfile) ...[
+                const SizedBox(height: 24),
+                _buildProfileTabs(),
+                const SizedBox(height: 20),
+                AppContentTransition(
+                  index: _showFriends,
+                  child: _showFriends
+                      ? _buildFriendsContent()
+                      : _buildProgressContent(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
     // Layout uses a Stack so the white card can overlap the green header,
     // and the avatar can straddle their boundary.
     //
@@ -452,7 +712,7 @@ class UserProfilePageState extends State<UserProfilePage> {
             ),
             clipBehavior: Clip.hardEdge,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.only(bottom: 110),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -461,8 +721,9 @@ class UserProfilePageState extends State<UserProfilePage> {
                     child: Text(
                       _displayName,
                       style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: AppTypography.headingFamily,
+                        fontSize: AppTypography.sectionTitleSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -471,16 +732,27 @@ class UserProfilePageState extends State<UserProfilePage> {
                     child: Text(
                       _email.isNotEmpty ? _email : 'Member',
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black54,
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppMetrics.fieldGap),
                   _buildStatsCard(),
                   const SizedBox(height: 16),
-                  _buildFriendsContent(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildProfileTabs(),
+                  ),
+                  const SizedBox(height: 20),
+                  AppContentTransition(
+                    index: _showFriends,
+                    child: _showFriends
+                        ? _buildFriendsContent()
+                        : _buildProgressContent(),
+                  ),
                 ],
               ),
             ),

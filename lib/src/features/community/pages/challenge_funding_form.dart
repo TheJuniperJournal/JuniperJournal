@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/db/models/design_challenge.dart';
 import 'package:juniper_journal/src/backend/db/repositories/challenges_repo.dart';
@@ -94,16 +96,18 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left,
-              size: 28, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: const Text('Funding and Materials',
-            style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
+        title: const Text(
+          'Funding and Materials',
+          style: AppTypography.pageTitle,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
@@ -126,38 +130,54 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                       _budgetLabel(),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: AppTypography.sectionTitleSize,
                         fontWeight: FontWeight.w800,
                         color: _budgetColor(),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text('Budget',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary)),
+                    const Text(
+                      'Budget',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppMetrics.fieldGap),
 
             // Slider
             if (!_noRestriction) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
-                  Text('\$0',
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary)),
-                  Text('\$100',
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary)),
+                  Text(
+                    '\$0',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    '\$100',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
               RangeSlider(
                 values: RangeValues(
-                    _budgetMin.clamp(0, _budgetMax),
-                    _budgetMax.clamp(_budgetMin, 100)),
+                  _budgetMin.clamp(0, _budgetMax),
+                  _budgetMax.clamp(_budgetMin, 100),
+                ),
                 min: 0,
                 max: 100,
                 divisions: 20,
@@ -174,11 +194,15 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
             // No Restriction toggle
             Row(
               children: [
-                const Text('No Budget Restriction',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary)),
+                const Text(
+                  'No Budget Restriction',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 const Spacer(),
                 Switch(
                   value: _noRestriction,
@@ -193,7 +217,9 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
               child: Container(
                 margin: const EdgeInsets.only(top: 8, bottom: 24),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: _budgetColor(),
                   borderRadius: BorderRadius.circular(8),
@@ -201,19 +227,25 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                 child: Text(
                   _budgetTag(),
                   style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 0.5),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
 
-            const Text('Materials',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary)),
+            const Text(
+              'Materials',
+              style: TextStyle(
+                fontFamily: AppTypography.headingFamily,
+                fontSize: AppTypography.sectionTitleSize,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(height: 12),
 
             ..._materials.asMap().entries.map((entry) {
@@ -221,20 +253,30 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.circle,
-                          size: 8, color: AppColors.primary),
+                      const Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(entry.value,
-                            style: const TextStyle(
-                                fontSize: 15,
-                                color: AppColors.textPrimary)),
+                        child: Text(
+                          entry.value,
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                       GestureDetector(
-                        onTap: () => setState(
-                            () => _materials.removeAt(entry.key)),
-                        child: const Icon(Icons.close,
-                            size: 18, color: AppColors.textSecondary),
+                        onTap: () =>
+                            setState(() => _materials.removeAt(entry.key)),
+                        child: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -253,29 +295,33 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                     color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.add,
-                      size: 16, color: Colors.white),
+                  child: const Icon(Icons.add, size: 16, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _newItemCtrl,
                     style: const TextStyle(
-                        fontSize: 15, color: AppColors.textPrimary),
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      color: AppColors.textPrimary,
+                    ),
                     decoration: const InputDecoration(
-                      hintText: 'Add Item',
+                      hintText: '',
                       hintStyle: TextStyle(
-                          color: AppColors.hintText, fontSize: 15),
+                        fontFamily: AppTypography.bodyFamily,
+                        color: AppColors.hintText,
+                        fontSize: AppTypography.helperSize,
+                      ),
                       border: InputBorder.none,
                     ),
                     onSubmitted: (_) => _addMaterial(),
                   ),
                 ),
-                TextButton(
-                    onPressed: _addMaterial, child: const Text('Add')),
+                TextButton(onPressed: _addMaterial, child: const Text('Add')),
               ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: AppMetrics.journalSectionGap),
 
             SizedBox(
               width: double.infinity,
@@ -287,16 +333,23 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700),
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 child: _saving
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Save'),
               ),
             ),

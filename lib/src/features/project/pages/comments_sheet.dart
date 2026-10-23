@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
+import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:juniper_journal/src/backend/db/models/comment.dart';
@@ -32,7 +36,7 @@ class CommentsSheet extends StatefulWidget {
 
 class _CommentsSheetState extends State<CommentsSheet> {
   final _repo = CommentsRepo();
-  final _textController = TextEditingController();
+  final _textController = ConversationController();
   final _scrollController = ScrollController();
 
   List<Comment>? _comments;
@@ -70,6 +74,13 @@ class _CommentsSheetState extends State<CommentsSheet> {
         _hasError = true;
       } else {
         _comments = result;
+        for (final c in result) {
+          _textController.remember(
+            c.userId,
+            c.resolvedAuthorName,
+            c.authorUsername,
+          );
+        }
       }
     });
   }
@@ -81,7 +92,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
     setState(() => _isSending = true);
     final comment = await _repo.postComment(
       projectId: widget.projectId,
-      content: text,
+      content: _textController.payload,
     );
     if (!mounted) return;
     setState(() => _isSending = false);
@@ -102,9 +113,11 @@ class _CommentsSheetState extends State<CommentsSheet> {
   }
 
   Future<void> _deleteComment(Comment comment) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete comment?'),
         content: const Text('This cannot be undone.'),
         actions: [
@@ -144,45 +157,47 @@ class _CommentsSheetState extends State<CommentsSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 4),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
               // Sticky header
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: Column(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.projectName,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.projectName,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.headingFamily,
+                              fontSize: AppTypography.sectionTitleSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (widget.description != null &&
+                              widget.description!.trim().isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.description!.trim(),
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.helperSize,
+                                color: AppColors.textSecondary,
+                                height: 1.4,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (widget.description != null &&
-                        widget.description!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.description!.trim(),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                          height: 1.4,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                    IconButton(
+                      tooltip: 'Close comments',
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.close),
+                    ),
                   ],
                 ),
               ),
@@ -192,36 +207,47 @@ class _CommentsSheetState extends State<CommentsSheet> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _hasError
-                        ? GestureDetector(
-                            onTap: _load,
-                            child: const Center(
-                              child: Text(
-                                "Couldn't load comments. Tap to retry.",
-                                style: TextStyle(color: Colors.black54),
-                                textAlign: TextAlign.center,
-                              ),
+                    ? GestureDetector(
+                        onTap: _load,
+                        child: const Center(
+                          child: Text(
+                            "Couldn't load comments. Tap to retry.",
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w400,
                             ),
-                          )
-                        : _comments!.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'No comments yet. Be the first!',
-                                  style: TextStyle(color: Colors.black54),
-                                ),
-                              )
-                            : ListView.builder(
-                                controller: scrollController,
-                                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                                itemCount: _comments!.length,
-                                itemBuilder: (_, i) {
-                                  final comment = _comments![i];
-                                  return _CommentTile(
-                                    comment: comment,
-                                    isOwn: comment.userId == _currentUserId,
-                                    onDelete: () => _deleteComment(comment),
-                                  );
-                                },
-                              ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : _comments!.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No comments yet. Be the first!',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        itemCount: _comments!.length,
+                        itemBuilder: (_, i) {
+                          final comment = _comments![i];
+                          return _CommentTile(
+                            comment: comment,
+                            onReply: () => _textController.replyTo(
+                              comment.id,
+                              comment.resolvedAuthorName,
+                              comment.content,
+                            ),
+                            isOwn: comment.userId == _currentUserId,
+                            onDelete: () => _deleteComment(comment),
+                          );
+                        },
+                      ),
               ),
               const Divider(height: 1),
               // Input bar
@@ -232,25 +258,37 @@ class _CommentsSheetState extends State<CommentsSheet> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextField(
+                        child: ConversationComposer(
                           controller: _textController,
-                          maxLength: 500,
-                          maxLines: null,
-                          decoration: InputDecoration(
-                            hintText: 'Add a comment…',
-                            counterText: '',
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                          child: TextField(
+                            buildCounter:
+                                (
+                                  _, {
+                                  required currentLength,
+                                  required isFocused,
+                                  maxLength,
+                                }) => null,
+                            controller: _textController,
+                            focusNode: _textController.focusNode,
+                            enabled: !_isSending,
+                            maxLength: 500,
+                            maxLines: null,
+                            decoration: InputDecoration(
+                              hintText: '',
+                              counterText: '',
+                              filled: true,
+                              fillColor: Colors.grey.shade100,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 10,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(999),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(999),
-                              borderSide: BorderSide.none,
-                            ),
+                            textInputAction: TextInputAction.newline,
                           ),
-                          textInputAction: TextInputAction.newline,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -284,11 +322,13 @@ class _CommentTile extends StatelessWidget {
   final Comment comment;
   final bool isOwn;
   final VoidCallback onDelete;
+  final VoidCallback onReply;
 
   const _CommentTile({
     required this.comment,
     required this.isOwn,
     required this.onDelete,
+    required this.onReply,
   });
 
   @override
@@ -305,50 +345,45 @@ class _CommentTile extends StatelessWidget {
               backgroundColor: AppColors.primaryTint,
               backgroundImage:
                   (comment.authorAvatarUrl != null &&
-                          comment.authorAvatarUrl!.isNotEmpty)
-                      ? NetworkImage(comment.authorAvatarUrl!)
-                      : null,
+                      comment.authorAvatarUrl!.isNotEmpty)
+                  ? NetworkImage(comment.authorAvatarUrl!)
+                  : null,
               child:
                   (comment.authorAvatarUrl == null ||
-                          comment.authorAvatarUrl!.isEmpty)
-                      ? const Icon(
-                          Icons.person_outline,
-                          color: AppColors.primary,
-                          size: 18,
-                        )
-                      : null,
+                      comment.authorAvatarUrl!.isEmpty)
+                  ? const Icon(
+                      Icons.person_outline,
+                      color: AppColors.primary,
+                      size: 18,
+                    )
+                  : null,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: '${comment.resolvedAuthorName} ',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        TextSpan(text: comment.content),
-                      ],
-                    ),
+                  Text(
+                    comment.resolvedAuthorName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
+                  ConversationBody(comment.content),
+                  TextButton(onPressed: onReply, child: const Text('Reply')),
                   const SizedBox(height: 3),
                   Text(
                     _timeAgo(comment.createdAt),
                     style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.black45,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
+            ),
+            FlowerReactionButton(
+              target: FlowerTarget.projectComment,
+              targetId: comment.id,
             ),
           ],
         ),

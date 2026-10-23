@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/db/models/project.dart';
 import 'package:juniper_journal/src/backend/db/repositories/friends_repo.dart';
@@ -82,11 +84,7 @@ class _FriendProjectsPageState extends State<FriendProjectsPage> {
         ),
         title: Text(
           '${widget.displayName}\'s Projects',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTypography.pageTitle,
         ),
         centerTitle: true,
       ),
@@ -100,7 +98,10 @@ class _FriendProjectsPageState extends State<FriendProjectsPage> {
                   child: Text(
                     'This user\'s projects are private.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               )
@@ -108,7 +109,10 @@ class _FriendProjectsPageState extends State<FriendProjectsPage> {
             ? const Center(
                 child: Text(
                   'No projects available.',
-                  style: TextStyle(color: Colors.black54),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               )
             : ListView.separated(
@@ -147,7 +151,7 @@ class _FriendProjectsPageState extends State<FriendProjectsPage> {
                         ? const Text('No tags')
                         : Text(tags.join(' • ')),
                     onTap: () {
-                      Navigator.push(
+                      pushAppRoute(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ProjectDashboard(

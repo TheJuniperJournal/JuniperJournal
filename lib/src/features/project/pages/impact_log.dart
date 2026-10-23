@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:juniper_journal/src/backend/db/models/impact_entry.dart';
@@ -48,7 +52,7 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
 
   Future<void> _createEntry() async {
     final number = _entries.length + 1;
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
         builder: (_) => ImpactEntryFormScreen(
@@ -63,7 +67,7 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
   }
 
   Future<void> _editEntry(ImpactEntry entry) async {
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
         builder: (_) => ImpactEntryFormScreen(
@@ -78,7 +82,7 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
   }
 
   Future<void> _viewEntry(ImpactEntry entry) async {
-    await Navigator.push(
+    await pushAppRoute(
       context,
       MaterialPageRoute(
         builder: (_) => ImpactEntryFormScreen(
@@ -92,12 +96,13 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
   }
 
   Future<void> _deleteEntry(ImpactEntry entry) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete entry?'),
-        content:
-            const Text('This impact entry will be permanently removed.'),
+        content: const Text('This impact entry will be permanently removed.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -105,8 +110,7 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Delete'),
           ),
         ],
@@ -136,10 +140,7 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'No impact entries yet.',
-              textAlign: TextAlign.center,
-            ),
+            const Text('No impact entries yet.', textAlign: TextAlign.center),
             if (widget.isOwner) ...[
               const SizedBox(height: 12),
               FilledButton.icon(
@@ -147,7 +148,8 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('New Entry'),
                 style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary),
+                  backgroundColor: AppColors.primary,
+                ),
               ),
             ],
           ],
@@ -167,7 +169,8 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
               final entry = _entries[index];
               return InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => widget.isOwner ? _editEntry(entry) : _viewEntry(entry),
+                onTap: () =>
+                    widget.isOwner ? _editEntry(entry) : _viewEntry(entry),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -184,8 +187,9 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.4),
-                              width: 1.5),
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            width: 1.5,
+                          ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -193,15 +197,17 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
                             Text(
                               entry.ecoPoints.toStringAsFixed(2),
                               style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
                                 color: AppColors.primary,
                               ),
                             ),
                             const Text(
                               'EP',
                               style: TextStyle(
-                                fontSize: 9,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.captionSize,
                                 color: AppColors.primary,
                               ),
                             ),
@@ -218,8 +224,9 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
                                   ? entry.title
                                   : 'Untitled Entry',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
+                                fontFamily: AppTypography.bodyFamily,
+                                fontWeight: FontWeight.w500,
+                                fontSize: AppTypography.bodySize,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -228,21 +235,20 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
                               spacing: 6,
                               runSpacing: 4,
                               children: [
-                                _Chip(entry.metric,
-                                    color: AppColors.primary),
-                                _Chip(entry.patternType,
-                                    color: Colors.black54),
-                                _Chip(entry.impactScale,
-                                    color: Colors.black38),
+                                _Chip(entry.metric, color: AppColors.primary),
+                                _Chip(entry.patternType, color: Colors.black54),
+                                _Chip(entry.impactScale, color: Colors.black38),
                               ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               _formattedDate(
-                                  entry.updatedAt ?? entry.createdAt),
+                                entry.updatedAt ?? entry.createdAt,
+                              ),
                               style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 12,
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.textSecondary,
+                                fontSize: AppTypography.helperSize,
                               ),
                             ),
                           ],
@@ -286,22 +292,21 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              size: 18, color: AppColors.border),
-          onPressed: () => Navigator.pop(context),
+        leadingWidth: 60,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: ContentAlignedBackButton(
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         title: Text(
           '${widget.projectName} Impact',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTypography.pageTitle,
         ),
         centerTitle: true,
         shape: const Border(
-            bottom: BorderSide(color: AppColors.divider, width: 0.6)),
+          bottom: BorderSide(color: AppColors.divider, width: 0.6),
+        ),
       ),
       body: SafeArea(child: _buildBody()),
     );
@@ -324,9 +329,10 @@ class _Chip extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
           color: color,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );

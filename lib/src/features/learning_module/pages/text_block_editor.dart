@@ -1,3 +1,9 @@
+import '../../../shared/widgets/evidence_description_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -163,7 +169,7 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
       _contentController.text.trim().isNotEmpty || _mediaItems.isNotEmpty;
 
   void _saveBlock() {
-    if (!_hasContent || !_assessment.isValid) {
+    if (!_hasContent) {
       setState(() => _showValidation = true);
       return;
     }
@@ -208,7 +214,7 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
   }
 
   void _showUploadSheet(int index) {
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
@@ -301,7 +307,12 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -312,18 +323,18 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _SectionLabel(label: 'Content'),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _LabeledField(
                           label: 'Title',
                           optional: true,
                           child: _TextInputBox(
                             controller: _titleController,
                             maxLength: 100,
-                            height: 34,
+                            height: 64,
                             singleLine: true,
                           ),
                         ),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _SectionLabel(label: 'Text Content'),
                         const SizedBox(height: 10),
                         _TextContentEditor(
@@ -351,11 +362,7 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
                           const SizedBox(height: 7),
                           const Text(
                             'Add text content or supporting media.',
-                            style: TextStyle(
-                              color: Color(0xFFD12E2E),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppTypography.helper,
                           ),
                         ],
                         const SizedBox(height: 23),
@@ -363,7 +370,7 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
                           label: 'Supporting Media',
                           optional: true,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: AppMetrics.labelGap),
                         Row(
                           children: [
                             _SmallOutlineButton(
@@ -379,7 +386,7 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
                           ],
                         ),
                         if (_mediaItems.isNotEmpty) ...[
-                          const SizedBox(height: 28),
+                          const SizedBox(height: AppMetrics.sectionGap),
                           _ImagesSection(
                             items: _mediaItems,
                             controllers: _mediaControllers,
@@ -394,14 +401,14 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
                               _uploadError!,
                               style: const TextStyle(
                                 color: Color(0xFFD12E2E),
-                                fontSize: 12,
+                                fontSize: AppTypography.helperSize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
-                          const SizedBox(height: 14),
+                          const SizedBox(height: AppMetrics.labelGap),
                           _LabeledField(
-                            label: 'Caption',
+                            label: 'Evidence description',
                             optional: true,
                             child: _TextInputBox(
                               controller: _captionController,
@@ -412,25 +419,8 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
                           ),
                         ],
                         const SizedBox(height: 27),
-                        InquiryLensSelector(
-                          data: _inquiryLensData,
-                          onChanged: (value) =>
-                              setState(() => _inquiryLensData = value),
-                        ),
-                        const SizedBox(height: 27),
-                        const _SectionLabel(
-                          label: 'Assessment',
-                          optional: true,
-                        ),
-                        const SizedBox(height: 17),
-                        AssessmentBlockSection(
-                          value: _assessment,
-                          showValidation: _showValidation,
-                          onChanged: (value) {
-                            setState(() => _assessment = value);
-                          },
-                        ),
-                        const SizedBox(height: 32),
+
+                        const SizedBox(height: AppMetrics.sectionGap),
                         Center(
                           child: _PrimaryActionButton(
                             label: _isEditing ? 'Save' : 'Add Block',
@@ -451,52 +441,11 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
-
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 92,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 27,
-            child: Text(
-              'Text Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _TextBlockEditorScreenState._text,
-                fontSize: 18,
-                height: 1,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 25,
-            top: 23,
-            width: 20,
-            height: 20,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const _BackChevron(),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(height: 1, thickness: 1, color: Color(0xFFE6E6E6)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Text Block', onBack: onBack);
 }
 
 class _LabeledField extends StatelessWidget {
@@ -535,10 +484,11 @@ class _SectionLabel extends StatelessWidget {
       text: TextSpan(
         text: label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _TextBlockEditorScreenState._text,
-          fontSize: 15,
+          fontSize: AppTypography.bodySize,
           height: 1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
@@ -546,8 +496,8 @@ class _SectionLabel extends StatelessWidget {
               text: ' (optional)',
               style: TextStyle(
                 color: Color(0xFFC8C8C8),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
         ],
@@ -573,6 +523,7 @@ class _TextInputBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!singleLine) return EvidenceDescriptionField(controller: controller);
     return SizedBox(
       height: height + 17,
       child: Stack(
@@ -583,12 +534,19 @@ class _TextInputBox extends StatelessWidget {
             top: 0,
             height: height,
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: maxLength,
               maxLines: singleLine ? 1 : maxLines,
               decoration: InputDecoration(
                 counterText: '',
-                contentPadding: const EdgeInsets.fromLTRB(13, 8, 13, 8),
+                contentPadding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(9),
                   borderSide: const BorderSide(
@@ -599,30 +557,18 @@ class _TextInputBox extends StatelessWidget {
                   borderRadius: BorderRadius.circular(9),
                   borderSide: const BorderSide(
                     color: _TextBlockEditorScreenState._border,
-                    width: 1.2,
                   ),
                 ),
               ),
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _TextBlockEditorScreenState._text,
-                fontSize: 14,
+                fontSize: AppTypography.bodySize,
                 fontWeight: FontWeight.w400,
               ),
             ),
           ),
-          Positioned(
-            right: 2,
-            bottom: 0,
-            child: Text(
-              '${controller.text.length}/$maxLength',
-              style: const TextStyle(
-                color: _TextBlockEditorScreenState._mutedText,
-                fontSize: 9,
-                height: 1,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
+          Positioned(right: 2, bottom: 0, child: const SizedBox.shrink()),
         ],
       ),
     );
@@ -697,6 +643,13 @@ class _TextContentEditor extends StatelessWidget {
                   Container(height: 1, color: borderColor),
                   Expanded(
                     child: TextField(
+                      buildCounter:
+                          (
+                            _, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                       controller: controller,
                       maxLength: maxLength,
                       maxLines: null,
@@ -710,7 +663,10 @@ class _TextContentEditor extends StatelessWidget {
                       decoration: const InputDecoration(
                         counterText: '',
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 12,
+                        ),
                       ),
                       style: TextStyle(
                         color: _TextBlockEditorScreenState._text,
@@ -727,18 +683,7 @@ class _TextContentEditor extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            right: 4,
-            bottom: 0,
-            child: Text(
-              '${controller.text.length}/$maxLength',
-              style: const TextStyle(
-                color: _TextBlockEditorScreenState._mutedText,
-                fontSize: 9,
-                height: 1,
-              ),
-            ),
-          ),
+          Positioned(right: 4, bottom: 0, child: const SizedBox.shrink()),
         ],
       ),
     );
@@ -887,9 +832,10 @@ class _TinyDropdown extends StatelessWidget {
             Text(
               value,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _TextBlockEditorScreenState._text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 2),
@@ -931,7 +877,11 @@ class _SmallOutlineButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.buttonSize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -964,9 +914,10 @@ class _ImagesSection extends StatelessWidget {
             Text(
               'Images (${items.length} of 10)',
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _TextBlockEditorScreenState._text,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
@@ -987,7 +938,11 @@ class _ImagesSection extends StatelessWidget {
                 ),
                 child: const Text(
                   '+  Add Image',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.buttonSize,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -1043,8 +998,8 @@ class _ImageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 83,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           const SizedBox(width: 8),
@@ -1100,8 +1055,8 @@ class _ImageRow extends StatelessWidget {
                           'Click to upload',
                           style: TextStyle(
                             color: Color(0xFFC8C8C8),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -1117,17 +1072,22 @@ class _ImageRow extends StatelessWidget {
                 Text(
                   'Image ${index + 1}',
                   style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
                     color: _TextBlockEditorScreenState._text,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 9),
-                SizedBox(
-                  height: 35,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 100),
                   child: TextField(
                     controller: controller,
+                    minLines: 3,
+                    maxLines: null,
                     decoration: InputDecoration(
+                      labelText: 'Image ${index + 1} caption',
+                      hintText: 'Explain what this image shows.',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 9,
                         vertical: 7,
@@ -1145,7 +1105,10 @@ class _ImageRow extends StatelessWidget {
                         ),
                       ),
                     ),
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                    ),
                   ),
                 ),
               ],
@@ -1187,9 +1150,10 @@ class _NumberBadge extends StatelessWidget {
       child: Text(
         '$number',
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _TextBlockEditorScreenState._green,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontSize: AppTypography.helperSize,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -1292,9 +1256,10 @@ class _DropdownField extends StatelessWidget {
               child: Text(
                 value,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _TextBlockEditorScreenState._text,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -1335,7 +1300,11 @@ class _PrimaryActionButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.buttonSize,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -1379,44 +1348,11 @@ class _UploadAction extends StatelessWidget {
             color: isCancel
                 ? const Color(0xFF007AFF)
                 : _TextBlockEditorScreenState._text,
-            fontSize: 22,
+            fontSize: AppTypography.sectionTitleSize,
             fontWeight: FontWeight.w400,
           ),
         ),
       ),
     );
   }
-}
-
-class _BackChevron extends StatelessWidget {
-  const _BackChevron();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(20, 20),
-      painter: _BackChevronPainter(),
-    );
-  }
-}
-
-class _BackChevronPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _TextBlockEditorScreenState._green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path()
-      ..moveTo(size.width * 0.68, size.height * 0.08)
-      ..lineTo(size.width * 0.28, size.height * 0.5)
-      ..lineTo(size.width * 0.68, size.height * 0.92);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -41,28 +41,27 @@ class Community {
     String? visibility,
     String? subjectFocus,
     String? bannerColorHex,
-  }) =>
-      Community(
-        id: id,
-        name: name ?? this.name,
-        imageUrl: imageUrl ?? this.imageUrl,
-        visibility: visibility ?? this.visibility,
-        subjectFocus: subjectFocus ?? this.subjectFocus,
-        createdBy: createdBy,
-        conversationId: conversationId,
-        bannerColorHex: bannerColorHex ?? this.bannerColorHex,
-        createdAt: createdAt,
-      );
+  }) => Community(
+    id: id,
+    name: name ?? this.name,
+    imageUrl: imageUrl ?? this.imageUrl,
+    visibility: visibility ?? this.visibility,
+    subjectFocus: subjectFocus ?? this.subjectFocus,
+    createdBy: createdBy,
+    conversationId: conversationId,
+    bannerColorHex: bannerColorHex ?? this.bannerColorHex,
+    createdAt: createdAt,
+  );
 
   factory Community.fromMap(Map<String, dynamic> map) => Community(
-        id: map['id']?.toString() ?? '',
-        name: map['name']?.toString() ?? '',
-        imageUrl: map['image_url']?.toString(),
-        visibility: map['visibility']?.toString() ?? 'public',
-        subjectFocus: map['subject_focus']?.toString(),
-        createdBy: map['created_by']?.toString() ?? '',
-        conversationId: map['conversation_id']?.toString(),
-        bannerColorHex: map['banner_color']?.toString(),
-        createdAt: DateTime.tryParse(map['created_at']?.toString() ?? ''),
-      );
+    id: map['id']?.toString() ?? '',
+    name: map['name']?.toString() ?? '',
+    imageUrl: map['image_url']?.toString(),
+    visibility: map['visibility']?.toString() ?? 'public',
+    subjectFocus: map['subject_focus']?.toString(),
+    createdBy: map['created_by']?.toString() ?? '',
+    conversationId: map['conversation_id']?.toString(),
+    bannerColorHex: map['banner_color']?.toString(),
+    createdAt: DateTime.tryParse(map['created_at']?.toString() ?? ''),
+  );
 }

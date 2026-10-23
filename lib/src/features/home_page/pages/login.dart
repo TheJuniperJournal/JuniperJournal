@@ -1,3 +1,7 @@
+import '../../../shared/widgets/page_refresh_state.dart';
+import '../../../shared/widgets/persistent_desktop_shell.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,6 +24,23 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService.instance;
   final _usersRepo = UsersRepo();
 
+  Route<dynamic>? _standaloneRoute;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route == _standaloneRoute) return;
+    _standaloneRoute = route;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && route != null) {
+        PageRefreshState.remember(context, {'kind': 'login'});
+        DesktopShellScope.of(context)?.clear();
+        desktopRouteObserver.registerStandalone(route, true);
+      }
+    });
+  }
+
   // Create nodes for easy flow
   final _usernameFocus = FocusNode();
   final _passwordFocus = FocusNode();
@@ -29,6 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    final route = _standaloneRoute;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (route != null) desktopRouteObserver.registerStandalone(route, false);
+    });
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _usernameFocus.dispose();
@@ -97,174 +122,256 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: AppColors.textPrimary,
-          onPressed: () => Navigator.maybePop(context),
+  InputDecoration _decoration(String hint) =>
+      authInputDecoration(hint).copyWith(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF929B98)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
         ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 24),
+      );
 
-                // Heading
-                const Text(
-                  'Login',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Welcome back!',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 40),
-
-                // Username / Email
-                TextFormField(
-                  controller: _emailCtrl,
-                  focusNode: _usernameFocus,
-                  decoration: authInputDecoration('Enter Your Username/Email'),
-                  validator: (v) {
-                    final value = (v ?? '').trim();
-                    if (value.isEmpty) return 'Enter a username/email';
-                    return null;
-                  },
-                  textInputAction: TextInputAction.next,
-                  onFieldSubmitted: (_) {
-                    FocusScope.of(context).requestFocus(_passwordFocus);
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Password
-                TextFormField(
-                  controller: _passwordCtrl,
-                  focusNode: _passwordFocus,
-                  obscureText: _obscurePassword,
-                  decoration: authInputDecoration('Enter Your Password')
-                      .copyWith(
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                  validator: (v) {
-                    final value = (v ?? '').trim();
-                    if (value.isEmpty) return 'Enter a password';
-                    return null;
-                  },
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) {
-                    if (!_isLoading) {
-                      _handleLogin();
-                    }
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Login button
-                SubmitButton(
-                  label: 'Login',
-                  isLoading: _isLoading,
-                  onPressed: _handleLogin,
-                  backgroundColor: AppColors.primary,
-                ),
-                const SizedBox(height: 20),
-
-                // Sign up text
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account?  "),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/signup');
-                      },
-                      child: const Text(
-                        'Sign up',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // Uncomment below to enable Google OAuth login
-                // const SizedBox(height: 24),
-                // Row(
-                //   children: const [
-                //     Expanded(child: Divider(thickness: 0.8)),
-                //     Padding(
-                //       padding: EdgeInsets.symmetric(horizontal: 8.0),
-                //       child: Text('Or'),
-                //     ),
-                //     Expanded(child: Divider(thickness: 0.8)),
-                //   ],
-                // ),
-                // const SizedBox(height: 24),
-                // SizedBox(
-                //   width: double.infinity,
-                //   height: 48,
-                //   child: OutlinedButton(
-                //     onPressed: _isLoading ? null : _handleGoogleLogin,
-                //     style: OutlinedButton.styleFrom(
-                //       side: const BorderSide(color: Colors.black12),
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(10),
-                //       ),
-                //     ),
-                //     child: Row(
-                //       mainAxisAlignment: MainAxisAlignment.center,
-                //       children: [
-                //         const SizedBox(width: 10),
-                //         const Text(
-                //           'Login with Google',
-                //           style: TextStyle(
-                //             color: Colors.black87,
-                //             fontSize: 15,
-                //             fontWeight: FontWeight.w500,
-                //           ),
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                // ),
-              ],
+  Widget _loginForm(bool desktop) => AutofillGroup(
+    child: Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Welcome back',
+            style: TextStyle(
+              fontFamily: AppTypography.headingFamily,
+              fontSize: desktop ? 38 : 30,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF204C35),
             ),
           ),
-        ),
+          const SizedBox(height: 12),
+          const Text(
+            'Document your sustainability journey.',
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: Color(0xFF4A5650),
+            ),
+          ),
+          const SizedBox(height: 36),
+          const Text('Email or username', style: AppTypography.fieldLabel),
+          const SizedBox(height: 10),
+          TextFormField(
+            key: const ValueKey('login-identity'),
+            controller: _emailCtrl,
+            focusNode: _usernameFocus,
+            enabled: !_isLoading,
+            autofillHints: const [AutofillHints.username],
+            autocorrect: false,
+            decoration: _decoration('Enter your email or username'),
+            validator: (v) => (v ?? '').trim().isEmpty
+                ? 'Enter your email or username'
+                : null,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+          ),
+          const SizedBox(height: AppMetrics.fieldGap),
+          const Text('Password', style: AppTypography.fieldLabel),
+          const SizedBox(height: 10),
+          TextFormField(
+            key: const ValueKey('login-password'),
+            controller: _passwordCtrl,
+            focusNode: _passwordFocus,
+            enabled: !_isLoading,
+            autofillHints: const [AutofillHints.password],
+            obscureText: _obscurePassword,
+            enableSuggestions: false,
+            autocorrect: false,
+            decoration: _decoration('Enter your password').copyWith(
+              suffixIcon: IconButton(
+                tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+            validator: (v) =>
+                (v ?? '').trim().isEmpty ? 'Enter your password' : null,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) {
+              if (!_isLoading) _handleLogin();
+            },
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            height: 52,
+            child: SubmitButton(
+              label: 'Log in',
+              isLoading: _isLoading,
+              onPressed: _handleLogin,
+              backgroundColor: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 4,
+            children: [
+              const Text('New to Juniper Journal?'),
+              TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () => Navigator.pushNamed(context, '/signup'),
+                child: const Text('Sign up'),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final desktop = constraints.maxWidth >= 900;
+          final form = ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: _loginForm(desktop),
+          );
+          final artwork = Image.asset(
+            'assets/auth_flower_face.png',
+            key: const ValueKey('login-floral-artwork'),
+            fit: BoxFit.contain,
+            excludeFromSemantics: true,
+          );
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1440),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: desktop ? 48 : 24,
+                  vertical: 24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              key: const ValueKey('login-explore-link'),
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => Navigator.of(context)
+                                        .pushNamedAndRemoveUntil(
+                                          '/explore',
+                                          (_) => false,
+                                        ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text(
+                                'Juniper Journal',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.headingFamily,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF204C35),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        key: const ValueKey('login-back-to-explore'),
+                        onPressed: _isLoading
+                            ? null
+                            : () =>
+                                  Navigator.of(context).pushNamedAndRemoveUntil(
+                                    '/explore',
+                                    (_) => false,
+                                  ),
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text('Explore'),
+                      ),
+                    ),
+                    SizedBox(height: desktop ? 24 : 12),
+                    if (desktop)
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: (constraints.maxHeight - 160).clamp(
+                            520.0,
+                            800.0,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: SizedBox(
+                                height: (constraints.maxHeight - 170).clamp(
+                                  480.0,
+                                  680.0,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Expanded(child: artwork),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Learn. Create. Grow.',
+                                      style: TextStyle(
+                                        color: Color(0xFF204C35),
+                                        fontSize: 14,
+                                        letterSpacing: .8,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 64),
+                            Expanded(flex: 4, child: Center(child: form)),
+                          ],
+                        ),
+                      )
+                    else ...[
+                      SizedBox(height: 180, child: artwork),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Learn. Create. Grow.',
+                        style: TextStyle(
+                          color: Color(0xFF204C35),
+                          fontSize: 14,
+                          letterSpacing: .8,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Center(child: form),
+                    ],
+                    SizedBox(height: desktop ? 24 : 32),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }

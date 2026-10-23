@@ -1,3 +1,10 @@
+import '../../../shared/widgets/project_photo_dialog.dart';
+import 'dart:typed_data';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import '../../../shared/widgets/confirm_project_deletion.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -70,6 +77,8 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _projectImageUrl;
+  Uint8List? _projectImagePreview;
+  bool _uploadingImage = false;
   String? _ownerUserId;
 
   // Subject tags
@@ -102,7 +111,11 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
 
     if (project == null) {
       setState(() => _isLoading = false);
-      showTopSnackBar(context, 'Failed to load project settings', isError: true);
+      showTopSnackBar(
+        context,
+        'Failed to load project settings',
+        isError: true,
+      );
       return;
     }
 
@@ -135,42 +148,33 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
   }
 
   Future<void> _pickProjectImage(ImageSource source) async {
+    if (_uploadingImage) return;
+    _uploadingImage = true;
+    final previousPreview = _projectImagePreview;
     final imageUrl = await _mediaService.pickAndUploadImage(
       source,
       folder: 'project-images',
+      onSelected: (bytes) {
+        if (mounted) setState(() => _projectImagePreview = bytes);
+      },
     );
-    if (!mounted || imageUrl == null) return;
-    setState(() => _projectImageUrl = imageUrl);
+    if (!mounted) return;
+    setState(() {
+      _uploadingImage = false;
+      if (imageUrl != null)
+        _projectImageUrl = imageUrl;
+      else
+        _projectImagePreview = previousPreview;
+    });
   }
 
   Future<void> _showImageSourceSheet() async {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Project Image'),
-        message: const Text('Choose image source'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _pickProjectImage(ImageSource.camera);
-            },
-            child: const Text('Take Photo'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _pickProjectImage(ImageSource.gallery);
-            },
-            child: const Text('Choose from Gallery'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
+    if (MediaService.usesDesktopImageUpload) {
+      await _pickProjectImage(ImageSource.gallery);
+      return;
+    }
+    final source = await showProjectPhotoDialog(context);
+    if (source != null && mounted) await _pickProjectImage(source);
   }
 
   void _addSubjectTag() {
@@ -213,7 +217,11 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
     setState(() => _isSaving = false);
 
     if (!success) {
-      showTopSnackBar(context, 'Failed to update project settings', isError: true);
+      showTopSnackBar(
+        context,
+        'Failed to update project settings',
+        isError: true,
+      );
       return;
     }
 
@@ -225,28 +233,8 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
   }
 
   Future<void> _deleteProject() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete project?'),
-        content: const Text(
-          'This will permanently delete the project and associated data. This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
+    final confirmed = await confirmProjectDeletion(context);
+    if (!confirmed || !mounted) return;
 
     setState(() => _isSaving = true);
     // Remove challenge participation before deleting the project
@@ -272,18 +260,14 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.border),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Project Settings',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+        leadingWidth: 68,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 24),
+          child: ContentAlignedBackButton(
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
+        title: const Text('Project Settings', style: AppTypography.pageTitle),
         centerTitle: true,
         shape: const Border(
           bottom: BorderSide(color: AppColors.divider, width: 0.6),
@@ -305,12 +289,16 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                         child: CircleAvatar(
                           radius: 52,
                           backgroundColor: AppColors.accent,
-                          backgroundImage: (_projectImageUrl != null &&
-                                  _projectImageUrl!.isNotEmpty)
+                          backgroundImage: _projectImagePreview != null
+                              ? MemoryImage(_projectImagePreview!)
+                              : (_projectImageUrl != null &&
+                                    _projectImageUrl!.isNotEmpty)
                               ? NetworkImage(_projectImageUrl!)
                               : null,
-                          child: (_projectImageUrl == null ||
-                                  _projectImageUrl!.isEmpty)
+                          child:
+                              (_projectImagePreview == null &&
+                                  (_projectImageUrl == null ||
+                                      _projectImageUrl!.isEmpty))
                               ? const Icon(Icons.camera_alt, size: 28)
                               : null,
                         ),
@@ -320,10 +308,13 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                     const Center(
                       child: Text(
                         'Tap image to update',
-                        style: TextStyle(color: Colors.black54),
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
 
                     // Project Name
                     _fieldLabel('Project Name'),
@@ -331,51 +322,70 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                     TextFormField(
                       controller: _projectNameController,
                       decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 14,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.borderLight),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderLight,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderLight,
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.borderLight),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderLight,
+                          ),
                         ),
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'Project name is required'
                           : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
 
                     // Problem Statement
                     _fieldLabel('Problem Statement'),
                     const SizedBox(height: 10),
                     TextFormField(
+                      minLines: 5,
                       controller: _problemStatementController,
-                      maxLines: 5,
+                      maxLines: null,
                       decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        hintText: 'Describe the challenge this project solves',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 14,
+                        ),
+                        hintText: '',
                         hintStyle: const TextStyle(color: AppColors.hintText),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.borderLight),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderLight,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderLight,
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.borderLight),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderLight,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
 
                     // Subject Domain & Focus
                     _fieldLabel('Subject Domain & Focus'),
@@ -385,12 +395,14 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: _subjectTags
-                            .map((t) => _SubjectTagChip(
-                                  domain: t.domain,
-                                  focus: t.focus,
-                                  onRemove: () =>
-                                      setState(() => _subjectTags.remove(t)),
-                                ))
+                            .map(
+                              (t) => _SubjectTagChip(
+                                domain: t.domain,
+                                focus: t.focus,
+                                onRemove: () =>
+                                    setState(() => _subjectTags.remove(t)),
+                              ),
+                            )
                             .toList(),
                       ),
                       const SizedBox(height: 12),
@@ -401,17 +413,21 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                         color: AppColors.primary.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color:
-                                AppColors.primary.withValues(alpha: 0.18)),
+                          color: AppColors.primary.withValues(alpha: 0.18),
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Domain',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black45)),
+                          Text(
+                            'Domain',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                           const SizedBox(height: 5),
                           PillSelector(
                             value: _activeDomain,
@@ -424,16 +440,22 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Center(
-                            child: Icon(Icons.add,
-                                size: 18,
-                                color: AppColors.primary.withValues(alpha: 0.5)),
+                            child: Icon(
+                              Icons.add,
+                              size: 18,
+                              color: AppColors.primary.withValues(alpha: 0.5),
+                            ),
                           ),
                           const SizedBox(height: 8),
-                          Text('Focus',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black45)),
+                          Text(
+                            'Focus',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                           const SizedBox(height: 5),
                           PillSelector(
                             value: _activeFocus,
@@ -443,36 +465,36 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                             items: _activeDomain != null
                                 ? _focusByDomain[_activeDomain]!
                                 : [],
-                            onChanged: (v) => setState(
-                                () => _activeFocus = v),
+                            onChanged: (v) => setState(() => _activeFocus = v),
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(
-                              onPressed:
-                                  canAddTag ? _addSubjectTag : null,
+                              onPressed: canAddTag ? _addSubjectTag : null,
                               style: FilledButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                disabledBackgroundColor:
-                                    Colors.grey.shade200,
+                                disabledBackgroundColor: Colors.grey.shade200,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 10),
+                                  vertical: 10,
+                                ),
                               ),
-                              icon: Icon(Icons.add,
-                                  size: 16,
-                                  color: canAddTag
-                                      ? Colors.white
-                                      : Colors.grey.shade400),
+                              icon: Icon(
+                                Icons.add,
+                                size: 16,
+                                color: canAddTag
+                                    ? Colors.white
+                                    : Colors.grey.shade400,
+                              ),
                               label: Text(
                                 'Add Combination',
                                 style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w500,
                                   color: canAddTag
                                       ? Colors.white
                                       : Colors.grey.shade400,
@@ -483,7 +505,7 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
 
                     // Difficulty
                     _fieldLabel('Difficulty'),
@@ -494,7 +516,7 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                       items: const ['Easy', 'Moderate', 'Hard'],
                       onChanged: (v) => setState(() => _selectedDifficulty = v),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
 
                     // Project Scale
                     _fieldLabel('Project Scale'),
@@ -505,24 +527,39 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                       items: const ['Small', 'Medium', 'Large'],
                       onChanged: (v) => setState(() => _selectedScale = v),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppMetrics.fieldGap),
 
                     // Visibility
                     _fieldLabel('Visibility'),
                     const SizedBox(height: 10),
                     if (_selectedVisibility == 'Community Only')
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryTint,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.lock_outline, size: 16, color: AppColors.primary),
+                            Icon(
+                              Icons.lock_outline,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
                             SizedBox(width: 8),
-                            Text('Community Only', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                            Text(
+                              'Community Only',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       )
@@ -531,9 +568,10 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                         value: _selectedVisibility,
                         placeholder: 'Select Visibility',
                         items: const ['Private', 'Friends Only', 'Public'],
-                        onChanged: (v) => setState(() => _selectedVisibility = v),
+                        onChanged: (v) =>
+                            setState(() => _selectedVisibility = v),
                       ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppMetrics.sectionGap),
 
                     // Collaborators
                     _fieldLabel('Collaborators'),
@@ -541,14 +579,15 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () => showModalBottomSheet(
+                        onPressed: () => showAppModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
                           builder: (_) => CollaboratorsSheet(
                             projectId: widget.projectId,
                             projectName: _projectNameController.text,
-                            isOwner: _ownerUserId != null &&
+                            isOwner:
+                                _ownerUserId != null &&
                                 _ownerUserId ==
                                     AuthService.instance.currentUser?.id,
                             ownerUserId: _ownerUserId,
@@ -566,22 +605,25 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppMetrics.sectionGap),
 
                     SubmitButton(
                       label: 'Save Settings',
                       isLoading: _isSaving,
+                      foregroundColor: Colors.white,
                       backgroundColor: AppColors.primary,
                       onPressed: _saveSettings,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppMetrics.labelGap),
                     OutlinedButton.icon(
                       onPressed: _isSaving ? null : _deleteProject,
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('Delete Project'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error,
-                        side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
+                        side: BorderSide(
+                          color: AppColors.error.withValues(alpha: 0.3),
+                        ),
                         minimumSize: const Size.fromHeight(48),
                       ),
                     ),
@@ -593,13 +635,14 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
   }
 
   Widget _fieldLabel(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontFamily: AppTypography.bodyFamily,
+      fontSize: AppTypography.bodySize,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textPrimary,
+    ),
+  );
 }
 
 // ── _SubjectTagChip ──────────────────────────────────────────────────────────
@@ -631,7 +674,8 @@ class _SubjectTagChip extends StatelessWidget {
             child: Text(
               '$domain • $focus',
               style: const TextStyle(
-                fontSize: 12,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
                 fontWeight: FontWeight.w500,
                 color: AppColors.primary,
               ),

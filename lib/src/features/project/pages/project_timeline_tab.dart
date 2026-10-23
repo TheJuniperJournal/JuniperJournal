@@ -1,3 +1,9 @@
+import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
+import 'journal_entry_view.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
@@ -10,7 +16,7 @@ import 'package:juniper_journal/src/shared/widgets/date_time_pickers.dart';
 const _timelineGreen = Color(0xFF5DB075);
 const _timelineText = Color(0xFF212525);
 const _timelineMuted = Color(0xFFBCC1CD);
-const _timelineCard = Color(0xFFF6F6F5);
+const _timelineCard = Colors.white;
 const _timelineLine = Color(0xFFFAF9F9);
 
 class ProjectTimelineTab extends StatefulWidget {
@@ -19,11 +25,13 @@ class ProjectTimelineTab extends StatefulWidget {
     required this.projectId,
     required this.isOwner,
     this.projectsRepo,
+    this.initialEventId,
   });
 
   final String projectId;
   final bool isOwner;
   final ProjectsRepo? projectsRepo;
+  final String? initialEventId;
 
   @override
   State<ProjectTimelineTab> createState() => _ProjectTimelineTabState();
@@ -41,6 +49,7 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
   late DateTime _baseWeekStart;
   String? _currentUserId;
   bool _isLoading = true;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -58,47 +67,98 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
     super.dispose();
   }
 
+  bool _notificationOpened = false;
+
   Future<void> _load() async {
-    final timeline = await _projectsRepo.getTimeline(widget.projectId);
-    final collaborators = await _projectsRepo.getProjectCollaborators(
-      projectId: widget.projectId,
-    );
-    final profile = await _usersRepo.getCurrentUserProfile();
-    final journals = await _projectsRepo.getJournalEntries(
-      projectId: widget.projectId,
-    );
-    if (!mounted) return;
+    try {
+      if (!await _projectsRepo.canViewInternalProjectLogs(widget.projectId)) {
+        if (mounted)
+          setState(() {
+            _isLoading = false;
+            _loadFailed = true;
+          });
+        return;
+      }
+      final results = await Future.wait([
+        _projectsRepo.getTimeline(widget.projectId),
+        _projectsRepo.getProjectCollaborators(projectId: widget.projectId),
+        _usersRepo.getCurrentUserProfile(),
+        _projectsRepo.getJournalEntries(projectId: widget.projectId),
+      ]);
+      final timeline = results[0] as List<Map<String, String>>?;
+      final collaborators = results[1] as List<UserProfile>;
+      final profile = results[2] as UserProfile?;
+      final journals = results[3] as List<JournalEntry>?;
+      if (!mounted) return;
 
-    final currentUser = AuthService.instance.currentUser;
-    final currentProfile =
-        profile ??
-        (currentUser == null
-            ? null
-            : UserProfile(
-                id: currentUser.id,
-                displayName: currentUser.userMetadata?['display_name']
-                    ?.toString(),
-                username:
-                    currentUser.userMetadata?['username']?.toString() ??
-                    currentUser.email,
-              ));
+      final currentUser = AuthService.instance.currentUser;
+      final currentProfile =
+          profile ??
+          (currentUser == null
+              ? null
+              : UserProfile(
+                  id: currentUser.id,
+                  displayName: currentUser.userMetadata?['display_name']
+                      ?.toString(),
+                  username:
+                      currentUser.userMetadata?['username']?.toString() ??
+                      currentUser.email,
+                ));
 
-    setState(() {
-      _currentUserId = currentUser?.id ?? currentProfile?.id;
-      _members
-        ..clear()
-        ..addAll([
-          if (currentProfile != null) currentProfile,
-          ...collaborators.where((member) => member.id != currentProfile?.id),
-        ]);
-      _journalEntries
-        ..clear()
-        ..addAll(journals ?? const []);
-      _events
-        ..clear()
-        ..addAll((timeline ?? const []).map(_TimelineEvent.fromMap));
-      _isLoading = false;
-    });
+      setState(() {
+        _currentUserId = currentUser?.id ?? currentProfile?.id;
+        _members
+          ..clear()
+          ..addAll([
+            if (currentProfile != null) currentProfile,
+            ...collaborators.where((member) => member.id != currentProfile?.id),
+          ]);
+        _journalEntries
+          ..clear()
+          ..addAll(journals ?? const []);
+        _events
+          ..clear()
+          ..addAll((timeline ?? const []).map(_TimelineEvent.fromMap));
+        _isLoading = false;
+        _loadFailed = timeline == null || journals == null;
+      });
+      if (!_notificationOpened && widget.initialEventId != null) {
+        _notificationOpened = true;
+        final event = _events
+            .where(
+              (item) =>
+                  item.id == widget.initialEventId ||
+                  item.name == widget.initialEventId,
+            )
+            .firstOrNull;
+        if (event != null)
+          setState(() {
+            _selectedDate = DateUtils.dateOnly(event.start);
+            _baseWeekStart = _startOfWeek(_selectedDate);
+          });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (event != null) {
+            _openEvent(event);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'This timeline event was removed or is no longer available.',
+                ),
+              ),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Timeline load: $e');
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+          _loadFailed = true;
+        });
+    }
   }
 
   Future<void> _save() async {
@@ -118,7 +178,7 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
 
   Future<void> _openCreateEvent() async {
     if (!widget.isOwner) return;
-    final event = await showModalBottomSheet<_TimelineEvent>(
+    final event = await showAppModalBottomSheet<_TimelineEvent>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -136,17 +196,65 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
   }
 
   Future<void> _openEvent(_TimelineEvent event) async {
-    final deleted = await showModalBottomSheet<bool>(
+    final deleted = await showAppModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          _TimelineEventDetailSheet(event: event, canDelete: widget.isOwner),
+      builder: (sheetContext) => _TimelineEventDetailSheet(
+        event: event,
+        canDelete: widget.isOwner,
+        onOpenJournal: event.journalEntryId == null
+            ? null
+            : () {
+                Navigator.of(sheetContext).pop(false);
+                _openLinkedJournal(event);
+              },
+      ),
     );
     if (deleted != true || !mounted) return;
 
     setState(() => _events.removeWhere((item) => item.id == event.id));
     await _save();
+  }
+
+  Future<void> _openLinkedJournal(_TimelineEvent event) async {
+    try {
+      final entries = await _projectsRepo.getJournalEntries(
+        projectId: widget.projectId,
+      );
+      final entry = entries
+          ?.where((item) => item.id == event.journalEntryId)
+          .firstOrNull;
+      final project = await _projectsRepo.getProjectById(widget.projectId);
+      if (!mounted) return;
+      if (entry == null || project == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This journal entry is no longer available.'),
+          ),
+        );
+        return;
+      }
+      await pushAppRoute(
+        context,
+        MaterialPageRoute(
+          builder: (_) => JournalEntryView(
+            entry: entry,
+            project: project,
+            projectsRepo: _projectsRepo,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not open the journal entry. Please try again.',
+            ),
+          ),
+        );
+    }
   }
 
   @override
@@ -155,15 +263,35 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (_loadFailed) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Could not load the timeline.'),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _loadFailed = false;
+                });
+                _load();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
     final events = _selectedEvents;
     return Stack(
       children: [
         Positioned(
           left: 0,
           right: 0,
-          top: 146,
+          top: 150,
           child: SizedBox(
-            height: 104,
+            height: 76,
             child: PageView.builder(
               controller: _weekController,
               onPageChanged: (page) {
@@ -193,49 +321,54 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
         const Positioned(
           left: 0,
           right: 20,
-          top: 249,
+          top: 227,
           child: Divider(height: 1, thickness: 1, color: Color(0xFFE8E8E8)),
         ),
         const Positioned(
           left: 38,
-          top: 260,
+          top: 240,
           child: Text(
-            'DATE',
+            'TIME',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _timelineMuted,
-              fontSize: 14,
+              fontSize: AppTypography.bodySize,
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
         const Positioned(
           left: 107,
-          top: 261,
+          top: 240,
           child: Text(
             'Action Item',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _timelineMuted,
-              fontSize: 14,
+              fontSize: AppTypography.bodySize,
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        const Positioned(
-          right: 37,
-          top: 221,
-          width: 24,
-          height: 24,
-          child: _SortIcon(),
-        ),
         Positioned(
-          left: 89,
-          top: 300,
+          left: 97,
+          top: 278,
           bottom: 76,
           child: Container(width: 2, color: _timelineLine),
         ),
+        if (widget.isOwner)
+          Positioned(
+            right: 20,
+            top: 232,
+            child: TextButton.icon(
+              onPressed: _openCreateEvent,
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text('Add to timeline'),
+            ),
+          ),
         Positioned(
           left: 38,
-          top: 300,
+          top: 278,
           right: 36,
           bottom: 70,
           child: ListView(
@@ -247,8 +380,6 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
                   currentUserId: _currentUserId,
                   onTap: () => _openEvent(event),
                 ),
-              const SizedBox(height: 31),
-              if (widget.isOwner) _AddTimelineRow(onTap: _openCreateEvent),
             ],
           ),
         ),
@@ -272,7 +403,7 @@ class _WeekCalendar extends StatelessWidget {
   Widget build(BuildContext context) {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(21, 34, 20, 12),
+      padding: const EdgeInsets.fromLTRB(21, 6, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -298,8 +429,9 @@ class _WeekCalendar extends StatelessWidget {
                         Text(
                           days[index],
                           style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
                             color: selected ? Colors.white : _timelineMuted,
-                            fontSize: 12,
+                            fontSize: AppTypography.helperSize,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -307,9 +439,10 @@ class _WeekCalendar extends StatelessWidget {
                         Text(
                           '${date.day}',
                           style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
                             color: selected ? Colors.white : _timelineText,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -354,36 +487,45 @@ class _TimelineEventRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 35,
+              width: 43,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     event.allDay ? 'All' : _timeOnly(event.start),
                     style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
                       color: _timelineText,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     '${event.start.month}/${event.start.day}',
+                    maxLines: 1,
+                    softWrap: false,
                     style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
                       color: _timelineMuted,
-                      fontSize: 15,
+                      fontSize: AppTypography.bodySize,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 34),
+            const SizedBox(width: 32),
             Expanded(
               child: Container(
                 constraints: const BoxConstraints(minHeight: 137),
                 padding: const EdgeInsets.fromLTRB(16, 16, 8, 14),
                 decoration: BoxDecoration(
                   color: cardColor,
+                  border: Border.all(
+                    color: assignedToCurrent
+                        ? _timelineGreen
+                        : const Color(0xFFE5E5E5),
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -397,9 +539,10 @@ class _TimelineEventRow extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -417,13 +560,14 @@ class _TimelineEventRow extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
                           color: textColor,
-                          fontSize: 12,
+                          fontSize: AppTypography.helperSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     if (event.location.isNotEmpty) ...[
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppMetrics.fieldGap),
                       Row(
                         children: [
                           SizedBox(
@@ -438,8 +582,9 @@ class _TimelineEventRow extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
                                 color: mutedColor,
-                                fontSize: 12,
+                                fontSize: AppTypography.helperSize,
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
@@ -454,8 +599,9 @@ class _TimelineEventRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
                           color: mutedColor,
-                          fontSize: 12,
+                          fontSize: AppTypography.helperSize,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -466,43 +612,6 @@ class _TimelineEventRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AddTimelineRow extends StatelessWidget {
-  const _AddTimelineRow({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          const SizedBox(width: 69),
-          Container(
-            width: 24,
-            height: 24,
-            decoration: const BoxDecoration(
-              color: _timelineGreen,
-              shape: BoxShape.circle,
-            ),
-            child: const _PlusIcon(),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Add to timeline',
-            style: TextStyle(
-              color: _timelineText,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -649,7 +758,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: 36,
+                height: 48,
                 child: Stack(
                   children: [
                     const Align(
@@ -664,9 +773,10 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                       ),
                     ),
                     Positioned(
-                      left: -8,
+                      left: 0,
                       top: 0,
                       child: IconButton(
+                        tooltip: 'Close',
                         padding: EdgeInsets.zero,
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const SizedBox(
@@ -680,8 +790,9 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                       child: Text(
                         'Create Event',
                         style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 17,
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.primary,
+                          fontSize: AppTypography.buttonSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -689,7 +800,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: AppMetrics.labelGap),
               _TimelineField(label: 'Event Name', controller: _nameController),
               const SizedBox(height: 10),
               _TimelineField(
@@ -708,15 +819,29 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  _DateTimePill(
-                    label: _shortInputDate(_startDate),
-                    onTap: _pickStartDate,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _SheetLabel('Date'),
+                      const SizedBox(height: 6),
+                      _DateTimePill(
+                        label: _shortInputDate(_startDate),
+                        onTap: _pickStartDate,
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 9),
                   if (!_allDay)
-                    _DateTimePill(
-                      label: _shortInputTime(_startHour, _startMinute),
-                      onTap: _pickStartTime,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SheetLabel('Time'),
+                        const SizedBox(height: 6),
+                        _DateTimePill(
+                          label: _shortInputTime(_startHour, _startMinute),
+                          onTap: _pickStartTime,
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -725,15 +850,29 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  _DateTimePill(
-                    label: _shortInputDate(_endDate),
-                    onTap: _pickEndDate,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _SheetLabel('Date'),
+                      const SizedBox(height: 6),
+                      _DateTimePill(
+                        label: _shortInputDate(_endDate),
+                        onTap: _pickEndDate,
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 12),
                   if (!_allDay)
-                    _DateTimePill(
-                      label: _shortInputTime(_endHour, _endMinute),
-                      onTap: _pickEndTime,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SheetLabel('Time'),
+                        const SizedBox(height: 6),
+                        _DateTimePill(
+                          label: _shortInputTime(_endHour, _endMinute),
+                          onTap: _pickEndTime,
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -748,7 +887,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: AppMetrics.labelGap),
               const _SheetLabel('Assign To'),
               const SizedBox(height: 12),
               Wrap(
@@ -772,9 +911,10 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                   const Text(
                     '+  Add People',
                     style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.primary,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -782,7 +922,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
               const SizedBox(height: 16),
               const _SheetLabel('Link Journal Entry'),
               const SizedBox(height: 12),
-              _JournalSelector(
+              JournalEntryLinkSelector(
                 entries: widget.journalEntries,
                 selected: _linkedJournal,
                 onSelected: (entry) => setState(() => _linkedJournal = entry),
@@ -801,7 +941,12 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                     ),
                     child: const Text(
                       'Create',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: Colors.white,
+                        fontSize: AppTypography.buttonSize,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -818,168 +963,176 @@ class _TimelineEventDetailSheet extends StatelessWidget {
   const _TimelineEventDetailSheet({
     required this.event,
     required this.canDelete,
+    this.onOpenJournal,
   });
-
   final _TimelineEvent event;
   final bool canDelete;
+  final VoidCallback? onOpenJournal;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 657,
-      padding: const EdgeInsets.fromLTRB(24, 26, 22, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(false),
-                child: const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: _CloseIcon(),
-                ),
-              ),
-              const Spacer(),
-              const Text(
-                'Edit',
-                style: TextStyle(
-                  color: _timelineGreen,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                  color: _timelineGreen,
-                  shape: BoxShape.circle,
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: _TimelineNetworkIcon(),
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Text(
-                'Timeline Event',
-                style: TextStyle(color: Color(0xFF8F9098), fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 17),
-          Text(
-            event.name,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 17,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          if (event.description.isNotEmpty) ...[
-            const SizedBox(height: 7),
-            Text(
-              event.description,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 12,
-                height: 1.2,
-              ),
-            ),
-          ],
-          const SizedBox(height: 28),
-          _DetailLine(
-            icon: const _CalendarIcon(),
-            text: _longDate(event.start),
-          ),
-          const SizedBox(height: 18),
-          _DetailLine(
-            icon: const _ClockIcon(),
-            text: event.allDay
-                ? 'All Day'
-                : '${_timeWithAmPm(event.start)} - ${_timeWithAmPm(event.end)}',
-          ),
-          const SizedBox(height: 18),
-          _DetailLine(
-            icon: const _PeopleIcon(),
-            text: event.assigneeNames.isEmpty
-                ? 'Unassigned'
-                : event.assigneeNames.join(', '),
-          ),
-          const SizedBox(height: 18),
-          _DetailLine(
-            icon: const _LocationIcon(color: _timelineGreen),
-            text: event.location.isEmpty ? 'No location' : event.location,
-          ),
-          const SizedBox(height: 36),
-          Container(
-            width: 296,
-            decoration: BoxDecoration(
-              border: Border.all(color: _timelineGreen.withValues(alpha: .2)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
+  Widget build(BuildContext context) => SizedBox(
+    width: 560,
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                Container(
-                  height: 38,
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 13),
-                  decoration: BoxDecoration(
-                    color: _timelineGreen.withValues(alpha: .2),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Linked Journal Entry',
-                    style: TextStyle(color: Colors.black, fontSize: 14),
+                const SizedBox(width: 40),
+                const Expanded(
+                  child: Text(
+                    'Timeline Event',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.sectionTitle,
                   ),
                 ),
-                SizedBox(
-                  height: 74,
-                  child: Center(
-                    child: Text(
-                      event.journalEntryTitle ?? 'No linked journal entry',
-                      style: const TextStyle(
-                        color: _timelineText,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.of(context).pop(false),
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
-          ),
-          const Spacer(),
-          if (canDelete)
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(true),
-              child: const Row(
+            const SizedBox(height: 20),
+            const Icon(Icons.event_outlined, size: 36, color: _timelineGreen),
+            const SizedBox(height: 12),
+            Text(
+              event.name,
+              textAlign: TextAlign.center,
+              style: AppTypography.sectionTitle,
+            ),
+            if (event.description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                event.description,
+                textAlign: TextAlign.center,
+                style: AppTypography.body,
+              ),
+            ],
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _timelineGreen.withValues(alpha: .06),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
                 children: [
-                  SizedBox(width: 24, height: 24, child: _TrashIcon()),
-                  SizedBox(width: 8),
-                  Text(
-                    'Delete Event',
-                    style: TextStyle(color: Color(0xFFFD1212), fontSize: 15),
+                  _EventPreviewField(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Date',
+                    value: _longDate(event.start),
+                  ),
+                  const SizedBox(height: 16),
+                  _EventPreviewField(
+                    icon: Icons.schedule,
+                    label: 'Time',
+                    value: event.allDay
+                        ? 'All Day'
+                        : '${_timeWithAmPm(event.start)} – ${_timeWithAmPm(event.end)}',
+                  ),
+                  const SizedBox(height: 16),
+                  _EventPreviewField(
+                    icon: Icons.people_outline,
+                    label: 'Assigned to',
+                    value: event.assigneeNames.isEmpty
+                        ? 'Unassigned'
+                        : event.assigneeNames.join(', '),
+                  ),
+                  const SizedBox(height: 16),
+                  _EventPreviewField(
+                    icon: Icons.location_on_outlined,
+                    label: 'Location',
+                    value: event.location.isEmpty
+                        ? 'No location'
+                        : event.location,
                   ),
                 ],
               ),
             ),
-        ],
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: onOpenJournal,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.article_outlined),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Linked Journal Entry',
+                          style: AppTypography.helper,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          event.journalEntryTitle ?? 'No linked journal entry',
+                          style: AppTypography.body,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (onOpenJournal != null) const Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+            if (canDelete) ...[
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete Event'),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _EventPreviewField extends StatelessWidget {
+  const _EventPreviewField({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label, value;
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 22, color: _timelineGreen),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: AppTypography.helper),
+            const SizedBox(height: 4),
+            Text(value, style: AppTypography.body),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _TimelineField extends StatelessWidget {
@@ -1002,27 +1155,40 @@ class _TimelineField extends StatelessWidget {
           text: TextSpan(
             text: label,
             style: const TextStyle(
-              color: Colors.black,
-              fontSize: 12,
+              fontFamily: AppTypography.bodyFamily,
+              color: AppColors.textPrimary,
+              fontSize: AppTypography.helperSize,
               fontWeight: FontWeight.w500,
             ),
             children: [
               if (optional)
                 const TextSpan(
-                  text: ' (Optional)',
-                  style: TextStyle(color: Colors.black54),
+                  text: ' (optional)',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
             ],
           ),
         ),
         const SizedBox(height: 10),
-        SizedBox(
-          height: 39,
+        ConstrainedBox(
+          constraints: BoxConstraints(minHeight: 44),
           child: TextField(
             controller: controller,
-            style: const TextStyle(fontSize: 14),
+            minLines: label.toLowerCase().contains('description') ? 4 : 1,
+            maxLines: label.toLowerCase().contains('description') ? null : 1,
+            textAlignVertical: TextAlignVertical.top,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+            ),
             decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderSide: const BorderSide(color: _timelineGreen),
                 borderRadius: BorderRadius.circular(12),
@@ -1049,8 +1215,9 @@ class _SheetLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 12,
+        fontFamily: AppTypography.bodyFamily,
+        color: AppColors.textPrimary,
+        fontSize: AppTypography.helperSize,
         fontWeight: FontWeight.w500,
       ),
     );
@@ -1079,7 +1246,11 @@ class _DateTimePill extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.captionSize,
+                fontWeight: FontWeight.w400,
+              ),
             ),
             const SizedBox(width: 6),
             const SizedBox(width: 12, height: 12, child: _ChevronDownIcon()),
@@ -1158,7 +1329,11 @@ class _AssigneeChip extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               member.resolvedDisplayName,
-              style: const TextStyle(color: Colors.black, fontSize: 14),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                color: AppColors.textPrimary,
+                fontSize: AppTypography.bodySize,
+              ),
             ),
             if (selected) ...[
               const SizedBox(width: 10),
@@ -1171,32 +1346,78 @@ class _AssigneeChip extends StatelessWidget {
   }
 }
 
-class _JournalSelector extends StatelessWidget {
-  const _JournalSelector({
+class JournalEntryLinkSelector extends StatefulWidget {
+  const JournalEntryLinkSelector({
+    super.key,
     required this.entries,
     required this.selected,
     required this.onSelected,
+    this.selectable = true,
   });
-
   final List<JournalEntry> entries;
   final JournalEntry? selected;
   final ValueChanged<JournalEntry?> onSelected;
+  final bool selectable;
+  @override
+  State<JournalEntryLinkSelector> createState() =>
+      _JournalEntryLinkSelectorState();
+}
+
+class _JournalEntryLinkSelectorState extends State<JournalEntryLinkSelector> {
+  final _fieldKey = GlobalKey();
+  Future<void> _open() async {
+    if (!widget.selectable || widget.entries.isEmpty) return;
+    final box = _fieldKey.currentContext!.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final rect = box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
+    final selected = await showMenu<JournalEntry>(
+      context: context,
+      color: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+      constraints: BoxConstraints.tightFor(width: rect.width),
+      menuPadding: const EdgeInsets.symmetric(vertical: 4),
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(rect.left, rect.bottom + 4, rect.width, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        for (final entry in widget.entries)
+          PopupMenuItem(
+            value: entry,
+            height: 36,
+            child: Text(
+              entry.title,
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                fontWeight: FontWeight.w400,
+                color: _timelineText,
+              ),
+            ),
+          ),
+      ],
+    );
+    if (selected != null && mounted) widget.onSelected(selected);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<JournalEntry?>(
-      enabled: entries.isNotEmpty,
-      onSelected: onSelected,
-      itemBuilder: (context) => [
-        for (final entry in entries)
-          PopupMenuItem(value: entry, child: Text(entry.title)),
-      ],
+  Widget build(BuildContext context) => Semantics(
+    button: widget.selectable,
+    child: GestureDetector(
+      key: _fieldKey,
+      onTap: widget.selectable ? _open : null,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         height: 39,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
+          color: Colors.white,
           border: Border.all(
-            color: entries.isEmpty ? const Color(0xFFE8E8E8) : _timelineGreen,
+            color: widget.entries.isEmpty
+                ? const Color(0xFFE8E8E8)
+                : _timelineGreen,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -1206,45 +1427,30 @@ class _JournalSelector extends StatelessWidget {
             const SizedBox(width: 18),
             Expanded(
               child: Text(
-                entries.isEmpty
-                    ? 'No journal entries'
-                    : selected?.title ?? 'Select journal entry',
+                widget.selected?.title ??
+                    (widget.entries.isEmpty
+                        ? 'No journal entries'
+                        : 'Select journal entry'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.black, fontSize: 12),
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.textPrimary,
+                  fontSize: AppTypography.helperSize,
+                ),
               ),
             ),
-            const SizedBox(width: 16, height: 16, child: _ChevronRightIcon()),
+            if (widget.selectable)
+              const Icon(
+                Icons.keyboard_arrow_down,
+                size: 16,
+                color: _timelineMuted,
+              ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _DetailLine extends StatelessWidget {
-  const _DetailLine({required this.icon, required this.text});
-
-  final Widget icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(width: 42, height: 28, child: icon),
-        const SizedBox(width: 23),
-        Expanded(
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Color(0xFF8F9098), fontSize: 12),
-          ),
-        ),
-      ],
-    );
-  }
+    ),
+  );
 }
 
 class _Avatar extends StatelessWidget {
@@ -1269,7 +1475,7 @@ class _Avatar extends StatelessWidget {
                 style: TextStyle(
                   color: _timelineGreen,
                   fontSize: size * .45,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
       ),
@@ -1510,58 +1716,6 @@ class _EllipsisPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _SortIcon extends StatelessWidget {
-  const _SortIcon();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _SortPainter());
-}
-
-class _SortPainter extends _LinePainter {
-  _SortPainter() : super(_timelineMuted);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = stroke;
-    canvas.drawLine(
-      Offset(size.width * .2, size.height * .25),
-      Offset(size.width * .8, size.height * .25),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .32, size.height * .5),
-      Offset(size.width * .8, size.height * .5),
-      s,
-    );
-    canvas.drawLine(
-      Offset(size.width * .48, size.height * .75),
-      Offset(size.width * .8, size.height * .75),
-      s,
-    );
-  }
-}
-
-class _PlusIcon extends StatelessWidget {
-  const _PlusIcon();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _PlusPainter());
-}
-
-class _PlusPainter extends _LinePainter {
-  _PlusPainter() : super(Colors.white);
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .25),
-      Offset(size.width * .5, size.height * .75),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .25, size.height * .5),
-      Offset(size.width * .75, size.height * .5),
-      stroke,
-    );
-  }
-}
-
 class _CloseIcon extends StatelessWidget {
   const _CloseIcon();
   @override
@@ -1609,30 +1763,6 @@ class _ChevronDownPainter extends _LinePainter {
   }
 }
 
-class _ChevronRightIcon extends StatelessWidget {
-  const _ChevronRightIcon();
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(painter: _ChevronRightPainter());
-}
-
-class _ChevronRightPainter extends _LinePainter {
-  _ChevronRightPainter() : super(_timelineGreen);
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawLine(
-      Offset(size.width * .35, size.height * .2),
-      Offset(size.width * .65, size.height * .5),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .65, size.height * .5),
-      Offset(size.width * .35, size.height * .8),
-      stroke,
-    );
-  }
-}
-
 class _JournalIcon extends StatelessWidget {
   const _JournalIcon();
   @override
@@ -1652,176 +1782,5 @@ class _JournalPainter extends _LinePainter {
       Offset(size.width * .28, size.height * .28),
       stroke,
     );
-  }
-}
-
-class _CalendarIcon extends StatelessWidget {
-  const _CalendarIcon();
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(painter: _CalendarPainter());
-}
-
-class _CalendarPainter extends _LinePainter {
-  _CalendarPainter() : super(_timelineGreen);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(
-      size.width * .1,
-      size.height * .15,
-      size.width * .8,
-      size.height * .72,
-    );
-    canvas.drawRect(rect, stroke);
-    canvas.drawLine(
-      Offset(size.width * .1, size.height * .35),
-      Offset(size.width * .9, size.height * .35),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .3, size.height * .05),
-      Offset(size.width * .3, size.height * .25),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .7, size.height * .05),
-      Offset(size.width * .7, size.height * .25),
-      stroke,
-    );
-  }
-}
-
-class _ClockIcon extends StatelessWidget {
-  const _ClockIcon();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _ClockPainter());
-}
-
-class _ClockPainter extends _LinePainter {
-  _ClockPainter() : super(_timelineGreen);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    canvas.drawCircle(center, size.shortestSide * .42, stroke);
-    canvas.drawLine(center, Offset(center.dx, size.height * .25), stroke);
-    canvas.drawLine(
-      center,
-      Offset(size.width * .64, size.height * .62),
-      stroke,
-    );
-  }
-}
-
-class _PeopleIcon extends StatelessWidget {
-  const _PeopleIcon();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _PeoplePainter());
-}
-
-class _PeoplePainter extends _LinePainter {
-  _PeoplePainter() : super(_timelineGreen);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final fill = Paint()
-      ..color = _timelineGreen
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-      Offset(size.width * .32, size.height * .28),
-      size.width * .11,
-      fill,
-    );
-    canvas.drawCircle(
-      Offset(size.width * .65, size.height * .28),
-      size.width * .11,
-      fill,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          size.width * .08,
-          size.height * .55,
-          size.width * .35,
-          size.height * .23,
-        ),
-        const Radius.circular(8),
-      ),
-      fill,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          size.width * .52,
-          size.height * .55,
-          size.width * .35,
-          size.height * .23,
-        ),
-        const Radius.circular(8),
-      ),
-      fill,
-    );
-  }
-}
-
-class _TrashIcon extends StatelessWidget {
-  const _TrashIcon();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _TrashPainter());
-}
-
-class _TrashPainter extends _LinePainter {
-  _TrashPainter() : super(const Color(0xFFFD1212));
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawLine(
-      Offset(size.width * .2, size.height * .25),
-      Offset(size.width * .8, size.height * .25),
-      stroke,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(
-        size.width * .28,
-        size.height * .32,
-        size.width * .44,
-        size.height * .55,
-      ),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .42, size.height * .42),
-      Offset(size.width * .42, size.height * .78),
-      stroke,
-    );
-    canvas.drawLine(
-      Offset(size.width * .58, size.height * .42),
-      Offset(size.width * .58, size.height * .78),
-      stroke,
-    );
-  }
-}
-
-class _TimelineNetworkIcon extends StatelessWidget {
-  const _TimelineNetworkIcon();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _NetworkPainter());
-}
-
-class _NetworkPainter extends _LinePainter {
-  _NetworkPainter() : super(Colors.white);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final points = [
-      Offset(size.width * .2, size.height * .2),
-      Offset(size.width * .8, size.height * .2),
-      Offset(size.width * .2, size.height * .8),
-      Offset(size.width * .8, size.height * .8),
-      Offset(size.width * .5, size.height * .5),
-    ];
-    for (final point in points.take(4)) {
-      canvas.drawLine(point, points.last, stroke);
-    }
-    final fill = Paint()..color = Colors.white;
-    for (final point in points) {
-      canvas.drawCircle(point, 2.4, fill);
-    }
   }
 }

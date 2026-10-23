@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -318,7 +321,7 @@ class InquiryLensConfig {
     ),
     InquiryLensConfig(
       value: 'Design',
-      description: 'Create and iterate on solutions.',
+      description: 'Create, test, and improve solutions through design.',
       iconAsset: 'assets/learning_module/inquiry_design.svg',
       purpose:
           'This inquiry lens helps users create and improve designs or solutions.',
@@ -460,29 +463,29 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
                   _buildLabel(),
                   const SizedBox(height: 11),
                   _buildField(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: AppMetrics.sectionGap),
                   _buildSectionTitle('Purpose (for you)'),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: AppMetrics.labelGap),
                   _PurposeCard(config: config),
-                  const SizedBox(height: 26),
+                  const SizedBox(height: AppMetrics.fieldGap),
                   _buildSectionTitle('Thinking Focus'),
                   const SizedBox(height: 9),
                   const Text(
                     'Choose how you want users to focus.',
                     style: TextStyle(
                       color: Color(0xB3000000),
-                      fontSize: 13,
+                      fontSize: AppTypography.bodySize,
                       height: 1.25,
                     ),
                   ),
-                  const SizedBox(height: 21),
+                  const SizedBox(height: AppMetrics.fieldGap),
                   for (final item in config.focusOptions) ...[
                     _FocusCheckRow(
                       label: item,
                       checked: state.checkedFocusItems.contains(item),
                       onTap: () => _toggleFocus(item),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppMetrics.labelGap),
                   ],
                   for (
                     var index = 0;
@@ -494,7 +497,7 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
                       onChanged: (value) => _updateCustomFocus(index, value),
                       onDelete: () => _deleteCustomFocus(index),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppMetrics.labelGap),
                   ],
                   _AddFocusRow(onTap: _addCustomFocus),
                   const SizedBox(height: 27),
@@ -504,11 +507,11 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
                     'Choose how students should respond.',
                     style: TextStyle(
                       color: Color(0xB3000000),
-                      fontSize: 13,
+                      fontSize: AppTypography.bodySize,
                       height: 1.25,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: AppMetrics.labelGap),
                   _ResponseGrid(
                     options: config.responses,
                     selected: state.selectedStudentResponse,
@@ -519,16 +522,12 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
                   const SizedBox(height: 9),
                   const Text(
                     'Add specific instructions for students to interact with this inquiry.',
-                    style: TextStyle(
-                      color: Color(0xB3000000),
-                      fontSize: 13,
-                      height: 1.25,
-                    ),
+                    style: AppTypography.helper,
                   ),
                   const SizedBox(height: 12),
                   _InstructionBox(
                     controller: _instructionController,
-                    hintText: config.instructionPlaceholder,
+                    hintText: '',
                     onChanged: _updateInstruction,
                   ),
                 ],
@@ -542,19 +541,21 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
       TextSpan(
         text: 'Inquiry Lens',
         style: TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: InquiryLensSelector.text,
-          fontSize: 15,
+          fontSize: AppTypography.bodySize,
           height: 1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           TextSpan(
             text: ' (optional)',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: InquiryLensSelector.muted,
-              fontSize: 12,
+              fontSize: AppTypography.helperSize,
               height: 1,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -562,73 +563,33 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
     );
   }
 
-  Widget _buildField() {
-    final selected = _selected;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _openSelector,
-      child: Container(
-        height: 47,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: InquiryLensSelector.green),
-          borderRadius: BorderRadius.circular(11),
+  Widget _buildField() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      InquiryLensChoiceGrid(data: widget.data, onChanged: widget.onChanged),
+      if (widget.data.hasLens)
+        TextButton(
+          onPressed: () => widget.onChanged(
+            widget.data.selectLens(InquiryLensData.noneValue),
+          ),
+          child: const Text(
+            'Clear Inquiry Lens',
+            style: TextStyle(color: Color(0xFFD12E2E)),
+          ),
         ),
-        child: Row(
-          children: [
-            if (selected != null) ...[
-              SvgPicture.asset(selected.iconAsset, width: 28, height: 27),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Text(
-                selected?.value ?? 'Select Inquiry',
-                style: const TextStyle(
-                  color: InquiryLensSelector.text,
-                  fontSize: 15,
-                  height: 1,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            SvgPicture.asset(
-              'assets/learning_module/text_block_chevron.svg',
-              width: 13,
-              height: 13,
-              colorFilter: const ColorFilter.mode(
-                Color(0xFF8BD5A0),
-                BlendMode.srcIn,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    ],
+  );
 
-  Widget _buildSectionTitle(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: InquiryLensSelector.text,
-        fontSize: 14,
-        height: 1.1,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-
-  Future<void> _openSelector() async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.28),
-      builder: (context) => _InquiryLensSheet(value: widget.data.selectedLens),
-    );
-    if (selected != null) widget.onChanged(widget.data.selectLens(selected));
-  }
+  Widget _buildSectionTitle(String title) => Text(
+    title,
+    style: const TextStyle(
+      fontFamily: AppTypography.bodyFamily,
+      color: InquiryLensSelector.text,
+      fontSize: AppTypography.bodySize,
+      height: 1.1,
+      fontWeight: FontWeight.w500,
+    ),
+  );
 
   void _toggleFocus(String item) {
     final state = _activeState;
@@ -711,8 +672,9 @@ class _PurposeCard extends StatelessWidget {
             child: Text(
               config.purpose,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: InquiryLensSelector.text,
-                fontSize: 12,
+                fontSize: AppTypography.helperSize,
                 height: 1.24,
               ),
             ),
@@ -747,8 +709,9 @@ class _FocusCheckRow extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: InquiryLensSelector.text,
-                fontSize: 14,
+                fontSize: AppTypography.bodySize,
                 height: 1.1,
               ),
             ),
@@ -780,11 +743,15 @@ class _CustomFocusRow extends StatelessWidget {
           child: TextField(
             controller: controller,
             onChanged: onChanged,
-            style: const TextStyle(fontSize: 14, height: 1.1),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              height: 1.1,
+            ),
             decoration: const InputDecoration(
               isDense: true,
               border: InputBorder.none,
-              hintText: 'Add focus item',
+              hintText: '',
               hintStyle: TextStyle(color: Color(0x66000000)),
             ),
           ),
@@ -821,9 +788,11 @@ class _AddFocusRow extends StatelessWidget {
           Text(
             'Add your own',
             style: TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: InquiryLensSelector.green,
-              fontSize: 14,
+              fontSize: AppTypography.buttonSize,
               height: 1.1,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -920,8 +889,9 @@ class _ResponseCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xFF1C1C1C),
-                  fontSize: 14,
+                  fontFamily: AppTypography.bodyFamily,
+                  color: AppColors.textPrimary,
+                  fontSize: AppTypography.bodySize,
                   height: 1.1,
                   fontWeight: FontWeight.w500,
                 ),
@@ -976,7 +946,7 @@ class _InstructionBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 115,
+      height: 152,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: InquiryLensSelector.green),
@@ -985,6 +955,9 @@ class _InstructionBox extends StatelessWidget {
       child: Stack(
         children: [
           TextField(
+            buildCounter:
+                (_, {required currentLength, required isFocused, maxLength}) =>
+                    null,
             controller: controller,
             onChanged: onChanged,
             maxLines: null,
@@ -992,18 +965,23 @@ class _InstructionBox extends StatelessWidget {
             maxLength: 300,
             maxLengthEnforcement: MaxLengthEnforcement.enforced,
             textAlignVertical: TextAlignVertical.top,
-            style: const TextStyle(fontSize: 12, height: 1.24),
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
+              fontSize: AppTypography.bodySize,
+              height: 1.24,
+            ),
             decoration: InputDecoration(
               counterText: '',
-              hintText: hintText,
+              hintText: '',
               hintMaxLines: 4,
               hintStyle: const TextStyle(
-                color: Color(0x80000000),
-                fontSize: 12,
+                fontFamily: AppTypography.bodyFamily,
+                color: AppColors.textSecondary,
+                fontSize: AppTypography.helperSize,
                 height: 1.24,
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.fromLTRB(8, 8, 8, 22),
+              contentPadding: const EdgeInsets.fromLTRB(9, 8, 9, 22),
             ),
           ),
           Positioned(
@@ -1011,14 +989,7 @@ class _InstructionBox extends StatelessWidget {
             bottom: 6,
             child: AnimatedBuilder(
               animation: controller,
-              builder: (context, _) => Text(
-                '${controller.text.length}/300',
-                style: const TextStyle(
-                  color: InquiryLensSelector.text,
-                  fontSize: 8,
-                  height: 1,
-                ),
-              ),
+              builder: (context, _) => const SizedBox.shrink(),
             ),
           ),
         ],
@@ -1027,207 +998,132 @@ class _InstructionBox extends StatelessWidget {
   }
 }
 
-class _InquiryLensSheet extends StatelessWidget {
-  final String value;
-
-  const _InquiryLensSheet({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 354),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: InquiryLensSelector.green),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.14),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _InquiryHeader(
-                    selected: value != InquiryLensData.noneValue ? value : null,
-                  ),
-                  for (
-                    var index = 0;
-                    index < InquiryLensConfig.values.length;
-                    index++
-                  ) ...[
-                    _InquiryOptionRow(
-                      option: InquiryLensConfig.values[index],
-                      selected: InquiryLensConfig.values[index].value == value,
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pop(InquiryLensConfig.values[index].value),
-                    ),
-                    if (index != InquiryLensConfig.values.length - 1)
-                      const Divider(height: 1, color: Color(0xFFE6E6E6)),
-                  ],
-                  if (value != InquiryLensData.noneValue) ...[
-                    const Divider(height: 1, color: Color(0xFFE6E6E6)),
-                    _ClearInquiryRow(
-                      onTap: () =>
-                          Navigator.of(context).pop(InquiryLensData.noneValue),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InquiryHeader extends StatelessWidget {
-  final String? selected;
-
-  const _InquiryHeader({required this.selected});
+/// One inquiry-lens design shared by all journal and learning entry surfaces.
+class InquiryLensChoiceGrid extends StatelessWidget {
+  const InquiryLensChoiceGrid({
+    super.key,
+    required this.data,
+    required this.onChanged,
+    this.showError = false,
+  });
+  final InquiryLensData data;
+  final ValueChanged<InquiryLensData> onChanged;
+  final bool showError;
+  static const displayOrder = [
+    'Design',
+    'Observe',
+    'Investigate',
+    'Wonder',
+    'Systems',
+    'Explain',
+  ];
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 47,
-      padding: const EdgeInsets.symmetric(horizontal: 17),
-      child: Row(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final width = constraints.maxWidth.isFinite
+          ? constraints.maxWidth
+          : 332.0;
+      final columns = width >= 600
+          ? 3
+          : width >= 300
+          ? 2
+          : 1;
+      Widget card(String value) => _InquiryLensChoiceCard(
+        option: InquiryLensConfig.byValue(value)!,
+        selected: data.selectedLens == value,
+        showError: showError,
+        onTap: () => onChanged(data.selectLens(value)),
+      );
+      return Column(
         children: [
-          Expanded(
-            child: Text(
-              selected ?? 'Select Inquiry',
-              style: const TextStyle(
-                color: InquiryLensSelector.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+          for (
+            var index = 0;
+            index < displayOrder.length;
+            index += columns
+          ) ...[
+            if (index > 0) const SizedBox(height: AppMetrics.contentGap),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (
+                    var offset = 0;
+                    offset < columns && index + offset < displayOrder.length;
+                    offset++
+                  ) ...[
+                    if (offset > 0)
+                      const SizedBox(width: AppMetrics.contentGap),
+                    Expanded(child: card(displayOrder[index + offset])),
+                  ],
+                ],
               ),
             ),
-          ),
-          SvgPicture.asset(
-            'assets/learning_module/text_block_chevron.svg',
-            width: 13,
-            height: 13,
-            colorFilter: const ColorFilter.mode(
-              Color(0xFF8BD5A0),
-              BlendMode.srcIn,
-            ),
-          ),
+          ],
         ],
-      ),
-    );
-  }
+      );
+    },
+  );
 }
 
-class _InquiryOptionRow extends StatelessWidget {
-  final InquiryLensConfig option;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _InquiryOptionRow({
+class _InquiryLensChoiceCard extends StatelessWidget {
+  const _InquiryLensChoiceCard({
     required this.option,
     required this.selected,
+    required this.showError,
     required this.onTap,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? const Color(0x0F5DB075) : Colors.white,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: 57,
-          child: Row(
-            children: [
-              const SizedBox(width: 16),
-              SvgPicture.asset(option.iconAsset, width: 28, height: 27),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      option.value,
-                      style: const TextStyle(
-                        color: InquiryLensSelector.text,
-                        fontSize: 14,
-                        height: 1,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      option.description,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF666666),
-                        fontSize: 10,
-                        height: 1,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (selected)
-                const Padding(
-                  padding: EdgeInsets.only(right: 13),
-                  child: Icon(
-                    Icons.check,
-                    color: InquiryLensSelector.green,
-                    size: 18,
-                  ),
-                )
-              else
-                const SizedBox(width: 13),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ClearInquiryRow extends StatelessWidget {
+  final InquiryLensConfig option;
+  final bool selected;
+  final bool showError;
   final VoidCallback onTap;
-
-  const _ClearInquiryRow({required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      child: InkWell(
-        onTap: onTap,
-        child: const SizedBox(
-          height: 44,
-          child: Center(
-            child: Text(
-              'Clear Inquiry Lens',
-              style: TextStyle(
-                color: Color(0xFFD12E2E),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 128),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0x195DB075) : Colors.white,
+          border: Border.all(
+            color: showError ? Colors.red : InquiryLensSelector.green,
           ),
+          borderRadius: BorderRadius.circular(AppMetrics.cornerRadius),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDFF0E4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SvgPicture.asset(option.iconAsset),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(option.value, style: AppTypography.fieldLabel),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              option.description,
+              style: AppTypography.helper.copyWith(height: 1.4),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }

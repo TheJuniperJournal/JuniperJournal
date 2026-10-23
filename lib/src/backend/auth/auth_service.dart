@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'auth_redirect.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../db/supabase_database.dart';
 import '../security/input_validator.dart';
@@ -57,7 +59,8 @@ class AuthService {
     final emailErr = InputValidator.email(email);
     if (emailErr != null) {
       return SignUpResult(
-        user: null, session: null,
+        user: null,
+        session: null,
         requiresEmailConfirmation: false,
         friendlyErrorMessage: emailErr,
       );
@@ -65,7 +68,8 @@ class AuthService {
     final passwordErr = InputValidator.password(password);
     if (passwordErr != null) {
       return SignUpResult(
-        user: null, session: null,
+        user: null,
+        session: null,
         requiresEmailConfirmation: false,
         friendlyErrorMessage: passwordErr,
       );
@@ -74,7 +78,8 @@ class AuthService {
       final usernameErr = InputValidator.username(username);
       if (usernameErr != null) {
         return SignUpResult(
-          user: null, session: null,
+          user: null,
+          session: null,
           requiresEmailConfirmation: false,
           friendlyErrorMessage: usernameErr,
         );
@@ -84,7 +89,8 @@ class AuthService {
       final nameErr = InputValidator.displayName(displayName);
       if (nameErr != null) {
         return SignUpResult(
-          user: null, session: null,
+          user: null,
+          session: null,
           requiresEmailConfirmation: false,
           friendlyErrorMessage: nameErr,
         );
@@ -107,6 +113,9 @@ class AuthService {
         email: email,
         password: password,
         data: data.isEmpty ? null : data,
+        emailRedirectTo: kIsWeb
+            ? authRedirect(isWeb: true, base: Uri.base)
+            : null,
       );
       return SignUpResult(
         user: response.user,
@@ -256,7 +265,7 @@ class AuthService {
   Future<bool> signInWithGoogle() async {
     final response = await _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: 'io.supabase.flutterquickstart://login-callback/',
+      redirectTo: authRedirect(isWeb: kIsWeb, base: Uri.base),
     );
 
     return response;

@@ -1,9 +1,15 @@
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../../shared/widgets/impact_icon.dart';
+import 'package:juniper_journal/src/shared/widgets/optional_field_label.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import '../../../shared/widgets/content_aligned_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:juniper_journal/src/backend/db/models/impact_entry.dart';
 import 'package:juniper_journal/src/backend/db/models/journal_entry.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
-import 'package:juniper_journal/src/features/project/utils/eco_points_calculator.dart';
 import 'package:juniper_journal/src/shared/styling/theme.dart';
 import 'package:juniper_journal/src/shared/widgets/pill_selector.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
@@ -66,29 +72,9 @@ const _metricDescriptions = {
   'Biological Growth': 'Measures ecological growth and restoration',
 };
 
-String _metricIcon(String metric) => switch (metric) {
-  'Education' => 'assets/impact/metric_education.png',
-  'Energy' => 'assets/impact/metric_energy.png',
-  'Waste' => 'assets/impact/metric_waste.png',
-  'Water' => 'assets/impact/metric_water.png',
-  _ => 'assets/impact/metric_biological.png',
-};
-
-String _patternIcon(String pattern) => switch (pattern) {
-  'Reduction' => 'assets/impact/pattern_reduction.png',
-  'Substitution' => 'assets/impact/pattern_substitution.png',
-  'Behavior Change' => 'assets/impact/pattern_behavior_change.png',
-  'Capacity Building' => 'assets/impact/pattern_capacity_building.png',
-  _ => 'assets/impact/pattern_regeneration.png',
-};
-
-String _scaleIcon(String scale) => switch (scale) {
-  'Seed (Very Small)' => 'assets/impact/scale_seed.png',
-  'Sapling (Small)' => 'assets/impact/scale_sapling.png',
-  'Grove (Moderate)' => 'assets/impact/scale_grove.png',
-  'Forest (Large)' => 'assets/impact/scale_forest.png',
-  _ => 'assets/impact/scale_watershed.png',
-};
+String _metricIcon(String metric) => impactIconAsset('Metrics', metric);
+String _patternIcon(String pattern) => impactIconAsset('Pattern', pattern);
+String _scaleIcon(String scale) => impactIconAsset('Impact', scale);
 
 /// The size suffix shown under each scale name, e.g. "Grove" → "(Medium)".
 /// Figma labels Grove as "(Medium)" even though the eco-points key is
@@ -157,13 +143,6 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
       ? []
       : List<String>.from((_combinations[_metric]?[_patternType]) ?? const []);
 
-  double get _ecoPoints => calculateEcoPoints(
-    impactScale: _impactScale,
-    confidenceScore: _confidenceScore,
-    measurement: double.tryParse(_measurementCtrl.text),
-    measurementUnit: _measurementUnit,
-  );
-
   @override
   void initState() {
     super.initState();
@@ -227,7 +206,8 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
     setState(() => _isSaving = true);
 
     final measurement = double.tryParse(_measurementCtrl.text.trim());
-    final pts = _ecoPoints;
+    // The server validates and calculates the reward.
+    const pts = 0.0;
 
     bool ok;
     if (_isEdit) {
@@ -286,42 +266,19 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 72,
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            size: 18,
-            color: AppColors.primary,
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: ContentAlignedBackButton(
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          onPressed: () => Navigator.of(context).pop(),
         ),
-        title: widget.readOnly
-            ? Text(
-                _titleCtrl.text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-              )
-            : TextField(
-                controller: _titleCtrl,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
+        title: const Text('Impact Entry', style: AppTypography.pageTitle),
         actions: widget.readOnly
             ? [
                 Padding(
@@ -330,7 +287,8 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                     child: Text(
                       'Read Only',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontFamily: AppTypography.headingFamily,
+                        fontSize: AppTypography.pageTitleSize,
                         color: Colors.grey.shade400,
                       ),
                     ),
@@ -349,12 +307,33 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _label('Impact Title'),
+              const SizedBox(height: AppMetrics.labelGap),
+              TextField(
+                controller: _titleCtrl,
+                readOnly: widget.readOnly,
+                textAlign: TextAlign.left,
+                style: AppTypography.inputText,
+                decoration: const InputDecoration(
+                  hintText: 'Name this impact',
+                  constraints: BoxConstraints(minHeight: 64),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.sectionGap),
               // ── Metric ──────────────────────────────────────────────────────
               _label('Metric'),
               const SizedBox(height: 4),
               const Text(
                 'What type of impact does this represent?',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.helperSize,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 10),
               for (final metric in _metrics)
@@ -364,15 +343,27 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                   selected: _metric == metric,
                   onTap: () => _selectMetric(metric),
                 ),
-              const SizedBox(height: 18),
+              const SizedBox(height: AppMetrics.labelGap),
 
               // ── Pattern Type ────────────────────────────────────────────────
               _label('Pattern Type'),
               const SizedBox(height: 4),
               const Text(
                 'What kind of change did you create?',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.helperSize,
+                  color: AppColors.textSecondary,
+                ),
               ),
+              if (_metric == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Select a metric to choose a pattern type.',
+                    style: AppTypography.helper,
+                  ),
+                ),
               const SizedBox(height: 8),
               _PatternField(
                 value: _patternType,
@@ -380,42 +371,75 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                 enabled: _metric != null,
                 onSelected: _selectPattern,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: AppMetrics.labelGap),
 
               // ── Impact Scale ────────────────────────────────────────────────
               _label('Impact Scale'),
               const SizedBox(height: 4),
               const Text(
                 'How big was the impact of your project?',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
-              ),
-              const SizedBox(height: 10),
-              Opacity(
-                opacity: _patternType == null ? 0.4 : 1.0,
-                child: AbsorbPointer(
-                  absorbing: _patternType == null,
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (final scale in _scales)
-                        _ScaleCard(
-                          scale: scale,
-                          selected: _impactScale == scale,
-                          onTap: () => setState(() => _impactScale = scale),
-                        ),
-                    ],
-                  ),
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.helperSize,
+                  color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 10),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 560
+                      ? 5
+                      : constraints.maxWidth >= 360
+                      ? 3
+                      : 2;
+                  final width =
+                      (constraints.maxWidth - (columns - 1) * 12) / columns;
+                  return Column(
+                    children: [
+                      for (
+                        var start = 0;
+                        start < _scales.length;
+                        start += columns
+                      ) ...[
+                        if (start > 0) const SizedBox(height: 12),
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (
+                                var index = start;
+                                index < _scales.length &&
+                                    index < start + columns;
+                                index++
+                              ) ...[
+                                if (index > start) const SizedBox(width: 12),
+                                SizedBox(
+                                  width: width,
+                                  child: _ScaleCard(
+                                    scale: _scales[index],
+                                    selected: _impactScale == _scales[index],
+                                    onTap: () => setState(
+                                      () => _impactScale = _scales[index],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
 
               // ── Measurement ─────────────────────────────────────────────────
-              _label('Measurement (Optional)'),
+              _label('Measurement (optional)'),
               const SizedBox(height: 4),
               const Text(
                 'Add a number to quantify your impact.',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
+                style: AppTypography.helper,
               ),
               const SizedBox(height: 8),
               // Locked until pattern is chosen (unit list drives valid units)
@@ -438,28 +462,27 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                             ),
                           ],
                           decoration: InputDecoration(
-                            hintText: '0',
+                            hintText: '',
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
+                              horizontal: 9,
                               vertical: 14,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: AppColors.borderLight,
+                                color: AppColors.primary,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
                                 color: AppColors.primary,
-                                width: 1.5,
                               ),
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: AppColors.borderLight,
+                                color: AppColors.primary,
                               ),
                             ),
                           ),
@@ -479,7 +502,7 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppMetrics.fieldGap),
 
               // ── Evidence Type (left) + Confidence Score (right) ─────────────
               Row(
@@ -493,7 +516,11 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                         const SizedBox(height: 2),
                         const Text(
                           'How did you verify this?',
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.helperSize,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         PillSelector(
@@ -514,7 +541,11 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                         const SizedBox(height: 2),
                         const Text(
                           'How confident are you?',
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.helperSize,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         PillSelector(
@@ -529,7 +560,7 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppMetrics.fieldGap),
 
               // ── Link to Journal ──────────────────────────────────────────────
               if (widget.lockedJournalEntryId == null) ...[
@@ -548,7 +579,11 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                     ),
                     child: const Text(
                       'No journal entries yet — create one first.',
-                      style: TextStyle(fontSize: 13, color: Colors.deepOrange),
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        color: Colors.deepOrange,
+                      ),
                     ),
                   )
                 else
@@ -580,7 +615,7 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                       setState(() => _linkedJournalEntryId = entry?.id);
                     },
                   ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppMetrics.fieldGap),
               ],
 
               if (!widget.readOnly)
@@ -610,8 +645,9 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                         : Text(
                             _isEdit ? 'Save' : 'Add Impact',
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.buttonSize,
+                              fontWeight: FontWeight.w500,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -656,11 +692,12 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
     });
   }
 
-  Widget _label(String text) => Text(
+  Widget _label(String text) => OptionalFieldLabel(
     text,
     style: const TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
+      fontFamily: AppTypography.bodyFamily,
+      fontSize: AppTypography.bodySize,
+      fontWeight: FontWeight.w500,
       color: Colors.black87,
     ),
   );
@@ -691,16 +728,16 @@ class _MetricCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? AppColors.primary.withValues(alpha: 0.08)
-              : const Color(0xFFF7F7F7),
+              : Colors.white,
           border: Border.all(
-            color: selected ? AppColors.primary : const Color(0xFFE5E5E5),
+            color: AppColors.primary,
             width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Image.asset(_metricIcon(metric), width: 34, height: 34),
+            SvgPicture.asset(_metricIcon(metric), width: 34, height: 34),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -709,15 +746,20 @@ class _MetricCard extends StatelessWidget {
                   Text(
                     metric,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     description,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -745,33 +787,37 @@ class _ScaleCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 104,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.primary.withValues(alpha: 0.08)
-              : const Color(0xFFF7F7F7),
+              : Colors.white,
           border: Border.all(
-            color: selected ? AppColors.primary : const Color(0xFFE5E5E5),
+            color: AppColors.primary,
             width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
-            Image.asset(_scaleIcon(scale), width: 40, height: 40),
+            SvgPicture.asset(_scaleIcon(scale), width: 40, height: 40),
             const SizedBox(height: 8),
             Text(
               _scaleName(scale),
               style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
                 color: AppColors.primary,
               ),
             ),
             Text(
               _scaleSize(scale),
-              style: const TextStyle(fontSize: 11, color: Colors.black45),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.helperSize,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -779,6 +825,20 @@ class _ScaleCard extends StatelessWidget {
     );
   }
 }
+
+String _patternExplanation(String value) => switch (value) {
+  'Reduction' =>
+    'Use fewer resources or create less waste. For example, reduce water use or food waste.',
+  'Substitution' =>
+    'Replace a material or process with a lower-impact alternative. For example, use reusable containers instead of disposables.',
+  'Regeneration' =>
+    'Restore or renew natural systems. For example, improve soil health or plant native habitat.',
+  'Behavior Change' =>
+    'Help people adopt more sustainable habits. For example, encourage regular composting or switching off unused lights.',
+  'Capacity Building' =>
+    'Build the skills, tools, or support people need to keep making progress. For example, teach composting skills or provide shared equipment.',
+  _ => '',
+};
 
 class _PatternField extends StatelessWidget {
   const _PatternField({
@@ -794,33 +854,63 @@ class _PatternField extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   Future<void> _open(BuildContext context) async {
-    final selected = await showModalBottomSheet<String>(
+    final selected = await showAppModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final option in options)
-              ListTile(
-                leading: Image.asset(
-                  _patternIcon(option),
-                  width: 26,
-                  height: 26,
-                ),
-                title: Text(
-                  option,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+      showDragHandle: true,
+      enableDrag: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Pattern Type',
+                      style: AppTypography.sectionTitle,
+                    ),
                   ),
-                ),
-                onTap: () => Navigator.of(context).pop(option),
+                  IconButton(
+                    tooltip: 'Close pattern chooser',
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
-          ],
+              const SizedBox(height: 8),
+              const Text(
+                'Choose how your project creates change.',
+                style: AppTypography.helper,
+              ),
+              const SizedBox(height: 16),
+              for (final option in options)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  minLeadingWidth: 32,
+                  leading: SvgPicture.asset(
+                    _patternIcon(option),
+                    width: 26,
+                    height: 26,
+                  ),
+                  title: Text(option, style: AppTypography.fieldLabel),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      _patternExplanation(option),
+                      style: AppTypography.helper,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(sheetContext).pop(option),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -834,14 +924,14 @@ class _PatternField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: enabled ? Colors.white : const Color(0xFFF2F2F2),
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          color: Colors.white,
+          border: Border.all(color: AppColors.primary),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             if (value != null) ...[
-              Image.asset(_patternIcon(value!), width: 22, height: 22),
+              SvgPicture.asset(_patternIcon(value!), width: 22, height: 22),
               const SizedBox(width: 10),
             ],
             Expanded(
@@ -849,9 +939,10 @@ class _PatternField extends StatelessWidget {
                 value ??
                     (enabled ? 'Select a pattern' : 'Select a metric above'),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
                   color: value == null ? Colors.black38 : Colors.black87,
-                  fontWeight: value == null ? FontWeight.w400 : FontWeight.w600,
+                  fontWeight: value == null ? FontWeight.w400 : FontWeight.w500,
                 ),
               ),
             ),

@@ -1,3 +1,9 @@
+import '../../../shared/widgets/evidence_cell_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -230,7 +236,10 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
     return true;
   }
 
-  bool get _canSave => _hasValidRows && _assessment.isValid && !_saving;
+  bool get _hasAxisLabels =>
+      _xAxisController.text.trim().isNotEmpty &&
+      _yAxisController.text.trim().isNotEmpty;
+  bool get _canSave => _hasValidRows && _hasAxisLabels && !_saving;
 
   List<GraphDataRow> get _rows => [
     for (var index = 0; index < _xControllers.length; index++)
@@ -258,7 +267,7 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
   }
 
   Future<void> _selectGraphType() async {
-    final selected = await showModalBottomSheet<GraphType>(
+    final selected = await showAppModalBottomSheet<GraphType>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => _GraphTypeSheet(selected: _graphType),
@@ -300,7 +309,12 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
@@ -311,16 +325,16 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _SectionLabel('Content'),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         const _Label('Title', optional: true),
                         const SizedBox(height: 10),
                         _Input(
                           controller: _titleController,
                           maxLength: 100,
-                          height: 34,
+                          height: 64,
                           maxLines: 1,
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: AppMetrics.fieldGap),
                         const _Label('Graph Type'),
                         const SizedBox(height: 10),
                         _SelectBox(
@@ -336,7 +350,7 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                           showValidation: _showValidation,
                           onDelete: _removeRow,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppMetrics.fieldGap),
                         Center(
                           child: _OutlineButton(
                             label: '+ Add Row',
@@ -345,12 +359,13 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                         ),
                         const SizedBox(height: 25),
                         const _Label('Axis Labels'),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppMetrics.labelGap),
                         _SmallInput(
                           label: _graphType == GraphType.pie
                               ? 'Label Column Name'
                               : 'X-Axis Label',
                           controller: _xAxisController,
+                          showError: _showValidation,
                         ),
                         const SizedBox(height: 12),
                         _SmallInput(
@@ -358,6 +373,7 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                               ? 'Percent Column Name'
                               : 'Y-Axis Label',
                           controller: _yAxisController,
+                          showError: _showValidation,
                         ),
                         const SizedBox(height: 25),
                         const _Label('Preview'),
@@ -374,7 +390,7 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                         const SizedBox(height: 8),
                         const Text(
                           'Add specific description of the graph.',
-                          style: TextStyle(color: _muted, fontSize: 13),
+                          style: AppTypography.helper,
                         ),
                         const SizedBox(height: 12),
                         _Input(
@@ -382,34 +398,23 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                           maxLength: 300,
                           height: 92,
                           maxLines: 4,
-                          hintText:
-                              'Example: Carbon dioxide is the primary greenhouse gas because it is the most abundantly emitted heat-trapping gas from human activities.',
+                          hintText: '',
                         ),
-                        const SizedBox(height: 22),
-                        InquiryLensSelector(
-                          data: _inquiryLensData,
-                          onChanged: (value) =>
-                              setState(() => _inquiryLensData = value),
-                        ),
-                        const SizedBox(height: 22),
-                        const _SectionLabel('Assessment', optional: true),
-                        const SizedBox(height: 11),
-                        AssessmentBlockSection(
-                          value: _assessment,
-                          showValidation: _showValidation,
-                          onChanged: (value) =>
-                              setState(() => _assessment = value),
-                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+
                         if (_showValidation && !_canSave) ...[
                           const SizedBox(height: 10),
                           Text(
-                            _graphType == GraphType.pie
+                            !_hasAxisLabels
+                                ? 'Enter both axis or column labels.'
+                                : _graphType == GraphType.pie
                                 ? 'Enter at least two pie rows and make percentages total 100.'
                                 : 'Enter valid numeric graph values before saving.',
                             style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
                               color: _error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -436,8 +441,9 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
                                     ? 'Saving...'
                                     : (_isEditing ? 'Save' : 'Add Block'),
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -457,53 +463,11 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
-
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 28,
-            child: Text(
-              'Graph Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _GraphBlockEditorScreenState._text,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 24,
-            top: 22,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const Icon(
-                Icons.chevron_left,
-                color: _GraphBlockEditorScreenState._green,
-                size: 32,
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(height: 1, color: Color(0xFFE6E6E6)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Graph Block', onBack: onBack);
 }
 
 class _GraphTypeSheet extends StatelessWidget {
@@ -540,15 +504,19 @@ class _GraphTypeSheet extends StatelessWidget {
                     title: Text(
                       type.label,
                       style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     subtitle: Text(
                       type.description,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11),
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                      ),
                     ),
                     trailing: type == selected
                         ? const Icon(
@@ -609,7 +577,7 @@ class _GraphTable extends StatelessWidget {
           ),
           for (var index = 0; index < xControllers.length; index++)
             SizedBox(
-              height: 34,
+              height: 48,
               child: Row(
                 children: [
                   Expanded(
@@ -676,9 +644,14 @@ class _ChartPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final legendRows = rows
+        .where(
+          (row) => row.x.trim().isNotEmpty && double.tryParse(row.y) != null,
+        )
+        .toList();
     return Container(
-      width: 345,
-      height: 315,
+      width: double.infinity,
+
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFD8D0D0)),
@@ -691,14 +664,66 @@ class _ChartPreview extends StatelessWidget {
           ),
         ],
       ),
-      child: CustomPaint(
-        painter: _GraphPainter(
-          rows: rows,
-          type: graphType,
-          title: title.isEmpty ? 'Blank' : title,
-          xLabel: xAxisLabel.isEmpty ? 'Blank' : xAxisLabel,
-          yLabel: yAxisLabel.isEmpty ? 'Blank' : yAxisLabel,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: MediaQuery.sizeOf(context).width >= 1000 ? 380 : 315,
+            width: double.infinity,
+            child: Tooltip(
+              message: rows
+                  .where((row) => row.x.isNotEmpty && row.y.isNotEmpty)
+                  .map((row) => '${row.x}: ${row.y}')
+                  .join('\n'),
+              child: CustomPaint(
+                painter: _GraphPainter(
+                  rows: rows,
+                  type: graphType,
+                  title: title.isEmpty ? 'Blank' : title,
+                  xLabel: xAxisLabel.isEmpty ? 'Blank' : xAxisLabel,
+                  yLabel: yAxisLabel.isEmpty ? 'Blank' : yAxisLabel,
+                ),
+              ),
+            ),
+          ),
+          if (graphType == GraphType.pie)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                children: [
+                  for (var index = 0; index < legendRows.length; index++)
+                    if (legendRows[index].x.isNotEmpty &&
+                        double.tryParse(legendRows[index].y) != null)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            color: const [
+                              Color(0xFF5DB075),
+                              Color(0xFF49ACC7),
+                              Color(0xFFC9A64A),
+                              Color(0xFF9B6AD6),
+                              Color(0xFF7FBF7A),
+                            ][index % 5],
+                          ),
+                          const SizedBox(width: 8),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 200),
+                            child: Text(
+                              '${legendRows[index].x}: ${legendRows[index].y}%',
+                              style: AppTypography.helper,
+                            ),
+                          ),
+                        ],
+                      ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -831,7 +856,13 @@ class _GraphPainter extends CustomPainter {
       const Color(0xFF7FBF7A),
     ];
     if (valid.isEmpty || total <= 0) return;
-    final rect = Rect.fromLTWH(32, 78, 170, 170);
+    final diameter = math.min(size.width - 48, size.height - 96);
+    final rect = Rect.fromLTWH(
+      (size.width - diameter) / 2,
+      64,
+      diameter,
+      diameter,
+    );
     var start = -math.pi / 2;
     for (var index = 0; index < valid.length; index++) {
       final sweep = valid[index].value / total * math.pi * 2;
@@ -843,20 +874,6 @@ class _GraphPainter extends CustomPainter {
         Paint()..color = colors[index % colors.length],
       );
       start += sweep;
-    }
-    for (var index = 0; index < valid.length; index++) {
-      final y = 86.0 + index * 38;
-      canvas.drawRect(
-        Rect.fromLTWH(242, y, 24, 24),
-        Paint()..color = colors[index % colors.length],
-      );
-      _drawText(
-        canvas,
-        valid[index].key,
-        Offset(282, y + 3),
-        14,
-        FontWeight.w700,
-      );
     }
   }
 
@@ -906,9 +923,10 @@ class _SectionLabel extends StatelessWidget {
         ],
       ),
       style: const TextStyle(
+        fontFamily: AppTypography.bodyFamily,
         color: _GraphBlockEditorScreenState._text,
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
+        fontSize: AppTypography.bodySize,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -934,9 +952,10 @@ class _Label extends StatelessWidget {
         ],
       ),
       style: const TextStyle(
+        fontFamily: AppTypography.bodyFamily,
         color: _GraphBlockEditorScreenState._text,
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
+        fontSize: AppTypography.bodySize,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -951,7 +970,11 @@ class _TableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+      style: const TextStyle(
+        fontFamily: AppTypography.bodyFamily,
+        fontSize: AppTypography.bodySize,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 }
@@ -969,21 +992,7 @@ class _CellField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      textAlign: TextAlign.center,
-      keyboardType: numeric
-          ? const TextInputType.numberWithOptions(decimal: true, signed: true)
-          : TextInputType.text,
-      inputFormatters: numeric ? null : [LengthLimitingTextInputFormatter(50)],
-      decoration: InputDecoration(
-        filled: error,
-        fillColor: const Color(0xFFFFEEEE),
-        border: InputBorder.none,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-      ),
-    );
+    return EvidenceCellField(controller: controller, numeric: numeric);
   }
 }
 
@@ -991,7 +1000,12 @@ class _SmallInput extends StatelessWidget {
   final String label;
   final TextEditingController controller;
 
-  const _SmallInput({required this.label, required this.controller});
+  final bool showError;
+  const _SmallInput({
+    required this.label,
+    required this.controller,
+    this.showError = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1001,13 +1015,19 @@ class _SmallInput extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
             color: _GraphBlockEditorScreenState._muted,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+            fontSize: AppTypography.bodySize,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 6),
         _Input(controller: controller, maxLength: 50, height: 34, maxLines: 1),
+        if (showError && controller.text.trim().isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text('Required', style: AppTypography.requirement),
+          ),
       ],
     );
   }
@@ -1031,13 +1051,20 @@ class _Input extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      buildCounter:
+          (_, {required currentLength, required isFocused, maxLength}) => null,
       controller: controller,
-      maxLines: maxLines,
+      minLines: maxLines > 1 ? 5 : 1,
+      maxLines: maxLines > 1 ? null : 1,
+      textAlignVertical: TextAlignVertical.top,
       maxLength: maxLength,
       decoration: InputDecoration(
         hintText: hintText,
-        counterStyle: const TextStyle(fontSize: 9),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        counterStyle: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
+          fontSize: AppTypography.helperSize,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
         constraints: BoxConstraints(minHeight: height),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(9),
@@ -1086,8 +1113,9 @@ class _SelectBox extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -1148,7 +1176,7 @@ class _OutlineButton extends StatelessWidget {
           side: const BorderSide(color: _GraphBlockEditorScreenState._green),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
         ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -1190,8 +1218,9 @@ class _DropdownField extends StatelessWidget {
               child: Text(
                 displayValue,
                 style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -1204,4 +1233,18 @@ class _DropdownField extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Displays saved graph data without editor controls.
+class GraphEvidencePreview extends StatelessWidget {
+  const GraphEvidencePreview({super.key, required this.data});
+  final GraphBlockData data;
+  @override
+  Widget build(BuildContext context) => _ChartPreview(
+    rows: data.rows,
+    graphType: data.graphType,
+    title: data.title,
+    xAxisLabel: data.xAxisLabel,
+    yAxisLabel: data.yAxisLabel,
+  );
 }

@@ -1,3 +1,10 @@
+import '../../../shared/widgets/evidence_description_field.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
+import 'package:juniper_journal/src/shared/styling/app_typography.dart';
+import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
+import '../../../shared/widgets/evidence_media_source.dart';
+import 'package:juniper_journal/src/shared/widgets/evidence_block_header.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -336,8 +343,12 @@ class SketchImagePlaceholder {
         ((json['width'] as num?) ?? 82).toDouble(),
         ((json['height'] as num?) ?? 62).toDouble(),
       ),
-      storagePath: json['storage_path']?.toString() ?? '',
-      publicUrl: json['public_url']?.toString() ?? '',
+      storagePath:
+          (json['storage_path'] ?? json['storagePath'])?.toString() ?? '',
+      publicUrl:
+          (json['public_url'] ?? json['publicUrl'] ?? json['url'])
+              ?.toString() ??
+          '',
       fileName: json['file_name']?.toString() ?? '',
     );
   }
@@ -372,7 +383,6 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   String _shapeType = 'box';
   InquiryLensData _inquiryLensData = const InquiryLensData();
   AssessmentBlockData _assessment = const AssessmentBlockData();
-  bool _showAssessmentValidation = false;
   List<SketchStroke> _strokes = [];
   List<SketchTextItem> _textItems = [];
   List<SketchShapeItem> _shapes = [];
@@ -387,6 +397,17 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   _SketchSelection? _selection;
   bool _uploadingImage = false;
   String? _uploadError;
+  bool _showContentError = false;
+  bool get _hasCanvasContent =>
+      _strokes.any((stroke) => stroke.points.isNotEmpty) ||
+      _textItems.any((item) => item.text.trim().isNotEmpty) ||
+      _shapes.isNotEmpty ||
+      _arrows.isNotEmpty ||
+      _imagePlaceholders.any(
+        (image) =>
+            image.storagePath.trim().isNotEmpty ||
+            image.publicUrl.trim().isNotEmpty,
+      );
 
   bool get _isEditing => widget.initialData != null;
 
@@ -423,8 +444,8 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   }
 
   void _save() {
-    if (!_assessment.isValid) {
-      setState(() => _showAssessmentValidation = true);
+    if (!_hasCanvasContent) {
+      setState(() => _showContentError = true);
       return;
     }
     Navigator.of(context).pop(
@@ -460,7 +481,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   }
 
   void _showColorChooser() {
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
@@ -525,7 +546,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   }
 
   void _showShapeChooser() {
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
@@ -788,7 +809,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
 
   Future<void> _placeText(Offset point) async {
     final controller = TextEditingController();
-    final text = await showDialog<String>(
+    final text = await showAppDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -798,10 +819,13 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
           ),
           title: const Text('Add Text'),
           content: TextField(
+            buildCounter:
+                (_, {required currentLength, required isFocused, maxLength}) =>
+                    null,
             controller: controller,
             autofocus: true,
             maxLength: 80,
-            decoration: const InputDecoration(hintText: 'Type text'),
+            decoration: const InputDecoration(hintText: ''),
           ),
           actions: [
             TextButton(
@@ -975,7 +999,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   }
 
   Future<void> _placeImage(Offset point, Size canvasSize) async {
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showAppModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => SafeArea(
@@ -1072,7 +1096,12 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _screenWidth),
+            constraints: BoxConstraints(
+              maxWidth: JournalPageLayout.widthFor(
+                context,
+                mobileWidth: _screenWidth,
+              ),
+            ),
             child: Column(
               children: [
                 _Header(
@@ -1088,7 +1117,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                           padding: EdgeInsets.fromLTRB(24, 0, 23, 0),
                           child: _FieldLabel(label: 'Content'),
                         ),
-                        const SizedBox(height: 17),
+                        const SizedBox(height: AppMetrics.labelGap),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(24, 0, 23, 0),
                           child: Column(
@@ -1099,7 +1128,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                               _TextFieldBox(
                                 controller: _titleController,
                                 maxLength: 100,
-                                height: 34,
+                                height: 64,
                                 singleLine: true,
                               ),
                             ],
@@ -1154,6 +1183,15 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                             onToolSelected: _selectTool,
                           ),
                         ),
+                        if (_showContentError && !_hasCanvasContent) ...[
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(25, 8, 23, 0),
+                            child: Text(
+                              'Add a drawing, text, shape, or image to the canvas.',
+                              style: AppTypography.requirement,
+                            ),
+                          ),
+                        ],
                         if (_uploadError != null) ...[
                           const SizedBox(height: 7),
                           Padding(
@@ -1162,7 +1200,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                               _uploadError!,
                               style: const TextStyle(
                                 color: Color(0xFFD12E2E),
-                                fontSize: 12,
+                                fontSize: AppTypography.helperSize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1185,39 +1223,8 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 22, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InquiryLensSelector(
-                                data: _inquiryLensData,
-                                onChanged: (value) =>
-                                    setState(() => _inquiryLensData = value),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 22, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FieldLabel(label: 'Assessment', optional: true),
-                              const SizedBox(height: 11),
-                              AssessmentBlockSection(
-                                value: _assessment,
-                                showValidation: _showAssessmentValidation,
-                                onChanged: (value) {
-                                  setState(() => _assessment = value);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 52),
+                        const SizedBox(height: AppMetrics.fieldGap),
+
                         Center(
                           child: SizedBox(
                             width: 130,
@@ -1235,9 +1242,10 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                               child: Text(
                                 _isEditing ? 'Save' : 'Add Block',
                                 style: const TextStyle(
-                                  fontSize: 12,
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.buttonSize,
                                   height: 1,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -1273,81 +1281,11 @@ class _CanvasSnapshot {
 }
 
 class _Header extends StatelessWidget {
-  final VoidCallback onBack;
-
   const _Header({required this.onBack});
-
+  final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 96,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 95,
-            child: Divider(height: 1, color: Color(0xFFDADADA)),
-          ),
-          Positioned(
-            left: 25,
-            top: 47,
-            width: 20,
-            height: 20,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const _BackChevron(),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            top: 54,
-            child: Text(
-              'Sketch Block',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _SketchBlockEditorScreenState._text,
-                fontSize: 16,
-                height: 1,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackChevron extends StatelessWidget {
-  const _BackChevron();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _BackChevronPainter());
-  }
-}
-
-class _BackChevronPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _SketchBlockEditorScreenState._green
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..moveTo(size.width * 0.68, size.height * 0.12)
-      ..lineTo(size.width * 0.24, size.height * 0.50)
-      ..lineTo(size.width * 0.68, size.height * 0.88);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) =>
+      EvidenceBlockHeader(title: 'Sketch Block', onBack: onBack);
 }
 
 class _FieldLabel extends StatelessWidget {
@@ -1362,20 +1300,22 @@ class _FieldLabel extends StatelessWidget {
       text: TextSpan(
         text: label,
         style: const TextStyle(
+          fontFamily: AppTypography.bodyFamily,
           color: _SketchBlockEditorScreenState._text,
-          fontSize: 15,
+          fontSize: AppTypography.bodySize,
           height: 1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
         ),
         children: [
           if (optional)
             const TextSpan(
               text: ' (optional)',
               style: TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _SketchBlockEditorScreenState._muted,
-                fontSize: 12,
+                fontSize: AppTypography.helperSize,
                 height: 1,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
         ],
@@ -1401,6 +1341,7 @@ class _TextFieldBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!singleLine) return EvidenceDescriptionField(controller: controller);
     return SizedBox(
       height: height + (singleLine ? 13 : 0),
       child: Stack(
@@ -1408,6 +1349,13 @@ class _TextFieldBox extends StatelessWidget {
           SizedBox(
             height: height,
             child: TextField(
+              buildCounter:
+                  (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               controller: controller,
               maxLength: maxLength,
               minLines: singleLine ? 1 : null,
@@ -1433,13 +1381,13 @@ class _TextFieldBox extends StatelessWidget {
                   borderRadius: BorderRadius.circular(11),
                   borderSide: const BorderSide(
                     color: _SketchBlockEditorScreenState._green,
-                    width: 1.3,
                   ),
                 ),
               ),
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _SketchBlockEditorScreenState._text,
-                fontSize: 14,
+                fontSize: AppTypography.bodySize,
                 height: 1.2,
                 fontWeight: FontWeight.w400,
               ),
@@ -1448,15 +1396,7 @@ class _TextFieldBox extends StatelessWidget {
           Positioned(
             right: 2,
             bottom: singleLine ? 0 : 7,
-            child: Text(
-              '${controller.text.length}/$maxLength',
-              style: const TextStyle(
-                color: _SketchBlockEditorScreenState._text,
-                fontSize: 8,
-                height: 1,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            child: const SizedBox.shrink(),
           ),
         ],
       ),
@@ -1840,9 +1780,9 @@ class _DeleteSelectionButton extends StatelessWidget {
           'Delete',
           style: TextStyle(
             color: Color(0xFFD12E2E),
-            fontSize: 11,
+            fontSize: AppTypography.buttonSize,
             height: 1,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -2187,9 +2127,10 @@ class _DropdownField extends StatelessWidget {
             child: Text(
               option.isEmpty ? 'None' : option,
               style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
                 color: _SketchBlockEditorScreenState._text,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -2208,10 +2149,11 @@ class _DropdownField extends StatelessWidget {
               child: Text(
                 displayValue,
                 style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
                   color: _SketchBlockEditorScreenState._text,
-                  fontSize: 15,
+                  fontSize: AppTypography.bodySize,
                   height: 1,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -2244,13 +2186,61 @@ class _SheetOption extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(
+              fontFamily: AppTypography.bodyFamily,
               color: _SketchBlockEditorScreenState._text,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontSize: AppTypography.bodySize,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Reuses the editor's drawing renderer without drawing or selection controls.
+class SketchEvidencePreview extends StatelessWidget {
+  const SketchEvidencePreview({super.key, required this.data});
+  final SketchBlockData data;
+  @override
+  Widget build(BuildContext context) => AspectRatio(
+    aspectRatio: 345 / 206,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: 345,
+          height: 206,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: CustomPaint(
+                    painter: _SketchPainter(
+                      strokes: data.strokes,
+                      textItems: data.textItems,
+                      shapes: data.shapes,
+                      arrows: data.arrows,
+                      imagePlaceholders: data.imagePlaceholders,
+                      pendingArrowStart: null,
+                      draftArrowEnd: null,
+                      selection: null,
+                    ),
+                  ),
+                ),
+              ),
+              for (final image in data.imagePlaceholders)
+                if (image.publicUrl.isNotEmpty || image.storagePath.isNotEmpty)
+                  Positioned.fromRect(
+                    rect: image.rect,
+                    child: SavedEvidenceImage(source: image.toJson()),
+                  ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
