@@ -221,7 +221,7 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                   paragraph(
-                    'Co-Founder · CEO\nEnvironmental engineering, impact modeling, and hands-on environmental education.',
+                    'Co-Founder · CEO\nB.S. Civil Engineering, UW–Madison ’23',
                   ),
                 ],
               ),
