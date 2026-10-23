@@ -32,7 +32,9 @@ Future<Widget> projectNotificationDestination(
   var section = ProjectDashboardSection.overview;
   var collaboration = CollaborationSection.bulletin;
   String? postId;
-  if (kind.startsWith('journal_')) {
+  if (kind == 'journal_deleted' || kind == 'journal_draft_deleted') {
+    section = ProjectDashboardSection.development;
+  } else if (kind.startsWith('journal_')) {
     final entries = await repo.getJournalEntries(projectId: project.id) ?? [];
     final entry = entries.where((item) => item.id == source).firstOrNull;
     if (entry == null)
@@ -55,7 +57,13 @@ Future<Widget> projectNotificationDestination(
     collaboration = kind.startsWith('member_')
         ? CollaborationSection.members
         : CollaborationSection.bulletin;
-    postId = kind == 'forum_post' ? source : null;
+    postId =
+        (kind == 'forum_post' ||
+            kind == 'forum_post_updated' ||
+            kind == 'forum_reply_updated' ||
+            kind == 'forum_reply_deleted')
+        ? source
+        : null;
     if (kind == 'forum_reply' && source != null) {
       postId = await (bulletinRepo ?? ProjectBulletinRepo()).postIdForComment(
         source,
@@ -74,7 +82,9 @@ Future<Widget> projectNotificationDestination(
     initialCollaborationSection: collaboration,
     initialPostId: postId,
     initialCommentId: kind == 'forum_reply' ? source : null,
-    initialEventId: kind.startsWith('timeline_') ? source : null,
+    initialEventId: kind.startsWith('timeline_') && kind != 'timeline_removed'
+        ? source
+        : null,
     openMaterialsOnLoad:
         kind == 'materials_updated' || kind == 'budget_updated',
     bulletinRepo: bulletinRepo,

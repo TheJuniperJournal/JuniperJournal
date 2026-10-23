@@ -1449,7 +1449,11 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
       if (mounted) await _loadProject();
       return;
     }
-    final section = activity.kind.startsWith('timeline')
+    final section =
+        activity.kind == 'journal_deleted' ||
+            activity.kind == 'journal_draft_deleted'
+        ? ProjectDashboardSection.development
+        : activity.kind.startsWith('timeline')
         ? ProjectDashboardSection.timeline
         : activity.kind.startsWith('member') ||
               activity.kind.startsWith('forum')
@@ -1465,7 +1469,9 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
       _activityCollaborationSection = activity.kind.startsWith('member')
           ? CollaborationSection.members
           : CollaborationSection.bulletin;
-      _activityPostId = activity.kind.startsWith('forum')
+      _activityPostId =
+          activity.kind.startsWith('forum') &&
+              activity.kind != 'forum_post_deleted'
           ? activity.sourceId
           : null;
       _selectedTab = section;

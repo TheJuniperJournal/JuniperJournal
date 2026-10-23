@@ -83,6 +83,29 @@ void main() {
       );
     },
   );
+  for (final kind in [
+    'journal_deleted',
+    'journal_draft_deleted',
+    'timeline_removed',
+    'forum_post_deleted',
+  ]) {
+    test(
+      '$kind opens the remaining section without a deleted target',
+      () async {
+        final page =
+            await projectNotificationDestination(
+                  notice(kind, 'deleted'),
+                  _Repo(),
+                )
+                as ProjectDashboard;
+        expect(page.initialJournalEntry, isNull);
+        expect(page.initialEventId, isNull);
+        expect(page.initialPostId, isNull);
+        if (kind.startsWith('journal_'))
+          expect(page.initialSection, ProjectDashboardSection.development);
+      },
+    );
+  }
   test('inaccessible project does not open a target', () async {
     await expectLater(
       projectNotificationDestination(
