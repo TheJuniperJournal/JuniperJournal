@@ -134,7 +134,8 @@ Future<Widget> _initializeApp() async {
 }
 
 class _SessionGate extends StatelessWidget {
-  const _SessionGate();
+  const _SessionGate({this.restoreJournal = true});
+  final bool restoreJournal;
   @override
   Widget build(BuildContext context) {
     final auth = SupabaseDatabase.instance.client.auth;
@@ -148,7 +149,7 @@ class _SessionGate extends StatelessWidget {
           );
         }
         return auth.currentSession != null
-            ? const HomeShellScreen()
+            ? HomeShellScreen(restoreJournal: restoreJournal)
             : const PublicExploreScreen();
       },
     );
@@ -224,6 +225,21 @@ class MyApp extends StatelessWidget {
                           initialLocation: _launchLocation,
                           navigatorKey: ecoRewardNavigatorKey,
                           initialPage: initialPage,
+                          parentPage:
+                              restored ||
+                                  const {
+                                    'journal',
+                                    'journal-view',
+                                    'project',
+                                    'phase',
+                                    'community',
+                                    'community-profile',
+                                    'profile',
+                                  }.contains(
+                                    PageUrl.decode(_launchLocation)?['kind'],
+                                  )
+                              ? const _SessionGate(restoreJournal: false)
+                              : null,
                           observers: [
                             PageRefreshState.instance,
                             NavigationScrollResetObserver(),

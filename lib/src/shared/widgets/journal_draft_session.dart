@@ -1,3 +1,4 @@
+import 'journal_navigation.dart';
 import '../../features/project/services/journal_collaboration.dart';
 import 'journal_collaboration_panel.dart';
 import '../../features/project/pages/project_development_flow.dart'
@@ -380,7 +381,7 @@ class JournalDraftGuard extends StatefulWidget {
         if (!state.mounted) return false;
         state._allowExit();
         await WidgetsBinding.instance.endOfFrame;
-        if (navigator.mounted) navigator.pop(true);
+        if (navigator.mounted && navigator.canPop()) navigator.pop(true);
         await WidgetsBinding.instance.endOfFrame;
         return true;
       }
@@ -532,7 +533,7 @@ class _JournalDraftGuardState extends State<JournalDraftGuard> {
     if (!await _prepare() || !mounted) return;
     setState(() => _allow = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) Navigator.of(context).pop(result ?? true);
+      if (mounted) exitJournalRoute(context, result: result ?? true);
     });
   }
 

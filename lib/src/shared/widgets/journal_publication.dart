@@ -1,3 +1,4 @@
+import 'journal_navigation.dart';
 import 'journal_draft_session.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +13,7 @@ abstract final class JournalPublication {
     if (handler != null) {
       handler();
     } else {
-      Navigator.of(context).pop(true);
+      exitJournalRoute(context, result: true);
     }
   }
 }

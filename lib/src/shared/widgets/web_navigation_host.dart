@@ -18,8 +18,10 @@ class WebNavigationHost extends StatefulWidget {
     required this.navigatorKey,
     required this.initialPage,
     required this.observers,
+    this.parentPage,
   });
   final String initialLocation;
+  final Widget? parentPage;
   final GlobalKey<NavigatorState> navigatorKey;
   final Widget initialPage;
   final List<NavigatorObserver> observers;
@@ -123,6 +125,8 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
     observers: [...widget.observers, _observer],
     onGenerateRoute: _route,
     onGenerateInitialRoutes: (_, __) => [
+      if (widget.parentPage != null)
+        MaterialPageRoute<void>(builder: (_) => widget.parentPage!),
       _route(const RouteSettings(name: '/')),
     ],
   );
