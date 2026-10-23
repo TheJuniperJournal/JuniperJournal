@@ -205,49 +205,58 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
     heading('The people behind Juniper'),
     LayoutBuilder(
       builder: (context, c) {
-        final width = c.maxWidth > 620 ? (c.maxWidth - 24) / 2 : c.maxWidth;
-        return Wrap(
-          spacing: 24,
-          runSpacing: 24,
+        final benDetails = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: width,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  aboutPhoto('ben-yang.jpg', 'Ben Yang', portrait: true),
-                  const Text(
-                    'Ben Yang',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                  ),
-                  paragraph(
-                    'Co-Founder · CEO\nB.S. Civil Engineering, UW–Madison\u00a0’23',
-                  ),
-                  paragraph(
-                    'Ben is an Energy Engineer in Chicago and an environmental educator. His experience building aquaponics, hydroponics, and renewable-energy demonstrations shapes Juniper Journal’s hands-on approach to sustainability learning.',
-                  ),
-                ],
-              ),
+            aboutPhoto('ben-yang.jpg', 'Ben Yang', portrait: true),
+            const Text(
+              'Ben Yang',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
-            SizedBox(
-              width: width,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  aboutPhoto('amelia-yang.jpg', 'Amelia Yang', portrait: true),
-                  const Text(
-                    'Amelia Yang',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                  ),
-                  paragraph(
-                    'Co-Founder\nB.S. Design Engineering, Stanford\u00a0’25\nPost-Baccalaureate Premedical Program, Johns\u00a0Hopkins\u00a0’26',
-                  ),
-                  paragraph(
-                    'Amelia brings a Stanford design engineering background and experience in user research and prototyping. She combines human-centered design and storytelling to make complex ideas accessible, with an interest in healthcare innovation.',
-                  ),
-                ],
-              ),
+            paragraph(
+              'Co-Founder · CEO\nB.S. Civil Engineering, UW–Madison\u00a0’23',
             ),
+          ],
+        );
+        final ameliaDetails = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            aboutPhoto('amelia-yang.jpg', 'Amelia Yang', portrait: true),
+            const Text(
+              'Amelia Yang',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            paragraph(
+              'Co-Founder\nB.S. Design Engineering, Stanford\u00a0’25\nPost-Baccalaureate Premedical Program, Johns\u00a0Hopkins\u00a0’26',
+            ),
+          ],
+        );
+        final benBio = paragraph(
+          'Ben is an Energy Engineer in Chicago and an environmental educator. His experience building aquaponics, hydroponics, and renewable-energy demonstrations shapes Juniper Journal’s hands-on approach to sustainability learning.',
+        );
+        final ameliaBio = paragraph(
+          'Amelia brings a Stanford design engineering background and experience in user research and prototyping. She combines human-centered design and storytelling to make complex ideas accessible, with an interest in healthcare innovation.',
+        );
+        if (c.maxWidth <= 620) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              benDetails,
+              benBio,
+              const SizedBox(height: 24),
+              ameliaDetails,
+              ameliaBio,
+            ],
+          );
+        }
+        return Table(
+          columnWidths: const {1: FixedColumnWidth(24)},
+          defaultVerticalAlignment: TableCellVerticalAlignment.top,
+          children: [
+            TableRow(
+              children: [benDetails, const SizedBox.shrink(), ameliaDetails],
+            ),
+            TableRow(children: [benBio, const SizedBox.shrink(), ameliaBio]),
           ],
         );
       },
