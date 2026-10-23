@@ -1625,7 +1625,7 @@ class _ImplementationAssessmentBodyState
     return _JournalStageLayout(
       padding: JournalPageLayout.stagePadding,
       children: [
-        const JournalSectionHeader(title: 'Impact'),
+        const JournalSectionHeader(title: 'Impact (Optional)'),
         if (widget.isDraft && !widget.readOnly) ...[
           const Text(
             'Eligible EcoPoints are awarded when you complete this journal entry. Saving an impact keeps it pending until then.',
