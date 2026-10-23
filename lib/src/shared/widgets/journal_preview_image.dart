@@ -59,6 +59,13 @@ List<String> journalPreviewImageSources(List<dynamic> content) {
   return sources.toList();
 }
 
+/// A journal photo takes priority; a project cover represents entries without one.
+String? journalFeedPreviewImage(List<dynamic> content, {String? projectCover}) {
+  final images = journalPreviewImageSources(content);
+  if (images.isNotEmpty) return images.first;
+  return projectCover?.trim().isNotEmpty == true ? projectCover!.trim() : null;
+}
+
 class JournalPreviewImage extends StatelessWidget {
   const JournalPreviewImage(this.source, {super.key, this.fit = BoxFit.cover});
   final String source;

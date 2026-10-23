@@ -18,7 +18,7 @@ import 'project_notification_destination.dart';
 import '../../../shared/widgets/create_menu_dialog.dart';
 import '../../../shared/widgets/app_refresh_indicator.dart';
 import '../../project/pages/project_development_flow.dart'
-    show normalizePhase, journalContentImageUrls;
+    show normalizePhase;
 import '../../../shared/widgets/journal_project_link.dart';
 import '../../project/pages/journal_entry_view.dart';
 import '../../../backend/db/models/journal_entry.dart';
@@ -87,6 +87,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   final Map<String, List<UserProfile>> _collaboratorsByProjectId = {};
   final Map<String, JournalEntry> _feedEntryByProject = {};
   Future<List<Project>?>? _projectsFuture;
+  int _visibleFeedItems = 10;
 
   @override
   void initState() {
@@ -893,6 +894,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           );
         }
 
+        final visibleCount = projects.length < _visibleFeedItems
+            ? projects.length
+            : _visibleFeedItems;
+        final hasMore = visibleCount < projects.length;
         return AppRefreshIndicator(
           onRefresh: _refreshProjects,
           child: ListView.separated(
@@ -904,10 +909,19 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
               16,
               116 + MediaQuery.of(context).padding.bottom,
             ),
-            itemCount: projects.length + 1, // +1 for community carousel header
+            itemCount: visibleCount + 1 + (hasMore ? 1 : 0),
             separatorBuilder: (_, i) =>
                 i == 0 ? const SizedBox.shrink() : const SizedBox(height: 12),
             itemBuilder: (context, index) {
+              if (index == visibleCount + 1 && hasMore) {
+                return Center(
+                  child: OutlinedButton(
+                    key: const ValueKey('home-feed-load-more'),
+                    onPressed: () => setState(() => _visibleFeedItems += 10),
+                    child: const Text('Load more'),
+                  ),
+                );
+              }
               if (index == 0) {
                 return _CommunityCarousel(
                   communities: _communities,
@@ -936,8 +950,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   : 'Untitled Project';
               final tags = project.tags;
               final feedEntry = _feedEntryByProject[projectId]!;
-              final entryImages = journalContentImageUrls(feedEntry.content);
-              final imageUrl = entryImages.isEmpty ? null : entryImages.first;
+              final imageUrl = journalFeedPreviewImage(
+                feedEntry.content,
+                projectCover: project.imageUrl,
+              );
               final ownerId = project.userId;
 
               final ownerLabel = ownerId == null
