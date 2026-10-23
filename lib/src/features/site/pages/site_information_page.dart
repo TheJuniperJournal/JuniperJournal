@@ -223,6 +223,9 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
                   paragraph(
                     'Co-Founder · CEO\nB.S. Civil Engineering, UW–Madison\u00a0’23',
                   ),
+                  paragraph(
+                    'Ben is an Energy Engineer in Chicago and an environmental educator. His experience building aquaponics, hydroponics, and renewable-energy demonstrations shapes Juniper Journal’s hands-on approach to sustainability learning.',
+                  ),
                 ],
               ),
             ),
@@ -238,6 +241,9 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
                   ),
                   paragraph(
                     'Co-Founder\nB.S. Design Engineering, Stanford\u00a0’25\nPost-Baccalaureate Premedical Program, Johns\u00a0Hopkins\u00a0’26',
+                  ),
+                  paragraph(
+                    'Amelia brings a Stanford design engineering background and experience in user research and prototyping. She combines human-centered design and storytelling to make complex ideas accessible, with an interest in healthcare innovation.',
                   ),
                 ],
               ),
