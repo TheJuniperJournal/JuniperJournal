@@ -205,6 +205,8 @@ void main() {
   testWidgets(
     'picker browses community and friends and searches all sources without duplicates',
     (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       const member = UserProfile(id: 'member', displayName: 'Alice Community');
       const friend = UserProfile(id: 'friend', displayName: 'Alice Friend');
       const other = UserProfile(id: 'other', displayName: 'Alice Search');
@@ -247,9 +249,19 @@ void main() {
       for (final text in ['Alice Community', 'Alice Friend', 'Alice Search']) {
         expect(find.text(text), findsOneWidget);
       }
-      await tapText(tester, 'Alice Search');
       await tapText(tester, 'Alice Community');
-      await tapText(tester, 'Alice Friend');
+      expect(find.text('View profile'), findsOneWidget);
+      expect(find.byTooltip('Add Alice Search'), findsOneWidget);
+      // Dismiss profile options without adding the person.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView).first, const Offset(0, -100));
+      await tester.pumpAndSettle();
+      for (final name in ['Alice Search', 'Alice Community', 'Alice Friend']) {
+        await tester.ensureVisible(find.byTooltip('Add $name'));
+        await tester.tap(find.byTooltip('Add $name'));
+        await tester.pumpAndSettle();
+      }
       await tapText(tester, 'Add');
       expect(result!.map((person) => person.id).toSet(), {
         'existing',

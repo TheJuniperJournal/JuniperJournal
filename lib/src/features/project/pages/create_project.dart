@@ -1,3 +1,4 @@
+import '../../home_page/pages/public_user_profile.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
 import 'dart:typed_data';
@@ -2317,32 +2318,71 @@ class _AddMemberDialogState extends State<ProjectMemberPicker> {
           child: ListView(
             shrinkWrap: true,
             padding: EdgeInsets.zero,
-            children: [
-              for (final person in people)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundImage: person.avatarUrl?.isNotEmpty == true
-                        ? NetworkImage(person.avatarUrl!)
-                        : null,
-                    child: person.avatarUrl?.isNotEmpty == true
-                        ? null
-                        : const Icon(Icons.person_outline),
-                  ),
-                  title: Text(
-                    person.resolvedDisplayName,
-                    style: AppTypography.body,
-                  ),
-                  subtitle: person.username?.isNotEmpty == true
-                      ? Text('@${person.username}', style: AppTypography.helper)
-                      : null,
-                  trailing: const Icon(Icons.add, color: AppColors.primary),
-                  onTap: () => _addMember(person),
-                ),
-            ],
+            children: [for (final person in people) _inviteeRow(person)],
           ),
         ),
     ],
+  );
+
+  Widget _inviteeRow(UserProfile person) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              hoverColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              splashColor: Colors.transparent,
+            ),
+            child: PopupMenuButton<String>(
+              tooltip: 'Profile options',
+              onSelected: (_) => openUserProfile(context, person.id),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'profile', child: Text('View profile')),
+              ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: person.avatarUrl?.isNotEmpty == true
+                          ? NetworkImage(person.avatarUrl!)
+                          : null,
+                      child: person.avatarUrl?.isNotEmpty == true
+                          ? null
+                          : const Icon(Icons.person_outline),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            person.resolvedDisplayName,
+                            style: AppTypography.body,
+                          ),
+                          if (person.username?.isNotEmpty == true)
+                            Text(
+                              '@${person.username!.replaceFirst(RegExp(r'^@'), '')}',
+                              style: AppTypography.helper,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Add ${person.resolvedDisplayName}',
+          onPressed: () => _addMember(person),
+          icon: const Icon(Icons.add, color: AppColors.primary),
+        ),
+      ],
+    ),
   );
 
   Future<void> _loadFriends() async {
@@ -2539,50 +2579,7 @@ class _AddMemberDialogState extends State<ProjectMemberPicker> {
                               shrinkWrap: true,
                               padding: EdgeInsets.zero,
                               children: _searchResults
-                                  .map(
-                                    (user) => ListTile(
-                                      dense: true,
-                                      leading: CircleAvatar(
-                                        radius: 18,
-                                        backgroundColor: AppColors.primary
-                                            .withValues(alpha: 0.12),
-                                        backgroundImage:
-                                            (user.avatarUrl != null &&
-                                                user.avatarUrl!.isNotEmpty)
-                                            ? NetworkImage(user.avatarUrl!)
-                                            : null,
-                                        child:
-                                            (user.avatarUrl == null ||
-                                                user.avatarUrl!.isEmpty)
-                                            ? const Icon(
-                                                Icons.person_outline,
-                                                size: 16,
-                                                color: AppColors.primary,
-                                              )
-                                            : null,
-                                      ),
-                                      title: Text(
-                                        user.resolvedDisplayName,
-                                        style: const TextStyle(
-                                          fontFamily: AppTypography.bodyFamily,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: AppTypography.bodySize,
-                                        ),
-                                      ),
-                                      subtitle: user.username != null
-                                          ? Text(
-                                              user.username!,
-                                              style: const TextStyle(
-                                                fontFamily:
-                                                    AppTypography.bodyFamily,
-                                                fontSize:
-                                                    AppTypography.helperSize,
-                                              ),
-                                            )
-                                          : null,
-                                      onTap: () => _addMember(user),
-                                    ),
-                                  )
+                                  .map((user) => _inviteeRow(user))
                                   .toList(),
                             ),
                           ),
