@@ -41,7 +41,7 @@ def main():
         return json.loads(result.stdout) if capture else None
 
     query = "select coalesce(jsonb_agg(jsonb_build_object('id',id,'public',public,'file_size_limit',file_size_limit,'allowed_mime_types',allowed_mime_types)), '[]'::jsonb) as buckets from storage.buckets"
-    rows = run(['db', 'query', '--project-ref', args.project_ref, query], capture=True)['rows']
+    rows = run(['db', 'query', '--linked', '--project-ref', args.project_ref, query], capture=True)['rows']
     buckets = rows[0]['buckets']
     (root / 'buckets.json').write_text(json.dumps(buckets, indent=2))
     if not args.storage_only:

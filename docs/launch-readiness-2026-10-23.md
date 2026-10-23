@@ -1,4 +1,6 @@
 # Wider-launch readiness — 2026-10-23
+> Subsequent platform reset: the QA recovery account was deleted at the owner’s request. Use a new disposable account for remaining password-recovery tests. See `platform-reset-2026-10-23.md`. Historical test results below describe the pre-reset audit.
+
 
 **Overall: not yet signed off for a larger audience, especially school/youth use.**
 This is a tested progress record, not a statement that every launch item passed.
