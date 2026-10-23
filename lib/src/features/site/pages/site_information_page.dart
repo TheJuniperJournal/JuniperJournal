@@ -184,7 +184,7 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
       "The Juniper Journal connects practical learning with shared knowledge. Our digital platform helps people document sustainability projects, track their environmental impact, and learn from one another through a global, peer-to-peer project database. Through in-person workshops, we bring sustainability, climate science, engineering, design thinking, and collaboration to life with accessible activities that spark curiosity and build practical skills.",
     ),
     paragraph(
-      "Together, the platform and workshops help turn learning into measurable action. Project contributions build a growing collection of environmental impact data—including water and energy saved, waste reduced, educational reach, and CO₂ emissions reduced—showing where progress is happening and where communities need more support.",
+      "Together, the platform and workshops help turn learning into measurable action. Project contributions build a growing collection of environmental impact data, showing where progress is happening and where communities need more support.",
     ),
     const WorkshopGallery(),
     const Padding(
