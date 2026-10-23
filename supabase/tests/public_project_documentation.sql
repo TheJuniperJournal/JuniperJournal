@@ -55,8 +55,8 @@ end; $$;
 reset role;
 do $$
 begin
- insert into public.project_collaborators(project_id,user_id,status,role)
- values(current_setting('test.project')::uuid,current_setting('test.visitor')::uuid,'accepted','project_member')
+ insert into public.project_collaborators(project_id,user_id,status,role,invited_by)
+ values(current_setting('test.project')::uuid,current_setting('test.visitor')::uuid,'accepted','project_member',current_setting('test.owner')::uuid)
  on conflict(project_id,user_id) do update set status='accepted';
 end; $$;
 select set_config('request.jwt.claim.sub',current_setting('test.visitor'),true);

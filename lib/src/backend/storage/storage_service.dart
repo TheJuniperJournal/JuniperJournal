@@ -6,7 +6,45 @@ import '../db/supabase_database.dart';
 
 /// Service for handling file uploads to Supabase Storage
 class StorageService {
-  final _client = SupabaseDatabase.instance.client;
+  StorageService({SupabaseClient? client})
+    : _client = client ?? SupabaseDatabase.instance.client;
+  final SupabaseClient _client;
+
+  /// Remove bytes through the Storage API before account data is deleted.
+  /// RLS limits removal to the signed-in user's uploads. Enumerate everything
+  /// first so deleting a page cannot shift pagination and skip later objects.
+  Future<void> deleteAccountUploads() async {
+    for (final bucket in ['images', 'journal-attachments']) {
+      final paths = <String>[];
+      Future<void> collect(String folder) async {
+        var offset = 0;
+        while (true) {
+          final page = await _client.storage
+              .from(bucket)
+              .list(
+                path: folder,
+                searchOptions: SearchOptions(limit: 100, offset: offset),
+              );
+          for (final item in page) {
+            final path = folder.isEmpty ? item.name : '$folder/${item.name}';
+            if (item.id == null) {
+              await collect(path);
+            } else {
+              paths.add(path);
+            }
+          }
+          if (page.length < 100) break;
+          offset += page.length;
+        }
+      }
+
+      await collect('');
+      for (var offset = 0; offset < paths.length; offset += 100) {
+        final end = (offset + 100).clamp(0, paths.length);
+        await _client.storage.from(bucket).remove(paths.sublist(offset, end));
+      }
+    }
+  }
 
   /// The name of the storage bucket for learning module images
   // static const String bucketName = 'learning-module-images';

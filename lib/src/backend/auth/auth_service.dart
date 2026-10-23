@@ -3,6 +3,7 @@ import 'auth_redirect.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../db/supabase_database.dart';
 import '../security/input_validator.dart';
+import '../storage/storage_service.dart';
 import 'package:flutter/material.dart';
 
 /// Service class that handles all authentication operations using Supabase Auth.
@@ -282,7 +283,10 @@ class AuthService {
   ///
   /// Throws an exception if the request fails
   Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email);
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: authRedirect(isWeb: kIsWeb, base: Uri.base),
+    );
   }
 
   /// Update the current user's password
@@ -330,6 +334,7 @@ class AuthService {
   /// Requires the `delete_user` function to exist in the database (see docs).
   Future<bool> deleteAccount() async {
     try {
+      await StorageService().deleteAccountUploads();
       await _client.rpc('delete_user');
       await _client.auth.signOut();
       return true;

@@ -7,7 +7,7 @@ begin
  select id into participant from auth.users where id<>owner_id limit 1;
  if project is null or participant is null then raise exception 'Test requires a project and two users'; end if;
  perform set_config('request.jwt.claim.sub',owner_id::text,true);
- insert into public.project_collaborators(project_id,user_id,status) values(project,participant,'accepted')
+ insert into public.project_collaborators(project_id,user_id,status,invited_by) values(project,participant,'accepted',owner_id)
  on conflict(project_id,user_id) do update set status='accepted';
  insert into public.journal_entries(id,project_id,user_id,title,content,progress,feed_ready)
  values(entry,project,owner_id,'Shared entry',jsonb_build_array(jsonb_build_object('stage','overview','involved',jsonb_build_array(jsonb_build_object('id',participant)))),'implementation',false);

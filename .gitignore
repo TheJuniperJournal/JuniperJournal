@@ -53,3 +53,9 @@ app.*.map.json
 
 # Firebase deployment cache
 .firebase/
+
+# Per-environment credentials and local verification artifacts
+.env.*
+!.env.*.example
+/backups/
+/qa-artifacts/

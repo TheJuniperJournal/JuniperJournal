@@ -1,3 +1,4 @@
+import 'password_recovery.dart';
 import '../../../shared/widgets/page_refresh_state.dart';
 import '../../../shared/widgets/persistent_desktop_shell.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -206,7 +207,20 @@ class _LoginScreenState extends State<LoginScreen> {
               if (!_isLoading) _handleLogin();
             },
           ),
-          const SizedBox(height: 32),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _isLoading
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PasswordRecoveryScreen(),
+                      ),
+                    ),
+              child: const Text('Forgot Password?'),
+            ),
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             height: 52,
             child: SubmitButton(

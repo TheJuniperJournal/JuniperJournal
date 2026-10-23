@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent;
+import 'src/features/home_page/pages/password_recovery.dart';
 import 'src/shared/widgets/desktop_page_scroll.dart';
 import 'src/shared/widgets/browser_history_stub.dart'
     if (dart.library.html) 'src/shared/widgets/browser_history_web.dart';
@@ -29,8 +31,14 @@ import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 const _isLocalPreview = bool.fromEnvironment('LOCAL_PREVIEW');
 
 String _launchLocation = "/";
+bool _launchPasswordRecovery = false;
 
 void main() {
+  if (kIsWeb) {
+    _launchPasswordRecovery = RegExp(
+      r'(?:^|[&#?])type=recovery(?:&|$)',
+    ).hasMatch(Uri.base.toString());
+  }
   if (kIsWeb) _launchLocation = BrowserHistory().location;
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const _AppBootstrap());
@@ -38,6 +46,25 @@ void main() {
 
 Future<Widget> _initializeApp() async {
   await SupabaseDatabase.instance.init();
+  var recoverySession = false;
+  try {
+    final event =
+        await SupabaseDatabase.instance.client.auth.onAuthStateChange.first;
+    recoverySession = event.event == AuthChangeEvent.passwordRecovery;
+  } catch (_) {
+    // An expired callback must not reuse a previously signed-in session.
+  }
+  if (recoverySession) {
+    return const MyApp(
+      initialPage: PasswordRecoveryScreen(
+        updatePassword: true,
+        recoverySessionVerified: true,
+      ),
+    );
+  }
+  if (_launchPasswordRecovery) {
+    return const MyApp(initialPage: PasswordRecoveryScreen());
+  }
   final requested = kIsWeb ? PageUrl.decode(_launchLocation) : null;
   if (requested != null) {
     try {
@@ -113,9 +140,17 @@ class _SessionGate extends StatelessWidget {
     final auth = SupabaseDatabase.instance.client.auth;
     return StreamBuilder(
       stream: auth.onAuthStateChange,
-      builder: (context, snapshot) => auth.currentSession != null
-          ? const HomeShellScreen()
-          : const PublicExploreScreen(),
+      builder: (context, snapshot) {
+        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
+          return const PasswordRecoveryScreen(
+            updatePassword: true,
+            recoverySessionVerified: true,
+          );
+        }
+        return auth.currentSession != null
+            ? const HomeShellScreen()
+            : const PublicExploreScreen();
+      },
     );
   }
 }
