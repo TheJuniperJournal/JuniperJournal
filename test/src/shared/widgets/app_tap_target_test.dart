@@ -5,6 +5,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 
 void main() {
+  testWidgets('card highlight excludes outer margin and follows its corners', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AppTapTarget(
+            onTap: () {},
+            child: Container(
+              width: 150,
+              height: 80,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final target = tester.getRect(find.byType(AppTapTarget));
+    final overlay = tester.getRect(find.byType(AnimatedContainer));
+    expect(overlay.bottom, target.bottom - 24);
+    expect(overlay.top, target.top);
+    final decoration =
+        tester
+                .widget<AnimatedContainer>(find.byType(AnimatedContainer))
+                .decoration
+            as BoxDecoration;
+    expect(decoration.borderRadius, BorderRadius.circular(12));
+  });
   testWidgets(
     'tap controls highlight on hover and keep their size and callback',
     (tester) async {

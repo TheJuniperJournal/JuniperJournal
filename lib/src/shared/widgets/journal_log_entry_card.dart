@@ -1,3 +1,4 @@
+import 'journal_preview_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../features/home_page/pages/public_user_profile.dart';
 import 'journal_entry_activity.dart';
@@ -94,11 +95,9 @@ class JournalLogEntryCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
                         height: 160,
-                        child: Image.network(
+                        child: JournalPreviewImage(
                           _previewImages[i],
                           fit: BoxFit.cover,
-                          errorBuilder: (_, error, stack) =>
-                              const SizedBox.shrink(),
                         ),
                       ),
                     ),

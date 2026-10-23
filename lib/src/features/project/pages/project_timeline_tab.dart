@@ -481,6 +481,8 @@ class _TimelineEventRow extends StatelessWidget {
         : const Color(0xFF8D84A6);
 
     return AppTapTarget(
+      highlightInsets: const EdgeInsets.fromLTRB(75, 0, 0, 16),
+      highlightBorderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 16),

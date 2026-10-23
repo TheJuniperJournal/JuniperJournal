@@ -123,6 +123,11 @@ class ProgressTracker extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: AppTapTarget(
+        highlightInsets: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 6,
+        ),
+        highlightBorderRadius: BorderRadius.circular(20),
         behavior: HitTestBehavior.opaque,
         onTap: () => onSelected!(index),
         child: content,

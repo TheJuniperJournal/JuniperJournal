@@ -1,3 +1,4 @@
+import '../../../shared/widgets/journal_preview_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../site/pages/site_information_page.dart';
 import '../../../shared/widgets/journal_entry_menu.dart';
@@ -1222,10 +1223,9 @@ class _ProjectCardState extends State<_ProjectCard> {
                     child:
                         (widget.imageUrl != null &&
                             widget.imageUrl!.trim().isNotEmpty)
-                        ? Image.network(
+                        ? JournalPreviewImage(
                             widget.imageUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildDefaultBanner(),
                           )
                         : _buildDefaultBanner(),
                   ),

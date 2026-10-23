@@ -1,3 +1,4 @@
+import '../../shared/widgets/journal_preview_image.dart';
 import '../../backend/db/models/journal_entry.dart';
 import '../../backend/db/models/project.dart';
 import '../../backend/db/repositories/projects_repo.dart';
@@ -47,34 +48,5 @@ Future<List<CommunityJournalRecord>> loadCommunityJournal(
   );
 }
 
-List<String> communityJournalImages(List<dynamic> content) {
-  final urls = <String>{};
-  void walk(dynamic node) {
-    if (node is Map) {
-      if (node['type'] == 'image' &&
-          (node['url']?.toString().isNotEmpty ?? false)) {
-        urls.add(node['url'].toString());
-      }
-      if (node['type'] == 'Images' && node['data'] is Map) {
-        final images = (node['data'] as Map)['images'];
-        if (images is List) {
-          for (final image in images.whereType<Map>()) {
-            final url =
-                (image['public_url'] ?? image['publicUrl'])?.toString() ?? '';
-            if (url.isNotEmpty) urls.add(url);
-          }
-        }
-      }
-      for (final value in node.values) {
-        walk(value);
-      }
-    } else if (node is List) {
-      for (final value in node) {
-        walk(value);
-      }
-    }
-  }
-
-  walk(content);
-  return urls.toList();
-}
+List<String> communityJournalImages(List<dynamic> content) =>
+    journalPreviewImageSources(content);

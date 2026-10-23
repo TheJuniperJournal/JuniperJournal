@@ -24,6 +24,8 @@ class ContentAlignedBackButton extends StatelessWidget {
             ? SystemMouseCursors.basic
             : SystemMouseCursors.click,
         child: AppTapTarget(
+          highlightInsets: const EdgeInsets.fromLTRB(0, 7, 22, 7),
+          highlightBorderRadius: BorderRadius.circular(20),
           behavior: HitTestBehavior.opaque,
           onTap: onPressed,
           child: SizedBox(

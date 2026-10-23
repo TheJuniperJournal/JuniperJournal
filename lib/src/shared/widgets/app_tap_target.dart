@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 class AppTapTarget extends GestureDetector {
   AppTapTarget({
     super.key,
+    this.highlightInsets,
+    this.highlightBorderRadius,
     super.child,
     super.onTapDown,
     super.onTapUp,
@@ -73,18 +75,43 @@ class AppTapTarget extends GestureDetector {
     super.supportedDevices,
   });
 
+  final EdgeInsetsGeometry? highlightInsets;
+  final BorderRadiusGeometry? highlightBorderRadius;
+
   @override
   Widget build(BuildContext context) {
     final content = super.build(context);
     if (onTap == null || excludeFromSemantics) return content;
-    return _TapFeedback(onActivate: onTap!, child: content);
+    final container = child is Container ? child as Container : null;
+    final decoration = container?.decoration;
+    return _TapFeedback(
+      onActivate: onTap!,
+      insets: (highlightInsets ?? container?.margin ?? EdgeInsets.zero).resolve(
+        Directionality.of(context),
+      ),
+      radius:
+          (highlightBorderRadius ??
+                  (decoration is BoxDecoration
+                      ? decoration.borderRadius
+                      : null) ??
+                  BorderRadius.circular(8))
+              .resolve(Directionality.of(context)),
+      child: content,
+    );
   }
 }
 
 class _TapFeedback extends StatefulWidget {
-  const _TapFeedback({required this.onActivate, required this.child});
+  const _TapFeedback({
+    required this.onActivate,
+    required this.child,
+    required this.insets,
+    required this.radius,
+  });
   final VoidCallback onActivate;
   final Widget child;
+  final EdgeInsets insets;
+  final BorderRadius radius;
   @override
   State<_TapFeedback> createState() => _TapFeedbackState();
 }
@@ -115,7 +142,11 @@ class _TapFeedbackState extends State<_TapFeedback> {
         fit: StackFit.passthrough,
         children: [
           widget.child,
-          Positioned.fill(
+          Positioned(
+            left: widget.insets.left,
+            right: widget.insets.right,
+            top: widget.insets.top,
+            bottom: widget.insets.bottom,
             child: IgnorePointer(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
@@ -123,7 +154,7 @@ class _TapFeedbackState extends State<_TapFeedback> {
                   color: _hovered
                       ? Theme.of(context).hoverColor
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: widget.radius,
                   border: _focused
                       ? Border.all(
                           color: Theme.of(context).colorScheme.primary,

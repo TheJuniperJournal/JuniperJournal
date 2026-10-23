@@ -1,3 +1,4 @@
+import '../../../shared/widgets/journal_preview_image.dart';
 import '../utils/eco_points_calculator.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/journal_entry_menu.dart';
@@ -2553,37 +2554,8 @@ class _DiscoveryDashboardPageState extends State<DiscoveryDashboardPage> {
 
 /// Walks a journal entry's content JSON for the first image the user added
 /// (from an "Images" evidence block). Returns null when there is none.
-List<String> journalContentImageUrls(List<dynamic> content) {
-  final urls = <String>{};
-  void walk(dynamic node) {
-    if (node is Map) {
-      if (node['type'] == 'image' &&
-          (node['url']?.toString().isNotEmpty ?? false)) {
-        urls.add(node['url'].toString());
-      }
-      if (node['type'] == 'Images' && node['data'] is Map) {
-        final images = (node['data'] as Map)['images'];
-        if (images is List) {
-          for (final image in images.whereType<Map>()) {
-            final url =
-                (image['public_url'] ?? image['publicUrl'])?.toString() ?? '';
-            if (url.isNotEmpty) urls.add(url);
-          }
-        }
-      }
-      for (final value in node.values) {
-        walk(value);
-      }
-    } else if (node is List) {
-      for (final value in node) {
-        walk(value);
-      }
-    }
-  }
-
-  walk(content);
-  return urls.toList();
-}
+List<String> journalContentImageUrls(List<dynamic> content) =>
+    journalPreviewImageSources(content);
 
 class _DiscoveryEntryCard extends StatelessWidget {
   const _DiscoveryEntryCard({

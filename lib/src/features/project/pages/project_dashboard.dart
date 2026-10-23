@@ -445,11 +445,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                                   ),
                                 ),
                                 _buildLearningObjectives(),
-                                const SizedBox(
-                                  height: AppMetrics.pageBottomPadding,
-                                ),
-                                if (_participant)
-                                  const SizedBox(height: AppMetrics.sectionGap),
+                                const SizedBox(height: 16),
+                                if (_participant) const SizedBox(height: 16),
                                 if (_participant)
                                   Padding(
                                     padding: EdgeInsets.symmetric(
@@ -713,6 +710,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
               ))
                 Expanded(
                   child: AppTapTarget(
+                    highlightInsets: const EdgeInsets.fromLTRB(24, 0, 24, 6),
+                    highlightBorderRadius: BorderRadius.circular(16),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
                       setState(() {
@@ -1773,14 +1772,7 @@ class _StatCard extends StatelessWidget {
     );
 
     if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: card,
-      ),
-    );
+    return AppTapTarget(onTap: onTap, child: card);
   }
 }
 
