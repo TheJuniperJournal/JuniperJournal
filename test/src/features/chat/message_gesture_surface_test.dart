@@ -5,17 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/features/chat/widgets/message_gesture_surface.dart';
 
 void main() {
-  testWidgets('single click replies; double and secondary clicks only like', (
+  testWidgets('single click replies; double likes; secondary opens reactions', (
     tester,
   ) async {
     var replies = 0;
     var likes = 0;
+    var reactions = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: MessageGestureSurface(
             onReply: () => replies++,
             onLike: () => likes++,
+            onReactions: () => reactions++,
             child: const Text('Message'),
           ),
         ),
@@ -39,7 +41,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(replies, 1);
-    expect(likes, 2);
+    expect(likes, 1);
+    expect(reactions, 1);
     expect(find.text('Reply'), findsNothing);
   });
   testWidgets('keyboard can reply and like without visible action buttons', (
@@ -47,12 +50,14 @@ void main() {
   ) async {
     var replies = 0;
     var likes = 0;
+    var reactions = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: MessageGestureSurface(
             onReply: () => replies++,
             onLike: () => likes++,
+            onReactions: () => reactions++,
             child: const Text('Message'),
           ),
         ),

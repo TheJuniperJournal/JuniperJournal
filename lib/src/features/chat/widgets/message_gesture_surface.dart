@@ -10,10 +10,12 @@ class MessageGestureSurface extends StatefulWidget {
     required this.child,
     required this.onReply,
     required this.onLike,
+    required this.onReactions,
   });
   final Widget child;
   final VoidCallback onReply;
   final VoidCallback onLike;
+  final VoidCallback onReactions;
   @override
   State<MessageGestureSurface> createState() => _MessageGestureSurfaceState();
 }
@@ -46,6 +48,7 @@ class _MessageGestureSurfaceState extends State<MessageGestureSurface> {
     customSemanticsActions: {
       CustomSemanticsAction(label: 'Reply to message'): widget.onReply,
       CustomSemanticsAction(label: 'Like or unlike message'): widget.onLike,
+      CustomSemanticsAction(label: 'Choose emoji reaction'): widget.onReactions,
     },
     child: FocusableActionDetector(
       mouseCursor: SystemMouseCursors.click,
@@ -71,13 +74,14 @@ class _MessageGestureSurfaceState extends State<MessageGestureSurface> {
         onEnter: (_) => _enter(),
         onExit: (_) => _exit(),
         child: Tooltip(
-          message: 'Click to reply · Double-click or right-click to like',
+          message:
+              'Click to reply · Double-click to like · Right-click for emojis',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: widget.onReply,
             onDoubleTap: widget.onLike,
-            onSecondaryTap: widget.onLike,
-            onLongPress: widget.onLike,
+            onSecondaryTap: widget.onReactions,
+            onLongPress: widget.onReactions,
             child: widget.child,
           ),
         ),
