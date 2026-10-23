@@ -1594,7 +1594,7 @@ class _ImplementationAssessmentBodyState
                       confidenceScore: e.confidenceScore,
                       measurement: e.measurement,
                       measurementUnit: e.measurementUnit,
-                    ),
+                    ).roundToDouble(),
                   )
                 : e,
           )

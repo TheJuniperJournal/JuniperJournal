@@ -30,7 +30,7 @@ void main() {
               response = ++journalClaims == 1 ? 20 : 0;
             } else {
               impactClaims++;
-              response = 5;
+              response = body['p_id'] == 'entry:water' ? 13 : 29;
             }
           } else if (request.method == 'GET' &&
               request.url.path.endsWith('journal_entries')) {
@@ -42,6 +42,8 @@ void main() {
           } else if (request.url.path.endsWith('impact_entries')) {
             response = [
               {'metric': 'Water'},
+              {'metric': 'Water'},
+              {'metric': 'Biological Growth'},
             ];
           } else {
             response = {'id': 'entry'};
@@ -71,7 +73,7 @@ void main() {
         ),
         isTrue,
       );
-      expect(journalCompletionNotice.value?.points, 25);
+      expect(journalCompletionNotice.value?.points, 62);
       journalCompletionNotice.value = null;
       published = true;
       expect(
@@ -84,7 +86,7 @@ void main() {
         isTrue,
       );
       expect(journalCompletionNotice.value, isNull);
-      expect(impactClaims, 1);
+      expect(impactClaims, 2);
       expect(journalClaims, 1);
     },
   );
