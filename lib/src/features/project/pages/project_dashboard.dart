@@ -452,7 +452,12 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                                     padding: EdgeInsets.symmetric(
                                       horizontal: _sectionInset,
                                     ),
-                                    child: _buildRecentActivity(),
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 48,
+                                      ),
+                                      child: _buildRecentActivity(),
+                                    ),
                                   ),
                               ],
                             ),
@@ -710,7 +715,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
               ))
                 Expanded(
                   child: AppTapTarget(
-                    highlightInsets: const EdgeInsets.fromLTRB(24, 0, 24, 6),
+                    highlightInsets: const EdgeInsets.fromLTRB(24, 0, 24, 11),
                     highlightBorderRadius: BorderRadius.circular(16),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {

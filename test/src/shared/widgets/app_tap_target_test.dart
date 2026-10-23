@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 
 void main() {
-  testWidgets('progress feedback fits the label rather than the whole stage', (
+  testWidgets('progress trackers remain clickable without hover fill', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -23,17 +23,20 @@ void main() {
         ),
       ),
     );
-    final label = tester.getRect(find.byKey(const ValueKey('stage-label-1')));
-    final highlight = tester.getRect(find.byType(AnimatedContainer).last);
-    expect(highlight.width, closeTo(label.width + 16, 1));
-    expect(highlight.height, 30);
-    expect(highlight.center.dx, closeTo(label.center.dx, 1));
-    expect(
-      highlight.top,
-      greaterThan(
-        tester.getRect(find.byKey(const ValueKey('stage-visited-1'))).bottom,
-      ),
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const ValueKey('stage-label-1'))),
     );
+    await tester.pumpAndSettle();
+    for (final overlay in tester.widgetList<AnimatedContainer>(
+      find.byType(AnimatedContainer),
+    )) {
+      expect((overlay.decoration as BoxDecoration).color, Colors.transparent);
+    }
+    await tester.tap(find.text('Question'));
+    expect(tester.takeException(), isNull);
+    await mouse.removePointer();
   });
   testWidgets('card highlight excludes outer margin and follows its corners', (
     tester,

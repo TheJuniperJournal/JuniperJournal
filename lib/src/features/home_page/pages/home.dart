@@ -1,3 +1,4 @@
+import '../services/home_journal_feed.dart';
 import '../../../shared/widgets/journal_preview_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../site/pages/site_information_page.dart';
@@ -84,7 +85,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   final Map<String, String?> _ownerAvatarByUserId = {};
   final Set<String> _likedProjectIds = {};
   final Map<String, List<UserProfile>> _collaboratorsByProjectId = {};
-  final Map<String, JournalEntry> _feedEntryByProject = {};
+  final List<JournalEntry> _feedEntries = [];
   Future<List<Project>?>? _projectsFuture;
   int _visibleFeedItems = 10;
 
@@ -328,23 +329,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     final entries = await Future.wait(
       mergedProjects.map((p) => _projectsRepo.getPublishedJournalEntries(p.id)),
     );
-    _feedEntryByProject.clear();
-    for (var i = 0; i < mergedProjects.length; i++) {
-      final latest = completedJournalFeedEntries(entries[i]);
-      if (latest.isNotEmpty) {
-        _feedEntryByProject[mergedProjects[i].id] = latest.first;
-      }
-    }
-    final visible = mergedProjects
-        .where((p) => _feedEntryByProject.containsKey(p.id))
-        .toList();
-    DateTime activity(Project project) {
-      final entry = _feedEntryByProject[project.id]!;
-      return entry.updatedAt ?? entry.createdAt ?? DateTime(1970);
-    }
-
-    visible.sort((a, b) => activity(b).compareTo(activity(a)));
-    return visible;
+    final feed = homeJournalFeed(mergedProjects, entries);
+    _feedEntries
+      ..clear()
+      ..addAll(feed.map((row) => row.$2));
+    return feed.map((row) => row.$1).toList();
   }
 
   String _tabTitle() {
@@ -917,7 +906,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   child: OutlinedButton(
                     key: const ValueKey('home-feed-load-more'),
                     onPressed: () => setState(() => _visibleFeedItems += 10),
-                    child: const Text('Load more'),
+                    child: const Text('View more entries'),
                   ),
                 );
               }
@@ -948,7 +937,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   ? project.projectName.trim()
                   : 'Untitled Project';
               final tags = project.tags;
-              final feedEntry = _feedEntryByProject[projectId]!;
+              final feedEntry = _feedEntries[index - 1];
               final imageUrl = journalFeedPreviewImage(feedEntry.content);
               final ownerId = project.userId;
 
@@ -1014,8 +1003,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                           await _refreshProjects();
                       }
                     : null,
-                name: _feedEntryByProject[projectId]!.title,
-                phase: _feedEntryByProject[projectId]!.progress,
+                name: feedEntry.title,
+                phase: feedEntry.progress,
                 projectName: projectName,
                 onProjectTap: () =>
                     openJournalProject(context, project, _projectsRepo),
@@ -1033,7 +1022,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => JournalEntryView(
-                        entry: _feedEntryByProject[projectId]!,
+                        entry: feedEntry,
                         project: project,
                         projectsRepo: _projectsRepo,
                       ),
