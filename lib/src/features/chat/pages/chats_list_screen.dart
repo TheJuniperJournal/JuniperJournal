@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import '../widgets/group_chat_name_dialog.dart';
@@ -558,7 +559,7 @@ class _NewMessageScreenState extends State<_NewMessageScreen> {
                                 Positioned(
                                   right: 0,
                                   top: 0,
-                                  child: GestureDetector(
+                                  child: AppTapTarget(
                                     onTap: () => setState(
                                       () => _selectedIds.remove(f.id),
                                     ),

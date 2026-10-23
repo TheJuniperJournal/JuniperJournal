@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -155,7 +156,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
           // Navigation row
           Row(
             children: [
-              GestureDetector(
+              AppTapTarget(
                 onTap: () => Navigator.pop(context),
                 child: const Icon(
                   Icons.chevron_left,
@@ -165,7 +166,7 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
               ),
               const Spacer(),
               if (_isCreator)
-                GestureDetector(
+                AppTapTarget(
                   onTap: _openCreatorDashboard,
                   child: const Text(
                     'Edit',

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
@@ -100,7 +101,7 @@ class _TopSnackBarWidgetState extends State<_TopSnackBarWidget>
                 16,
                 0,
               ),
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: _dismiss,
                 child: Material(
                   color: Colors.transparent,

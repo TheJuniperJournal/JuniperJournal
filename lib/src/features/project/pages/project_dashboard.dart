@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
 import '../../../shared/widgets/page_refresh_state.dart';
 import 'impact_log.dart';
@@ -534,7 +535,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
           width: 47,
           height: 40,
           key: const ValueKey('project-dashboard-done'),
-          child: GestureDetector(
+          child: AppTapTarget(
             behavior: HitTestBehavior.opaque,
             onTap: _exitProject,
             child: const Align(
@@ -567,7 +568,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             width: 48,
             height: 48,
             key: const ValueKey('project-dashboard-settings'),
-            child: GestureDetector(
+            child: AppTapTarget(
               behavior: HitTestBehavior.opaque,
               onTap: _openingSettings ? null : _openSettings,
               child: Center(
@@ -711,7 +712,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                     _participant || tab != ProjectDashboardSection.timeline,
               ))
                 Expanded(
-                  child: GestureDetector(
+                  child: AppTapTarget(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
                       setState(() {
@@ -866,7 +867,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
           child: Semantics(
             button: hasImage || _canEditCover,
             label: hasImage ? 'View project cover' : 'Add project cover',
-            child: GestureDetector(
+            child: AppTapTarget(
               onTap: hasImage || _canEditCover ? _openCover : null,
               child: ClipRRect(
                 key: const ValueKey('project-cover'),

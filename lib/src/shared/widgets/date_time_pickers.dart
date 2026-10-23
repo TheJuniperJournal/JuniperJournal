@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:ui' show PointerDeviceKind;
 import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
@@ -59,7 +60,7 @@ Future<DateTime?> showWheelDatePicker(
                   ),
                   child: Row(
                     children: [
-                      GestureDetector(
+                      AppTapTarget(
                         onTap: () => Navigator.pop(dCtx),
                         child: const Icon(
                           Icons.close,
@@ -251,7 +252,7 @@ Future<Map<String, dynamic>?> showWheelTimePicker(
                   ),
                   child: Row(
                     children: [
-                      GestureDetector(
+                      AppTapTarget(
                         onTap: () => Navigator.pop(dCtx),
                         child: const Icon(
                           Icons.close,
@@ -434,7 +435,7 @@ class WheelAmPmToggle extends StatelessWidget {
             children: ['AM', 'PM'].map((label) {
               final selected = value == label;
               return Expanded(
-                child: GestureDetector(
+                child: AppTapTarget(
                   onTap: () => onChanged(label),
                   behavior: HitTestBehavior.opaque,
                   child: Center(

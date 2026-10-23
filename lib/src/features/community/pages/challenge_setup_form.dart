@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -235,7 +236,7 @@ class _ChallengeSetupFormState extends State<ChallengeSetupForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Cover image
-            GestureDetector(
+            AppTapTarget(
               onTap: _pickImage,
               child: Container(
                 width: double.infinity,
@@ -498,7 +499,7 @@ class _ChallengeSetupFormState extends State<ChallengeSetupForm> {
   }
 
   Widget _smallPill(String label, VoidCallback onTap) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

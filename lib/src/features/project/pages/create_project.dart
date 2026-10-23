@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
 import 'dart:typed_data';
 import '../../../backend/security/input_validator.dart';
@@ -1528,7 +1529,7 @@ class _SelectableShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -1939,7 +1940,7 @@ class ProjectChipMenuState extends State<ProjectChipMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       key: _chipKey,
       behavior: HitTestBehavior.opaque,
       onTap: _openMenu,
@@ -2450,7 +2451,7 @@ class _AddMemberDialogState extends State<ProjectMemberPicker> {
                     children: [
                       Row(
                         children: [
-                          GestureDetector(
+                          AppTapTarget(
                             onTap: () => Navigator.pop(context),
                             child: SvgPicture.asset(
                               'assets/learning_module/x.svg',
@@ -2758,7 +2759,7 @@ class _MemberRow extends StatelessWidget {
         ),
         if (onRemove != null) ...[
           const SizedBox(width: 8),
-          GestureDetector(
+          AppTapTarget(
             onTap: onRemove,
             child: const Icon(Icons.close, size: 18, color: Colors.grey),
           ),
@@ -2804,7 +2805,7 @@ class ProjectTypeSelector extends StatelessWidget {
               child: Semantics(
                 button: true,
                 selected: value == type,
-                child: GestureDetector(
+                child: AppTapTarget(
                   onTap: () => onChanged(type),
                   child: Container(
                     height: 105,

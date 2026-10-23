@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -95,7 +96,7 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
                 itemBuilder: (_, i) {
                   final t = _types[i];
                   final isSelected = _selected == t.value;
-                  return GestureDetector(
+                  return AppTapTarget(
                     onTap: () => setState(() => _selected = t.value),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:convert';
@@ -333,7 +334,7 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
                       top: 18,
                       width: 20,
                       height: 20,
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         behavior: HitTestBehavior.opaque,
                         onTap: _returnToDashboard,
                         child: const _BackChevron(),
@@ -666,7 +667,7 @@ class _ObjectiveRow extends StatelessWidget {
             top: 111,
             width: 20,
             height: 22,
-            child: GestureDetector(
+            child: AppTapTarget(
               behavior: HitTestBehavior.opaque,
               onTap: onDelete,
               child: SvgPicture.asset(
@@ -750,7 +751,7 @@ class _AnchoredChipMenuState extends State<_AnchoredChipMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       key: _chipKey,
       behavior: HitTestBehavior.opaque,
       onTap: _openMenu,

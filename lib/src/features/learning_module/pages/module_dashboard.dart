@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -35,7 +36,7 @@ class ModuleDashboardScreen extends StatelessWidget {
                       top: 24,
                       width: 47,
                       height: 22,
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => Navigator.of(
                           context,
@@ -67,7 +68,7 @@ class ModuleDashboardScreen extends StatelessWidget {
                       top: 24,
                       width: 35,
                       height: 35,
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {},
                         child: SvgPicture.asset(
@@ -199,7 +200,7 @@ class _DashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(

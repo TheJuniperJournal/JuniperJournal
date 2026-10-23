@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -219,7 +220,7 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                GestureDetector(
+                AppTapTarget(
                   onTap: _posting ? null : _submit,
                   child: Container(
                     width: 40,

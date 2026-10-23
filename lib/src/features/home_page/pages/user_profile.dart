@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/persistent_desktop_shell.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:flutter/cupertino.dart';
@@ -161,7 +162,7 @@ class UserProfilePageState extends State<UserProfilePage> {
     return Semantics(
       button: true,
       label: 'View your profile',
-      child: GestureDetector(
+      child: AppTapTarget(
         onTap: () {
           final id = _authService.currentUser?.id;
           if (id != null) openUserProfile(_navigationContext, id);
@@ -387,7 +388,7 @@ class UserProfilePageState extends State<UserProfilePage> {
                   ),
                   child: Row(
                     children: [
-                      GestureDetector(
+                      AppTapTarget(
                         onTap: () =>
                             openUserProfile(_navigationContext, friend.id),
                         child: CircleAvatar(

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:juniper_journal/src/shared/widgets/item_action_menu.dart';
@@ -163,39 +164,35 @@ class _InteractiveTimelinePageState extends State<InteractiveTimelinePage> {
           String formatTime(int h, int m) =>
               '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
 
-          Widget pillButton(String label, VoidCallback onTap) =>
-              GestureDetector(
-                onTap: onTap,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
+          Widget pillButton(String label, VoidCallback onTap) => AppTapTarget(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceInput,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceInput,
-                    borderRadius: BorderRadius.circular(20),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: AppColors.textSecondary,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ),
-              );
+                ],
+              ),
+            ),
+          );
 
           return Padding(
             padding: EdgeInsets.only(
@@ -863,7 +860,7 @@ class _InteractiveTimelinePageState extends State<InteractiveTimelinePage> {
                       ),
                     ),
                   ),
-                  GestureDetector(
+                  AppTapTarget(
                     onTap: () =>
                         setState(() => _sortAscending = !_sortAscending),
                     child: Icon(
@@ -904,7 +901,7 @@ class _InteractiveTimelinePageState extends State<InteractiveTimelinePage> {
             if (widget.isOwner)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                child: GestureDetector(
+                child: AppTapTarget(
                   onTap: () => _showEventSheet(),
                   behavior: HitTestBehavior.opaque,
                   child: Row(

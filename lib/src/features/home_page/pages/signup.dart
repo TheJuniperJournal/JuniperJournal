@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -845,7 +846,7 @@ class _LoginLink extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         const Text('Already have an account?  '),
-        GestureDetector(
+        AppTapTarget(
           onTap: () => Navigator.pushNamed(context, '/login'),
           child: const Text(
             'Login',

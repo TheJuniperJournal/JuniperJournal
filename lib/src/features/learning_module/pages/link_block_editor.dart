@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -587,7 +588,7 @@ class _SmallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(

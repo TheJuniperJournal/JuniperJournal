@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_cell_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -742,7 +743,7 @@ class _ColumnRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          GestureDetector(
+          AppTapTarget(
             behavior: HitTestBehavior.opaque,
             onTap: onDelete,
             child: SvgPicture.asset(
@@ -812,7 +813,7 @@ class _RowStepper extends StatelessWidget {
                   right: 0,
                   top: 0,
                   height: 22,
-                  child: GestureDetector(
+                  child: AppTapTarget(
                     behavior: HitTestBehavior.translucent,
                     onTap: onIncrement,
                   ),
@@ -822,7 +823,7 @@ class _RowStepper extends StatelessWidget {
                   right: 0,
                   bottom: 0,
                   height: 22,
-                  child: GestureDetector(
+                  child: AppTapTarget(
                     behavior: HitTestBehavior.translucent,
                     onTap: onDecrement,
                   ),
@@ -997,7 +998,7 @@ class _DeleteRowCell extends StatelessWidget {
     return SizedBox(
       height: 48,
       child: Center(
-        child: GestureDetector(
+        child: AppTapTarget(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: SvgPicture.asset(

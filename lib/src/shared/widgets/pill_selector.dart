@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
@@ -82,7 +83,7 @@ class PillSelector extends StatelessWidget {
 
     final tappable = Builder(
       builder: (ctx) =>
-          GestureDetector(onTap: () => _showDropdown(ctx), child: pill),
+          AppTapTarget(onTap: () => _showDropdown(ctx), child: pill),
     );
 
     return compact ? IntrinsicWidth(child: tappable) : tappable;

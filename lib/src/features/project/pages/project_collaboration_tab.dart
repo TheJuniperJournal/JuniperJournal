@@ -972,7 +972,6 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                 if (post.userId == _userId || _manage)
                   Theme(
                     data: Theme.of(context).copyWith(
-                      hoverColor: Colors.transparent,
                       highlightColor: Colors.transparent,
                       splashColor: Colors.transparent,
                       splashFactory: NoSplash.splashFactory,

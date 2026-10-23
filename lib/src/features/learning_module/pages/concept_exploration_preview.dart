@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -670,7 +671,7 @@ class _Header extends StatelessWidget {
           Positioned(
             left: 22,
             top: 22,
-            child: GestureDetector(
+            child: AppTapTarget(
               behavior: HitTestBehavior.opaque,
               onTap: onBack,
               child: const Icon(
@@ -706,7 +707,7 @@ class _PreviewListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = block.firstImageUrl;
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: 340,
@@ -1337,7 +1338,7 @@ class _PhotoResponse extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        GestureDetector(
+        AppTapTarget(
           onTap: onPick,
           child: Container(
             height: 135,
@@ -1803,7 +1804,7 @@ class _MultipleChoicePreview extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         for (var index = 0; index < options.length; index++)
-          GestureDetector(
+          AppTapTarget(
             behavior: HitTestBehavior.opaque,
             onTap: () => onChanged(index),
             child: Padding(
@@ -2637,7 +2638,7 @@ class _SegmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: 32,

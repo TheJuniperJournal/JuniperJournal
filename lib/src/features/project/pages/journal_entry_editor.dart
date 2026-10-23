@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'dart:convert';
 import '../services/journal_text_selection.dart';
 import '../services/journal_collaboration.dart';
@@ -880,7 +881,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                     for (int i = 0; i < _blocks.length; i++)
                       _buildBlock(i, _blocks[i]),
                     // Tap empty space to focus last text block
-                    GestureDetector(
+                    AppTapTarget(
                       onTap: () {
                         final lastText = _blocks.lastWhere(
                           (b) => b.focusNode != null,
@@ -1282,7 +1283,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
             Positioned(
               top: 4,
               right: 4,
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: () => _removeBlock(index),
                 child: Container(
                   decoration: BoxDecoration(
@@ -1304,7 +1305,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Stack(
         children: [
-          GestureDetector(
+          AppTapTarget(
             onTap: widget.readOnly
                 ? null
                 : () async {
@@ -1353,7 +1354,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
             Positioned(
               top: 4,
               right: 4,
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: () => _removeBlock(index),
                 child: Container(
                   decoration: BoxDecoration(
@@ -1406,7 +1407,7 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
+            AppTapTarget(
               onTap: widget.onSelect,
               child: SizedBox(
                 width: imgW,
@@ -1443,7 +1444,7 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                       Positioned(
                         top: 8,
                         right: 8,
-                        child: GestureDetector(
+                        child: AppTapTarget(
                           onTap: widget.onRemove,
                           child: Container(
                             decoration: BoxDecoration(
@@ -1579,7 +1580,7 @@ class _ToolbarBtn extends StatelessWidget {
 
     if (onTap == null) return content;
 
-    return GestureDetector(onTap: onTap, child: content);
+    return AppTapTarget(onTap: onTap, child: content);
   }
 }
 

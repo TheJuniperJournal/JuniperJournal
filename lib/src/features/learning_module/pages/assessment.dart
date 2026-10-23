@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -160,7 +161,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: () async {
                   // Save the assessment first
                   await _saveAssessment();

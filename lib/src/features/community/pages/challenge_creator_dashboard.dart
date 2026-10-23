@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -495,7 +496,7 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
                     ],
                   ),
                   const SizedBox(width: 10),
-                  GestureDetector(
+                  AppTapTarget(
                     onTap: () => _unsubmitParticipant(p),
                     child: const Icon(
                       Icons.close,
@@ -837,7 +838,7 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
         ],
       );
 
-  Widget _stepBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+  Widget _stepBtn(IconData icon, VoidCallback onTap) => AppTapTarget(
     onTap: onTap,
     child: Container(
       width: 32,
@@ -860,7 +861,7 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
       runSpacing: 8,
       children: options.map((o) {
         final isSelected = selected.contains(o);
-        return GestureDetector(
+        return AppTapTarget(
           onTap: () => setState(() {
             if (isSelected) {
               selected.remove(o);
@@ -914,7 +915,7 @@ class _DashboardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),

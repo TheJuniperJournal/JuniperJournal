@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter/material.dart';
 import '../styling/app_colors.dart';
 import '../styling/app_typography.dart';
@@ -121,7 +122,7 @@ class ProgressTracker extends StatelessWidget {
     if (onSelected == null) return content;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
+      child: AppTapTarget(
         behavior: HitTestBehavior.opaque,
         onTap: () => onSelected!(index),
         child: content,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/features/learning_module/pages/inquiry_lens_selector.dart';
@@ -34,7 +35,7 @@ void main() {
       final observe = tester.getTopLeft(find.text('Observe'));
       if (width >= 300) {
         expect(design.dy, closeTo(observe.dy, 0.1));
-        final cards = find.byType(GestureDetector);
+        final cards = find.byType(AppTapTarget);
         expect(
           tester.getSize(cards.at(0)).height,
           closeTo(tester.getSize(cards.at(1)).height, .01),

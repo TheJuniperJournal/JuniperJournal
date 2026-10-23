@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/optional_field_label.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -380,7 +381,7 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
           ),
         // Add button
         if (canAdd)
-          GestureDetector(
+          AppTapTarget(
             onTap: _pickImage,
             child: Container(
               width: 80,
@@ -432,7 +433,7 @@ class _PhotoThumbnail extends StatelessWidget {
         Positioned(
           top: 2,
           right: 2,
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: onRemove,
             child: Container(
               width: 20,
@@ -465,7 +466,7 @@ class _CategoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

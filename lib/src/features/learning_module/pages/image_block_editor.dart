@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -634,7 +635,7 @@ class _ImageRow extends StatelessWidget {
           const SizedBox(width: 7),
           _NumberBadge(number: index + 1),
           const SizedBox(width: 10),
-          GestureDetector(
+          AppTapTarget(
             onTap: onUpload,
             child: Container(
               width: 106,
@@ -754,7 +755,7 @@ class _ImageRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
+          AppTapTarget(
             behavior: HitTestBehavior.opaque,
             onTap: onRemove,
             child: SvgPicture.asset(

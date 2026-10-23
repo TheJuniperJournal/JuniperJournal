@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../site/pages/site_information_page.dart';
 import '../../../shared/widgets/journal_entry_menu.dart';
 import '../../../shared/widgets/item_action_menu.dart';
@@ -1317,7 +1318,7 @@ class _ProjectCardState extends State<_ProjectCard> {
                           onDelete: widget.onDelete,
                           icon: const Icon(Icons.edit_outlined, size: 20),
                         ),
-                      GestureDetector(
+                      AppTapTarget(
                         onTap: _handleLike,
                         child: Row(
                           children: [
@@ -1344,7 +1345,7 @@ class _ProjectCardState extends State<_ProjectCard> {
                         ),
                       ),
                       const SizedBox(width: 14),
-                      GestureDetector(
+                      AppTapTarget(
                         onTap: () => showAppModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
@@ -2089,7 +2090,7 @@ class _AvatarStack extends StatelessWidget {
               child: Semantics(
                 button: true,
                 label: 'View contributor profile',
-                child: GestureDetector(
+                child: AppTapTarget(
                   onTap: () {
                     final id = i == 0 ? ownerId : collaborators[i - 1].id;
                     if (id != null) openUserProfile(context, id);
@@ -2288,7 +2289,7 @@ class _CommunityCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (communities.isEmpty) {
-      return GestureDetector(
+      return AppTapTarget(
         onTap: onCreateTap,
         child: Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -2441,7 +2442,7 @@ class _CommunityHoverCardState extends State<_CommunityHoverCard> {
     cursor: SystemMouseCursors.click,
     onEnter: (_) => setState(() => _hovered = true),
     onExit: (_) => setState(() => _hovered = false),
-    child: GestureDetector(
+    child: AppTapTarget(
       onTap: widget.onTap,
       child: Stack(
         children: [

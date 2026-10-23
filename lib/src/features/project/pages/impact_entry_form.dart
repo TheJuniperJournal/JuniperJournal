@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../shared/widgets/impact_icon.dart';
 import 'package:juniper_journal/src/shared/widgets/optional_field_label.dart';
@@ -720,7 +721,7 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -784,7 +785,7 @@ class _ScaleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
@@ -919,7 +920,7 @@ class _PatternField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: enabled ? () => _open(context) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),

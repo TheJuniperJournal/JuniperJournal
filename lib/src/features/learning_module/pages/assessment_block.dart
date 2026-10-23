@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:flutter/services.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -1417,7 +1418,7 @@ class _MatchingItemRow extends StatelessWidget {
           const SizedBox(width: 8),
           Opacity(
             opacity: 1,
-            child: GestureDetector(
+            child: AppTapTarget(
               onTap: canDelete ? onDelete : null,
               child: SvgPicture.asset(
                 'assets/learning_module/learning_objective_trash.svg',
@@ -1540,7 +1541,7 @@ class _TrueFalseQuestionRow extends StatelessWidget {
           const SizedBox(width: 6),
           Opacity(
             opacity: 1,
-            child: GestureDetector(
+            child: AppTapTarget(
               onTap: canDelete ? onDelete : null,
               child: SvgPicture.asset(
                 'assets/learning_module/learning_objective_trash.svg',
@@ -1568,7 +1569,7 @@ class _TinyChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: 31,
@@ -1799,7 +1800,7 @@ class _OptionRow extends StatelessWidget {
       children: [
         Row(
           children: [
-            GestureDetector(
+            AppTapTarget(
               onTap: onSelected,
               child: Container(
                 width: 24,
@@ -1835,7 +1836,7 @@ class _OptionRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            GestureDetector(
+            AppTapTarget(
               behavior: HitTestBehavior.opaque,
               onTap: canDelete ? onDelete : null,
               child: Opacity(

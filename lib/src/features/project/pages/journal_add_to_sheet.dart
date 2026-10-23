@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/desktop_modal_layer.dart';
 import '../../../backend/db/models/community.dart';
 import 'journal_phase_dialog.dart';
@@ -169,7 +170,7 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
                     alignment: Alignment.centerLeft,
                     child: Padding(
                       padding: const EdgeInsets.only(left: 16),
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         onTap: () => Navigator.pop(context, false),
                         child: const Icon(
                           Icons.close,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter/material.dart';
 import '../../backend/db/models/project.dart';
 import '../../backend/db/models/user_profile.dart';
@@ -97,7 +98,7 @@ class ExploreProjectCard extends StatelessWidget {
                   for (final person in people.take(2))
                     Padding(
                       padding: const EdgeInsets.only(left: 3),
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         onTap: () => openUserProfile(context, person.id),
                         child: CircleAvatar(
                           radius: 10,

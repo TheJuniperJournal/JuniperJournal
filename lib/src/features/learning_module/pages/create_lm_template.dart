@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -172,7 +173,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                         top: 40,
                         width: 23,
                         height: 23,
-                        child: GestureDetector(
+                        child: AppTapTarget(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => Navigator.of(context).pop(),
                           child: SvgPicture.asset(
@@ -619,7 +620,7 @@ class _DifficultyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const green = _CreateTemplateScreenState._green;
 
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: 99,
@@ -677,7 +678,7 @@ class _DropdownChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -861,7 +862,7 @@ class _SubjectDropdownState extends State<_SubjectDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       key: _chipKey,
       behavior: HitTestBehavior.opaque,
       onTap: _openMenu,

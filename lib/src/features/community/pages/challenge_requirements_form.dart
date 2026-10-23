@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
@@ -398,7 +399,7 @@ class _ChallengeRequirementsFormState extends State<ChallengeRequirementsForm> {
     ),
   );
 
-  Widget _stepperBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+  Widget _stepperBtn(IconData icon, VoidCallback onTap) => AppTapTarget(
     onTap: onTap,
     child: Container(
       width: 32,
@@ -421,7 +422,7 @@ class _ChallengeRequirementsFormState extends State<ChallengeRequirementsForm> {
       runSpacing: 8,
       children: options.map((o) {
         final isSelected = selected.contains(o);
-        return GestureDetector(
+        return AppTapTarget(
           onTap: () => setState(() {
             if (isSelected) {
               selected.remove(o);

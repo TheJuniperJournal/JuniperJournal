@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import '../../../backend/db/models/journal_entry.dart';
 import '../../../shared/widgets/currency_amount_input.dart';
@@ -498,7 +499,7 @@ class _ExpenseRow extends StatelessWidget {
       _shortDate(item.createdAt),
     ].join(' • ');
 
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: ConstrainedBox(
@@ -510,7 +511,7 @@ class _ExpenseRow extends StatelessWidget {
               width: 16,
               height: 16,
               child: isEditing
-                  ? GestureDetector(
+                  ? AppTapTarget(
                       onTap: onRemove,
                       child: const DecoratedBox(
                         decoration: BoxDecoration(
@@ -581,7 +582,7 @@ class _AddItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
@@ -1166,7 +1167,6 @@ class _BudgetHeader extends StatelessWidget {
             child: TextButton(
               onPressed: onSave,
               style: TextButton.styleFrom(
-                overlayColor: Colors.transparent,
                 foregroundColor: _green,
                 disabledForegroundColor: _placeholder,
                 minimumSize: const Size(48, 44),

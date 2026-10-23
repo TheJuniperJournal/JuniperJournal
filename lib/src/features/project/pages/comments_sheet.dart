@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -207,7 +208,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _hasError
-                    ? GestureDetector(
+                    ? AppTapTarget(
                         onTap: _load,
                         child: const Center(
                           child: Text(
@@ -298,7 +299,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                               height: 24,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : GestureDetector(
+                          : AppTapTarget(
                               onTap: _send,
                               child: const Icon(
                                 Icons.send_rounded,

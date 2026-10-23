@@ -31,7 +31,6 @@ class ItemActionMenu extends StatelessWidget {
     if (actions.isEmpty) return const SizedBox.shrink();
     return Theme(
       data: Theme.of(context).copyWith(
-        hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         splashColor: Colors.transparent,
         splashFactory: NoSplash.splashFactory,
@@ -44,9 +43,7 @@ class ItemActionMenu extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         constraints: const BoxConstraints.tightFor(width: 160),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        style: const ButtonStyle(
-          overlayColor: WidgetStatePropertyAll(Colors.transparent),
-        ),
+        style: const ButtonStyle(),
         icon:
             icon ??
             const Icon(Icons.more_horiz, color: Color(0xFF8B8B8B), size: 20),

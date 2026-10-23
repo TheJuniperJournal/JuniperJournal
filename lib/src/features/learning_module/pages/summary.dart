@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -382,7 +383,7 @@ class _Header extends StatelessWidget {
           Positioned(
             left: 26,
             top: 36,
-            child: GestureDetector(
+            child: AppTapTarget(
               behavior: HitTestBehavior.opaque,
               onTap: onBack,
               child: const Icon(
@@ -594,7 +595,7 @@ class _ChecklistRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: () => onChanged(!checked),
       child: Row(

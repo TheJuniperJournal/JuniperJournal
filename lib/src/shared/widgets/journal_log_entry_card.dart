@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../features/home_page/pages/public_user_profile.dart';
 import 'journal_entry_activity.dart';
 import 'journal_involved_people_preview.dart';
@@ -68,7 +69,7 @@ class JournalLogEntryCard extends StatelessWidget {
   static const _green = Color(0xFF5DB075);
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
+  Widget build(BuildContext context) => AppTapTarget(
     behavior: HitTestBehavior.opaque,
     onTap: onTap,
     child: Container(
@@ -232,7 +233,7 @@ class JournalLogEntryCard extends StatelessWidget {
       ),
     ),
   );
-  Widget _author(BuildContext context) => GestureDetector(
+  Widget _author(BuildContext context) => AppTapTarget(
     onTap: entry.authorId == null
         ? null
         : () => openUserProfile(context, entry.authorId!),
@@ -282,7 +283,7 @@ class JournalLogEntryCard extends StatelessWidget {
     ),
   );
 
-  Widget _contributors(BuildContext context) => GestureDetector(
+  Widget _contributors(BuildContext context) => AppTapTarget(
     behavior: HitTestBehavior.opaque,
     onTap: () => showAppDialog<void>(
       context: context,

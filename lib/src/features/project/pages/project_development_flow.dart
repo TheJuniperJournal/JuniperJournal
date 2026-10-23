@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/journal_entry_menu.dart';
 import '../../../shared/widgets/page_refresh_state.dart'
     show restoredJournalStage;
@@ -488,7 +489,7 @@ class _PhaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -1367,7 +1368,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
           ),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
+        AppTapTarget(
           onTap: _pickDate,
           child: Container(
             width: 152,
@@ -1427,7 +1428,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
             ),
         const SizedBox(height: 12),
         Center(
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: _addEvidence,
             child: Container(
               width: 202,
@@ -1654,7 +1655,7 @@ class _ImplementationAssessmentBodyState
             ),
             const SizedBox(width: 12),
             if (!widget.readOnly)
-              GestureDetector(
+              AppTapTarget(
                 onTap: _addImpact,
                 child: const Text(
                   '+ Add Impact',
@@ -5329,7 +5330,7 @@ class _PrototypeOutlinedAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         height: AppMetrics.controlHeight,
@@ -6608,7 +6609,7 @@ class _IdeatingChallengeBody extends StatelessWidget {
         ],
         const SizedBox(height: 12),
         centeredAction(
-          GestureDetector(
+          AppTapTarget(
             onTap: isUploadingContext ? null : onAddSupportingContext,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -6841,7 +6842,7 @@ class _IdeatingIdeasBody extends StatelessWidget {
         _RequiredJournalInteraction(
           complete: () => ideas.isNotEmpty,
           message: 'Add at least one complete idea.',
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: onAddIdea,
             child: Container(
               width: double.infinity,
@@ -6907,7 +6908,7 @@ class _IdeaSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -7877,7 +7878,7 @@ class _IdeaEditorPageState extends State<_IdeaEditorPage> {
                         ),
                     const SizedBox(height: 12),
                     Center(
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         onTap: _addEvidence,
                         child: Container(
                           width: 202,
@@ -7963,7 +7964,7 @@ class _SupportingContextTile extends StatelessWidget {
                 ),
               ),
             ),
-            GestureDetector(
+            AppTapTarget(
               onTap: onRemove,
               child: const Icon(
                 Icons.delete_outline,
@@ -9967,7 +9968,7 @@ class _PrototypeBuildLogEditorPageState
             ),
         const SizedBox(height: 12),
         Center(
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: _addEvidence,
             child: Container(
               width: 202,
@@ -10278,7 +10279,7 @@ class _PrototypeTestEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -10645,7 +10646,7 @@ class _PrototypeTestEntryEditorPageState
             ),
         const SizedBox(height: 12),
         Center(
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: _addEvidence,
             child: Container(
               width: 202,
@@ -11353,7 +11354,7 @@ class _PrototypeComponentListCard extends StatelessWidget {
     final statusFill = isComplete
         ? const Color(0xFFD8F0DF)
         : const Color(0xFFDCEBFF);
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -11678,7 +11679,7 @@ class _PrototypeViewAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -11885,7 +11886,7 @@ class _PrototypeFeatureList extends StatelessWidget {
 
                     if (features.length > 1) ...[
                       const SizedBox(width: 6),
-                      GestureDetector(
+                      AppTapTarget(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => onRemove(index),
                         child: Padding(
@@ -11905,7 +11906,7 @@ class _PrototypeFeatureList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        GestureDetector(
+        AppTapTarget(
           onTap: onAdd,
           child: const Text(
             '+ Add Feature',
@@ -11939,7 +11940,7 @@ class _PrototypeBuildLogFigmaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -13853,7 +13854,7 @@ class _AnalyzeStageBody extends StatelessWidget {
           ),
         const SizedBox(height: AppMetrics.labelGap),
         Center(
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: onAddRootCause,
             child: const Text(
               '+ Add Key Root Causes',
@@ -14166,7 +14167,7 @@ class _QuestionStageBody extends StatelessWidget {
         _RequiredJournalInteraction(
           complete: () => questions.isNotEmpty,
           message: 'Add at least one question with a question type.',
-          child: GestureDetector(
+          child: AppTapTarget(
             onTap: onAddQuestion,
             child: Container(
               width: double.infinity,
@@ -14247,7 +14248,7 @@ class _QuestionTypeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: 82,
@@ -15142,7 +15143,7 @@ class _LearningCheckboxRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Padding(
@@ -15461,7 +15462,7 @@ class _TimelineLinkCard extends StatelessWidget {
               onTap: onCreate,
             ),
           ] else ...[
-            GestureDetector(
+            AppTapTarget(
               onTap: () => pushAppRoute(
                 context,
                 MaterialPageRoute(
@@ -15475,7 +15476,7 @@ class _TimelineLinkCard extends StatelessWidget {
               child: _LinkedTimelineEventCard(event: event!),
             ),
             const SizedBox(height: 12),
-            GestureDetector(
+            AppTapTarget(
               onTap: onUnlink,
               child: const Align(
                 alignment: Alignment.centerRight,
@@ -15510,7 +15511,7 @@ class _TimelineLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -15729,7 +15730,7 @@ class _ExistingTimelineEventSheet extends StatelessWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final event = sorted[index];
-                          return GestureDetector(
+                          return AppTapTarget(
                             onTap: () => Navigator.of(context).pop(event),
                             child: _LinkedTimelineEventCard(event: event),
                           );
@@ -16195,7 +16196,7 @@ class _TimelinePickerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         height: 33,
@@ -16653,7 +16654,7 @@ class _RootCauseEditorCard extends StatelessWidget {
               ),
           const SizedBox(height: 12),
           Center(
-            child: GestureDetector(
+            child: AppTapTarget(
               onTap: onAddEvidence,
               child: Container(
                 width: 202,
@@ -16808,7 +16809,7 @@ class _EvidenceSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -16902,7 +16903,7 @@ class _RootCauseCompactCardState extends State<_RootCauseCompactCard> {
         onDelete: widget.onDelete,
       );
     }
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _expanded = true),
       child: Container(
@@ -17014,7 +17015,7 @@ class _PatternChangeOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -17155,7 +17156,6 @@ class _EvidenceBlockPicker extends StatelessWidget {
                     Positioned(
                       left: 0,
                       child: IconButton(
-                        hoverColor: Colors.transparent,
                         highlightColor: Colors.transparent,
                         splashColor: Colors.transparent,
                         tooltip: 'Close',
@@ -17223,7 +17223,7 @@ class _EvidencePickerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final evidence = _EvidenceBlock._(type, const {});
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         alignment: Alignment.center,
@@ -17464,7 +17464,7 @@ class _RootCausePreviewCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
+              AppTapTarget(
                 behavior: HitTestBehavior.opaque,
                 onTap: onToggle,
                 child: SizedBox(
@@ -17793,7 +17793,7 @@ class _VideoEvidencePreviewState extends State<_VideoEvidencePreview> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
+          AppTapTarget(
             onTap: () => _openEvidenceUrl(context, url),
             child: AspectRatio(
               aspectRatio: 16 / 9,
@@ -17905,7 +17905,7 @@ class _ImageEvidencePreviewState extends State<_ImageEvidencePreview> {
                 );
               }
               final url = snapshot.data!;
-              return GestureDetector(
+              return AppTapTarget(
                 onTap: () => showAppDialog<void>(
                   context: context,
                   builder: (context) => Dialog(
@@ -18051,7 +18051,7 @@ class _AffectedCommunitiesField extends StatelessWidget {
               ],
               const SizedBox(height: 12),
               Center(
-                child: GestureDetector(
+                child: AppTapTarget(
                   behavior: HitTestBehavior.opaque,
                   onTap: onAdd,
                   child: Column(
@@ -18163,7 +18163,7 @@ class _AffectedChoiceSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    GestureDetector(
+                    AppTapTarget(
                       onTap: () => Navigator.of(context).pop(),
                       child: const Icon(
                         Icons.close,
@@ -18257,7 +18257,7 @@ class _AffectedChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -18381,7 +18381,7 @@ class _ExistingCommunitiesSheetState extends State<_ExistingCommunitiesSheet> {
             children: [
               Row(
                 children: [
-                  GestureDetector(
+                  AppTapTarget(
                     onTap: () => Navigator.of(context).pop(),
                     child: const Icon(Icons.close, color: _devGreen, size: 22),
                   ),
@@ -18509,7 +18509,7 @@ class _ExistingCommunityRow extends StatelessWidget {
             ),
           ),
         ),
-        GestureDetector(
+        AppTapTarget(
           behavior: HitTestBehavior.opaque,
           onTap: onAdd,
           child: Container(
@@ -18669,7 +18669,7 @@ class _AddOrganizationPageState extends State<_AddOrganizationPage> {
                   ),
                   const SizedBox(height: AppMetrics.sectionGap),
                   Center(
-                    child: GestureDetector(
+                    child: AppTapTarget(
                       onTap: _isSaving ? null : _add,
                       child: Container(
                         width: 91,
@@ -19004,7 +19004,7 @@ class _MemberChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         height: 38,
@@ -19718,9 +19718,7 @@ class _RootCauseActions extends StatelessWidget {
               onPressed: onToggle,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-              style: const ButtonStyle(
-                overlayColor: WidgetStatePropertyAll(Colors.transparent),
-              ),
+              style: const ButtonStyle(),
               icon: Icon(
                 expanded ? Icons.expand_less : Icons.expand_more,
                 color: _devGreen,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
 import '../widgets/group_chat_name_dialog.dart';
@@ -137,7 +138,7 @@ class _ChatScreenState extends State<ChatScreen> {
             UserAvatar(avatarUrl: widget.otherAvatarUrl, radius: 16),
             const SizedBox(width: 8),
             Flexible(
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: widget.isGroup && widget.canRenameGroup
                     ? _renameGroup
                     : null,
@@ -433,7 +434,7 @@ class _InputBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          GestureDetector(
+          AppTapTarget(
             onTap: sending ? null : onSend,
             child: Container(
               width: 40,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'journal_entry_view.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -414,7 +415,7 @@ class _WeekCalendar extends StatelessWidget {
                   weekStart.add(Duration(days: index)),
                 );
                 final selected = DateUtils.isSameDay(date, selectedDate);
-                return GestureDetector(
+                return AppTapTarget(
                   onTap: () => onSelected(date),
                   child: Container(
                     width: 40,
@@ -479,7 +480,7 @@ class _TimelineEventRow extends StatelessWidget {
         ? Colors.white
         : const Color(0xFF8D84A6);
 
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 16),
@@ -881,7 +882,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                 children: [
                   const _SheetLabel('All Day'),
                   const SizedBox(width: 20),
-                  GestureDetector(
+                  AppTapTarget(
                     onTap: () => setState(() => _allDay = !_allDay),
                     child: _AllDayToggle(value: _allDay),
                   ),
@@ -929,7 +930,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
               ),
               const SizedBox(height: 45),
               Center(
-                child: GestureDetector(
+                child: AppTapTarget(
                   onTap: _create,
                   child: Container(
                     width: 91,
@@ -1232,7 +1233,7 @@ class _DateTimePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         height: 33,
@@ -1312,7 +1313,7 @@ class _AssigneeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       onTap: onTap,
       child: Container(
         height: 38,
@@ -1405,7 +1406,7 @@ class _JournalEntryLinkSelectorState extends State<JournalEntryLinkSelector> {
   @override
   Widget build(BuildContext context) => Semantics(
     button: widget.selectable,
-    child: GestureDetector(
+    child: AppTapTarget(
       key: _fieldKey,
       onTap: widget.selectable ? _open : null,
       behavior: HitTestBehavior.opaque,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -520,7 +521,7 @@ class _ConceptExplorationScreenState extends State<ConceptExplorationScreen> {
                     top: 17,
                     width: 20,
                     height: 20,
-                    child: GestureDetector(
+                    child: AppTapTarget(
                       behavior: HitTestBehavior.opaque,
                       onTap: _returnToDashboard,
                       child: const _BackChevron(),
@@ -915,7 +916,7 @@ class _BlockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap:
           onTap ??
@@ -1066,7 +1067,7 @@ class _AddBlockSheet extends StatelessWidget {
                     top: 1,
                     width: 24,
                     height: 22,
-                    child: GestureDetector(
+                    child: AppTapTarget(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => Navigator.of(context).pop(),
                       child: const Align(
@@ -1155,7 +1156,7 @@ class _BlockMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
@@ -1435,7 +1436,7 @@ class _BottomAction extends StatelessWidget {
         ? _ConceptExplorationScreenState._green
         : Colors.black;
 
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(

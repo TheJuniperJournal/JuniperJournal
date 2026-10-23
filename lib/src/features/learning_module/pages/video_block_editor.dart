@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -582,7 +583,7 @@ class _ModeControl extends StatelessWidget {
         children: [
           for (final option in VideoSourceMode.values)
             Expanded(
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: () => onChanged(option),
                 child: Container(
                   alignment: Alignment.center,
@@ -659,7 +660,7 @@ class _VideoPreview extends StatelessWidget {
     final thumbnail = mode == VideoSourceMode.url && validUrl
         ? _youtubeThumbnail
         : null;
-    return GestureDetector(
+    return AppTapTarget(
       onTap: mode == VideoSourceMode.upload && !uploading ? onPick : null,
       child: Container(
         width: double.infinity,

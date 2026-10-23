@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
 import 'dart:typed_data';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -284,7 +285,7 @@ class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
                   children: [
                     // Project image
                     Center(
-                      child: GestureDetector(
+                      child: AppTapTarget(
                         onTap: _showImageSourceSheet,
                         child: CircleAvatar(
                           radius: 52,
@@ -682,7 +683,7 @@ class _SubjectTagChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          GestureDetector(
+          AppTapTarget(
             onTap: onRemove,
             child: const Icon(Icons.close, size: 14, color: AppColors.primary),
           ),

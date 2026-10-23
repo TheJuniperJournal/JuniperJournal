@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
@@ -269,7 +270,7 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                           ),
                         ),
                       ),
-                      GestureDetector(
+                      AppTapTarget(
                         onTap: () =>
                             setState(() => _materials.removeAt(entry.key)),
                         child: const Icon(

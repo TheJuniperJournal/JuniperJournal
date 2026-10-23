@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'community_project_invitations.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -215,7 +216,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
             const SizedBox(height: 16),
             // ── Image ──────────────────────────────────────────────────────
             Center(
-              child: GestureDetector(
+              child: AppTapTarget(
                 onTap: _pickImage,
                 child: Stack(
                   children: [
@@ -287,7 +288,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 final isSelected =
                     (_selectedColorHex ?? '#1E4620').toUpperCase() ==
                     hex.toUpperCase();
-                return GestureDetector(
+                return AppTapTarget(
                   onTap: () => setState(() => _selectedColorHex = hex),
                   child: Tooltip(
                     message: label,
@@ -488,7 +489,7 @@ class CommunityMemberSearchDialogState
           children: [
             Row(
               children: [
-                GestureDetector(
+                AppTapTarget(
                   onTap: () => Navigator.pop(context),
                   child: const Icon(
                     Icons.close,

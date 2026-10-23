@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -512,7 +513,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   for (final color in colors)
-                    GestureDetector(
+                    AppTapTarget(
                       onTap: () {
                         Navigator.of(context).pop();
                         setState(() {
@@ -1757,7 +1758,7 @@ class _DeleteSelectionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -1808,7 +1809,7 @@ class _ToolButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = activeTool == tool;
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: () => onSelected(tool),
       child: AnimatedContainer(
@@ -1847,7 +1848,7 @@ class _UndoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: enabled ? onTap : null,
       child: Opacity(
@@ -2177,7 +2178,7 @@ class _SheetOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppTapTarget(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(

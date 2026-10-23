@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter/material.dart';
 
 /// The visible chevron starts at the content edge; the tap area remains 44px.
@@ -22,7 +23,7 @@ class ContentAlignedBackButton extends StatelessWidget {
         cursor: onPressed == null
             ? SystemMouseCursors.basic
             : SystemMouseCursors.click,
-        child: GestureDetector(
+        child: AppTapTarget(
           behavior: HitTestBehavior.opaque,
           onTap: onPressed,
           child: SizedBox(
