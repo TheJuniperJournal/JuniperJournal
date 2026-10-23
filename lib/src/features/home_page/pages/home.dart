@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import '../services/home_journal_feed.dart';
 import '../../../shared/widgets/journal_preview_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
@@ -1004,6 +1005,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                       }
                     : null,
                 name: feedEntry.title,
+                entryDate: feedEntry.createdAt ?? feedEntry.updatedAt,
                 phase: feedEntry.progress,
                 projectName: projectName,
                 onProjectTap: () =>
@@ -1112,6 +1114,7 @@ class _BottomNavIcon extends StatelessWidget {
 class _ProjectCard extends StatefulWidget {
   final String projectId;
   final String name;
+  final DateTime? entryDate;
   final String? phase;
   final String projectName;
   final VoidCallback onProjectTap;
@@ -1130,6 +1133,7 @@ class _ProjectCard extends StatefulWidget {
   const _ProjectCard({
     required this.projectId,
     required this.name,
+    this.entryDate,
     required this.phase,
     required this.projectName,
     required this.onProjectTap,
@@ -1374,6 +1378,19 @@ class _ProjectCardState extends State<_ProjectCard> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (widget.entryDate != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat(
+                        'MMM d, yyyy',
+                      ).format(widget.entryDate!.toLocal()),
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
