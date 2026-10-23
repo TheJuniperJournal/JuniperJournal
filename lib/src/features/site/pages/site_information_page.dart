@@ -221,7 +221,7 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                   paragraph(
-                    'Co-Founder · CEO\nB.S. Civil Engineering, UW–Madison ’23',
+                    'Co-Founder · CEO\nB.S. Civil Engineering, UW–Madison\u00a0’23',
                   ),
                 ],
               ),
@@ -237,7 +237,7 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                   paragraph(
-                    'Co-Founder\nB.S. Design Engineering, Stanford ’25\nPost-Baccalaureate Premedical Program, Johns Hopkins ’26',
+                    'Co-Founder\nB.S. Design Engineering, Stanford\u00a0’25\nPost-Baccalaureate Premedical Program, Johns\u00a0Hopkins\u00a0’26',
                   ),
                 ],
               ),
