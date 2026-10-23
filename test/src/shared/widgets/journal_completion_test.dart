@@ -3,6 +3,22 @@ import 'package:juniper_journal/src/backend/db/models/journal_entry.dart';
 import 'package:juniper_journal/src/features/project/utils/journal_completion.dart';
 
 void main() {
+  test(
+    'implementation assessment allows zero impacts and legacy incomplete flags',
+    () {
+      for (final assessment in [null, false, true]) {
+        expect(
+          completedJournalStageIndices([
+            {'stage': 'overview', 'summary': 'Implemented a garden'},
+            if (assessment != null)
+              {'stage': 'assessment', 'complete': assessment},
+          ]),
+          contains(1),
+        );
+      }
+    },
+  );
+
   test('implementation overview does not require a date', () {
     expect(
       completedJournalStageIndices([

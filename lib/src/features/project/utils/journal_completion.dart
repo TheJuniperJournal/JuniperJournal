@@ -275,7 +275,7 @@ Set<int> completedJournalStageIndices(List<dynamic> content) {
   } else if (stages.containsKey('overview')) {
     complete = [
       fields(stage('overview'), ['summary']),
-      stage('assessment')['complete'] == true,
+      true, // Implementation impacts are optional, including zero entries.
       learned,
       fields(stage('reflection'), [
         'workedWell',

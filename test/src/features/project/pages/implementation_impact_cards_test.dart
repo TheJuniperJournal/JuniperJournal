@@ -8,25 +8,40 @@ import 'package:juniper_journal/src/features/project/pages/project_development_f
 import 'package:juniper_journal/src/backend/db/models/impact_entry.dart';
 
 class _Repo extends ProjectsRepo {
+  bool empty = false;
+  int creates = 0;
+  @override
+  Future<JournalEntry?> createJournalEntry({
+    required String projectId,
+    required String title,
+    required List<dynamic> content,
+    String? progress,
+  }) async {
+    creates++;
+    return null;
+  }
+
   @override
   Future<List<ImpactEntry>?> getImpactEntries({
     required String projectId,
-  }) async => [
-    const ImpactEntry(
-      id: 'i',
-      projectId: 'p',
-      title: 'Growth',
-      metric: 'Biological Growth',
-      impactScale: 'Sapling (Small)',
-      patternType: 'Regeneration',
-      evidenceType: 'Photo',
-      confidenceScore: 'High',
-      measurement: 12,
-      measurementUnit: 'units',
-      ecoPoints: 120,
-      linkedJournalEntryId: 'e',
-    ),
-  ];
+  }) async => empty
+      ? []
+      : [
+          const ImpactEntry(
+            id: 'i',
+            projectId: 'p',
+            title: 'Growth',
+            metric: 'Biological Growth',
+            impactScale: 'Sapling (Small)',
+            patternType: 'Regeneration',
+            evidenceType: 'Photo',
+            confidenceScore: 'High',
+            measurement: 12,
+            measurementUnit: 'units',
+            ecoPoints: 120,
+            linkedJournalEntryId: 'e',
+          ),
+        ];
 
   List<dynamic>? saved;
   @override
@@ -51,6 +66,50 @@ class _Repo extends ProjectsRepo {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  testWidgets(
+    'zero impacts can advance and adding an impact first syncs a local draft',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = _Repo()..empty = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ImplementationEntryPage(
+            projectId: 'p',
+            projectsRepo: repo,
+            entry: const JournalEntry(
+              id: 'recovery-test',
+              projectId: 'p',
+              title: 'Draft',
+              progress: 'implementation',
+              content: [
+                {'stage': 'overview', 'summary': 'Implemented a garden'},
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Assessment').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Your Impacts (0)'), findsOneWidget);
+      expect(find.text('Add at least one impact assessment.'), findsNothing);
+      await tester.tap(find.text('+ Add Impact'));
+      await tester.pumpAndSettle();
+      expect(repo.creates, 1);
+      expect(
+        find.text('Could not save draft. Your work is still here.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Next').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Your Impacts (0)'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'completed implementation autosaves edits without clearing submission',
     (tester) async {

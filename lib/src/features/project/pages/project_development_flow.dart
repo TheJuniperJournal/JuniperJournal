@@ -1574,13 +1574,24 @@ class _ImplementationAssessmentBodyState
           .toList();
       _loading = false;
     });
-    widget.onCompletionChanged?.call(_impacts.isNotEmpty);
+    widget.onCompletionChanged?.call(true);
   }
 
   double get _total => _impacts.fold(0.0, (sum, e) => sum + e.ecoPoints);
 
   Future<void> _addImpact() async {
-    if (widget.entryId == null) return;
+    final draft = JournalDraftScope.of(context);
+    String? entryId = widget.entryId;
+    if (draft != null) {
+      // Impacts need a database UUID, not an on-device recovery draft ID.
+      if (!await draft.save()) return;
+      entryId = draft.session.current?.id;
+    }
+    if (!mounted ||
+        entryId == null ||
+        entryId.startsWith(JournalDraftSession.prefix)) {
+      return;
+    }
     await pushAppRoute(
       context,
       MaterialPageRoute(
@@ -1588,7 +1599,7 @@ class _ImplementationAssessmentBodyState
           projectId: widget.projectId,
           projectName: widget.projectName,
           initialTitle: 'Impact ${_impacts.length + 1}',
-          lockedJournalEntryId: widget.entryId,
+          lockedJournalEntryId: entryId,
         ),
       ),
     );
@@ -1622,39 +1633,40 @@ class _ImplementationAssessmentBodyState
           ),
           const SizedBox(height: AppMetrics.contentGap),
         ],
-        _RequiredJournalInteraction(
-          complete: () => widget.readOnly || _impacts.isNotEmpty,
-          message: 'Add at least one impact assessment.',
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.readOnly
-                      ? 'Impacts (${_impacts.length})'
-                      : 'Your Impacts (${_impacts.length})',
-                  style: const TextStyle(
+        const Text(
+          'Adding an impact is optional.',
+          style: AppTypography.helper,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.readOnly
+                    ? 'Impacts (${_impacts.length})'
+                    : 'Your Impacts (${_impacts.length})',
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            if (!widget.readOnly)
+              GestureDetector(
+                onTap: _addImpact,
+                child: const Text(
+                  '+ Add Impact',
+                  style: TextStyle(
                     fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.bodySize,
+                    color: AppColors.primary,
+                    fontSize: AppTypography.buttonSize,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              if (!widget.readOnly)
-                GestureDetector(
-                  onTap: _addImpact,
-                  child: const Text(
-                    '+ Add Impact',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.primary,
-                      fontSize: AppTypography.buttonSize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
         const SizedBox(height: 12),
         for (final impact in _impacts)
