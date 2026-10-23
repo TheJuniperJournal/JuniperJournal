@@ -38,7 +38,7 @@ class _Repo extends ProjectsRepo {
             confidenceScore: 'High',
             measurement: 12,
             measurementUnit: 'units',
-            ecoPoints: 120,
+            ecoPoints: 0,
             linkedJournalEntryId: 'e',
           ),
         ];
@@ -238,7 +238,8 @@ void main() {
       expect(find.text('Sapling'), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
       expect(find.text('units'), findsOneWidget);
-      expect(find.text('120 EcoPoints'), findsNWidgets(2));
+      expect(find.text('29 EcoPoints'), findsNWidgets(2));
+      expect(find.text('Pending'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

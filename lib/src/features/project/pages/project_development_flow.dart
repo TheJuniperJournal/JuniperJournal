@@ -1,3 +1,4 @@
+import '../utils/eco_points_calculator.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/journal_entry_menu.dart';
 import '../../../shared/widgets/page_refresh_state.dart'
@@ -1572,6 +1573,31 @@ class _ImplementationAssessmentBodyState
     setState(() {
       _impacts = (all ?? const <ImpactEntry>[])
           .where((e) => e.linkedJournalEntryId == widget.entryId)
+          .map(
+            (e) => widget.isDraft
+                ? ImpactEntry(
+                    id: e.id,
+                    projectId: e.projectId,
+                    title: e.title,
+                    metric: e.metric,
+                    impactScale: e.impactScale,
+                    patternType: e.patternType,
+                    evidenceType: e.evidenceType,
+                    confidenceScore: e.confidenceScore,
+                    measurement: e.measurement,
+                    measurementUnit: e.measurementUnit,
+                    linkedJournalEntryId: e.linkedJournalEntryId,
+                    createdAt: e.createdAt,
+                    updatedAt: e.updatedAt,
+                    ecoPoints: calculateEcoPoints(
+                      impactScale: e.impactScale,
+                      confidenceScore: e.confidenceScore,
+                      measurement: e.measurement,
+                      measurementUnit: e.measurementUnit,
+                    ),
+                  )
+                : e,
+          )
           .toList();
       _loading = false;
     });
@@ -1629,7 +1655,7 @@ class _ImplementationAssessmentBodyState
         const JournalSectionHeader(title: 'Impact (Optional)'),
         if (widget.isDraft && !widget.readOnly) ...[
           const Text(
-            'Eligible EcoPoints are awarded when you complete this journal entry. Saving an impact keeps it pending until then.',
+            'Impact EcoPoints are calculated when you save an impact. They are added to your profile when you complete this journal entry.',
             style: AppTypography.helper,
           ),
           const SizedBox(height: AppMetrics.contentGap),
@@ -1673,7 +1699,7 @@ class _ImplementationAssessmentBodyState
         for (final impact in _impacts)
           _ImplementationImpactCard(
             impact: impact,
-            pending: widget.isDraft && impact.ecoPoints == 0,
+            pending: false,
             onEdit: widget.readOnly
                 ? null
                 : () async {
