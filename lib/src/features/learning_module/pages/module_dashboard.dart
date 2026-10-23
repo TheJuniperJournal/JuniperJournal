@@ -42,7 +42,7 @@ class ModuleDashboardScreen extends StatelessWidget {
                           context,
                         ).popUntil((route) => route.isFirst),
                         child: const Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: Alignment.center,
                           child: Text(
                             'Done',
                             style: TextStyle(

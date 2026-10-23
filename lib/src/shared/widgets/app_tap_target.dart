@@ -7,6 +7,7 @@ class AppTapTarget extends GestureDetector {
   AppTapTarget({
     super.key,
     this.highlightInsets,
+    this.highlightMaxWidth,
     this.highlightBorderRadius,
     super.child,
     super.onTapDown,
@@ -76,6 +77,7 @@ class AppTapTarget extends GestureDetector {
   });
 
   final EdgeInsetsGeometry? highlightInsets;
+  final double? highlightMaxWidth;
   final BorderRadiusGeometry? highlightBorderRadius;
 
   @override
@@ -86,6 +88,7 @@ class AppTapTarget extends GestureDetector {
     final decoration = container?.decoration;
     return _TapFeedback(
       onActivate: onTap!,
+      maxWidth: highlightMaxWidth,
       insets: (highlightInsets ?? container?.margin ?? EdgeInsets.zero).resolve(
         Directionality.of(context),
       ),
@@ -106,11 +109,13 @@ class _TapFeedback extends StatefulWidget {
     required this.onActivate,
     required this.child,
     required this.insets,
+    this.maxWidth,
     required this.radius,
   });
   final VoidCallback onActivate;
   final Widget child;
   final EdgeInsets insets;
+  final double? maxWidth;
   final BorderRadius radius;
   @override
   State<_TapFeedback> createState() => _TapFeedbackState();
@@ -148,19 +153,28 @@ class _TapFeedbackState extends State<_TapFeedback> {
             top: widget.insets.top,
             bottom: widget.insets.bottom,
             child: IgnorePointer(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                decoration: BoxDecoration(
-                  color: _hovered
-                      ? Theme.of(context).hoverColor
-                      : Colors.transparent,
-                  borderRadius: widget.radius,
-                  border: _focused
-                      ? Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                        )
-                      : null,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: widget.maxWidth ?? double.infinity,
+                  ),
+                  child: AnimatedContainer(
+                    width: double.infinity,
+                    height: double.infinity,
+                    duration: const Duration(milliseconds: 120),
+                    decoration: BoxDecoration(
+                      color: _hovered
+                          ? Theme.of(context).hoverColor
+                          : Colors.transparent,
+                      borderRadius: widget.radius,
+                      border: _focused
+                          ? Border.all(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            )
+                          : null,
+                    ),
+                  ),
                 ),
               ),
             ),

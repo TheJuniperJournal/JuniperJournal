@@ -42,7 +42,7 @@ class ProgressTracker extends StatelessWidget {
             Row(
               children: [
                 for (var index = 0; index < labels.length; index++)
-                  Expanded(child: _step(index)),
+                  Expanded(child: _step(index, context)),
               ],
             ),
           ],
@@ -51,7 +51,7 @@ class ProgressTracker extends StatelessWidget {
     ),
   );
 
-  Widget _step(int index) {
+  Widget _step(int index, BuildContext context) {
     final reached = reachedIndices.contains(index);
     final content = Semantics(
       button: onSelected != null,
@@ -120,14 +120,29 @@ class ProgressTracker extends StatelessWidget {
       ),
     );
     if (onSelected == null) return content;
+    final labelPainter = TextPainter(
+      text: TextSpan(
+        text: labels[index],
+        style: DefaultTextStyle.of(context).style.merge(
+          const TextStyle(
+            fontFamily: AppTypography.bodyFamily,
+            fontSize: AppTypography.helperSize,
+            height: 1.25,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final highlightWidth = labelPainter.width + 16;
+    labelPainter.dispose();
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: AppTapTarget(
-        highlightInsets: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 6,
-        ),
-        highlightBorderRadius: BorderRadius.circular(20),
+        highlightInsets: const EdgeInsets.only(top: 32, bottom: 20),
+        highlightMaxWidth: highlightWidth,
+        highlightBorderRadius: BorderRadius.circular(4),
         behavior: HitTestBehavior.opaque,
         onTap: () => onSelected!(index),
         child: content,

@@ -536,7 +536,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
             behavior: HitTestBehavior.opaque,
             onTap: _exitProject,
             child: const Align(
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.center,
               child: Text(
                 'Done',
                 style: TextStyle(

@@ -302,6 +302,12 @@ class UserProfilePageState extends State<UserProfilePage> {
                         setState(() => _editingFriends = !_editingFriends),
                     icon: Icon(
                       _editingFriends ? Icons.check : Icons.edit_outlined,
+                      size: 22,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
                     ),
                   ),
                   const SizedBox(width: 8),
