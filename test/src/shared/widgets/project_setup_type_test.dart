@@ -247,7 +247,7 @@ void main() {
             .value,
         isNull,
       );
-      expect(find.text(' (optional)', findRichText: true), findsOneWidget);
+      expect(find.text(' (Optional)', findRichText: true), findsOneWidget);
       await tester.ensureVisible(find.text('Create').last);
       await tester.tap(find.text('Create').last);
       await tester.pumpAndSettle();

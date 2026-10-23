@@ -493,7 +493,7 @@ class _SectionLabel extends StatelessWidget {
         children: [
           if (optional)
             const TextSpan(
-              text: ' (optional)',
+              text: ' (Optional)',
               style: TextStyle(
                 color: Color(0xFFC8C8C8),
                 fontSize: AppTypography.bodySize,

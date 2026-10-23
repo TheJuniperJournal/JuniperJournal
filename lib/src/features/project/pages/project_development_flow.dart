@@ -1359,7 +1359,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
         ),
         const SizedBox(height: AppMetrics.fieldGap),
         const OptionalFieldLabel(
-          'Date Implemented (optional)',
+          'Date Implemented (Optional)',
           style: TextStyle(
             fontFamily: AppTypography.bodyFamily,
             fontSize: AppTypography.bodySize,
@@ -1415,7 +1415,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
           height: 36,
         ),
         const SizedBox(height: AppMetrics.fieldGap),
-        const JournalSectionHeader(title: 'Evidence (optional)'),
+        const JournalSectionHeader(title: 'Evidence (Optional)'),
         if (_evidence.isEmpty)
           const _EmptyEvidenceState()
         else
@@ -2970,7 +2970,7 @@ enum _PrototypeEntryType {
       ('title', 'Build Title'),
       ('objective', 'Objective'),
       ('summary', 'Build Process'),
-      ('designNotes', 'Design Notes (optional)'),
+      ('designNotes', 'Design Notes (Optional)'),
     ],
   ),
   testing(
@@ -2983,7 +2983,7 @@ enum _PrototypeEntryType {
       ('question', 'Objective'),
       ('method', 'Method'),
       ('expectedOutcome', 'Expected Outcome'),
-      ('feedback', 'Feedback & Notes (optional)'),
+      ('feedback', 'Feedback & Notes (Optional)'),
     ],
   ),
   analysis(
@@ -2995,8 +2995,8 @@ enum _PrototypeEntryType {
       ('title', 'Technical Analysis Title'),
       ('question', 'Objective'),
       ('baseline', 'Baseline Description'),
-      ('proposed', 'Proposed Description (optional)'),
-      ('fieldNotes', 'Field Notes (optional)'),
+      ('proposed', 'Proposed Description (Optional)'),
+      ('fieldNotes', 'Field Notes (Optional)'),
     ],
   );
 
@@ -4391,7 +4391,7 @@ class _PrototypingJournalEntryPageState
     ),
     const SizedBox(height: AppMetrics.journalSectionGap),
     const OptionalFieldLabel(
-      'Calculation Type (optional)',
+      'Calculation Type (Optional)',
       style: AppTypography.fieldLabel,
     ),
     const SizedBox(height: AppMetrics.helperGap),
@@ -4435,7 +4435,7 @@ class _PrototypingJournalEntryPageState
       ),
     ),
     const SizedBox(height: AppMetrics.journalSectionGap),
-    const JournalSectionHeader(title: 'Evidence (optional)'),
+    const JournalSectionHeader(title: 'Evidence (Optional)'),
     if (_evidence.isEmpty)
       const _EmptyEvidenceState()
     else
@@ -4705,7 +4705,7 @@ class _PrototypingJournalEntryPageState
       ),
     ),
     const SizedBox(height: AppMetrics.journalSectionGap),
-    const JournalSectionHeader(title: 'Evidence (optional)'),
+    const JournalSectionHeader(title: 'Evidence (Optional)'),
     if (_evidence.isEmpty)
       const _EmptyEvidenceState()
     else
@@ -4786,7 +4786,7 @@ class _PrototypingJournalEntryPageState
       expandWithContent: true,
     ),
     const SizedBox(height: AppMetrics.sectionGap),
-    const JournalSectionHeader(title: 'Evidence (optional)'),
+    const JournalSectionHeader(title: 'Evidence (Optional)'),
     if (_evidence.isEmpty)
       const _EmptyEvidenceState()
     else
@@ -6593,7 +6593,7 @@ class _IdeatingChallengeBody extends StatelessWidget {
             ),
             children: [
               TextSpan(
-                text: '(optional)',
+                text: '(Optional)',
                 style: TextStyle(color: Color(0xFF838383)),
               ),
             ],
@@ -7856,7 +7856,7 @@ class _IdeaEditorPageState extends State<_IdeaEditorPage> {
                     ),
                     const SizedBox(height: AppMetrics.fieldGap),
                     const OptionalFieldLabel(
-                      'Evidence (optional)',
+                      'Evidence (Optional)',
                       style: TextStyle(
                         fontFamily: AppTypography.headingFamily,
                         color: AppColors.primary,
@@ -8817,7 +8817,7 @@ class _PreviewField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label.replaceAll(' (optional)', ''),
+            label.replaceAll(' (Optional)', ''),
             style: const TextStyle(
               fontFamily: AppTypography.bodyFamily,
               fontSize: AppTypography.bodySize,
@@ -9948,7 +9948,7 @@ class _PrototypeBuildLogEditorPageState
         ),
         const SizedBox(height: AppMetrics.fieldGap),
         const OptionalFieldLabel(
-          'Evidence (optional)',
+          'Evidence (Optional)',
           style: TextStyle(
             fontFamily: AppTypography.headingFamily,
             fontSize: AppTypography.evidenceTitleSize,
@@ -10626,7 +10626,7 @@ class _PrototypeTestEntryEditorPageState
         ),
         const SizedBox(height: AppMetrics.fieldGap),
         const OptionalFieldLabel(
-          'Evidence (optional)',
+          'Evidence (Optional)',
           style: TextStyle(
             fontFamily: AppTypography.headingFamily,
             fontSize: AppTypography.evidenceTitleSize,
@@ -14590,7 +14590,7 @@ class _JournalLearningStageBodyState extends State<JournalLearningStageBody> {
         if (assessmentFeaturesEnabled) ...[
           const SizedBox(height: AppMetrics.fieldGap),
           _LearningPanel(
-            title: 'Assessment Type (optional)',
+            title: 'Assessment Type (Optional)',
             description:
                 'How can learning be demonstrated? Choose how someone could show their learning from this entry.',
             child: _RequiredJournalInteraction(
@@ -15289,7 +15289,7 @@ class _CounterTextBox extends StatelessWidget {
                     TextSpan(text: label),
                     if (optional)
                       const TextSpan(
-                        text: ' (optional)',
+                        text: ' (Optional)',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w400,
@@ -15411,7 +15411,7 @@ class _TimelineLinkCard extends StatelessWidget {
                         ),
                       ),
                       TextSpan(
-                        text: '(optional)',
+                        text: '(Optional)',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w400,
@@ -16311,7 +16311,7 @@ class _LabeledBox extends StatelessWidget {
               children: [
                 if (optional)
                   const TextSpan(
-                    text: ' (optional)',
+                    text: ' (Optional)',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w400,
@@ -16633,7 +16633,7 @@ class _RootCauseEditorCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const OptionalFieldLabel(
-            'Evidence (optional)',
+            'Evidence (Optional)',
             style: TextStyle(
               fontFamily: AppTypography.headingFamily,
               color: AppColors.primary,
@@ -18018,7 +18018,7 @@ class _AffectedCommunitiesField extends StatelessWidget {
             style: AppTypography.fieldLabel,
             children: [
               TextSpan(
-                text: ' (optional)',
+                text: ' (Optional)',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w400,
@@ -18729,7 +18729,7 @@ class _OrgField extends StatelessWidget {
             children: [
               if (optional)
                 const TextSpan(
-                  text: ' (optional)',
+                  text: ' (Optional)',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w400,

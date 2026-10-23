@@ -429,7 +429,7 @@ class _FieldLabel extends StatelessWidget {
         children: [
           if (optional)
             const TextSpan(
-              text: ' (optional)',
+              text: ' (Optional)',
               style: TextStyle(
                 color: _ImageBlockEditorScreenState._muted,
                 fontWeight: FontWeight.w500,

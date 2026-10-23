@@ -549,7 +549,7 @@ class _InquiryLensSelectorState extends State<InquiryLensSelector> {
         ),
         children: [
           TextSpan(
-            text: ' (optional)',
+            text: ' (Optional)',
             style: TextStyle(
               fontFamily: AppTypography.bodyFamily,
               color: InquiryLensSelector.muted,

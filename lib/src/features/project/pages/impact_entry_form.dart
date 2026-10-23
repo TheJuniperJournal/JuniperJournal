@@ -435,7 +435,7 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
               const SizedBox(height: AppMetrics.fieldGap),
 
               // ── Measurement ─────────────────────────────────────────────────
-              _label('Measurement (optional)'),
+              _label('Measurement (Optional)'),
               const SizedBox(height: 4),
               const Text(
                 'Add a number to quantify your impact.',

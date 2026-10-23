@@ -746,7 +746,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 controller: _titleController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  labelText: 'Entry Title (optional)',
+                  labelText: 'Entry Title (Optional)',
                 ),
               ),
             ),

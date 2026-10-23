@@ -29,7 +29,7 @@ class OptionalFieldLabel extends StatelessWidget {
           TextSpan(text: label.replaceFirst(suffix, '')),
           if (isOptional)
             const TextSpan(
-              text: ' (optional)',
+              text: ' (Optional)',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w400,

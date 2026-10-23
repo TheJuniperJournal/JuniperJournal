@@ -227,7 +227,7 @@ void main() {
       expect(repo.creates, 0);
       expect(find.byType(JournalEntryEditorScreen), findsOneWidget);
       await tester.enterText(
-        find.widgetWithText(TextField, 'Entry Title (optional)'),
+        find.widgetWithText(TextField, 'Entry Title (Optional)'),
         'Notes',
       );
       await tester.enterText(
@@ -497,7 +497,7 @@ void main() {
         findsOneWidget,
       );
       await tester.enterText(
-        find.widgetWithText(TextField, 'Entry Title (optional)'),
+        find.widgetWithText(TextField, 'Entry Title (Optional)'),
         'Prototype',
       );
       await tester.enterText(

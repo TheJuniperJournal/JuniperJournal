@@ -456,7 +456,7 @@ class _InteractiveTimelinePageState extends State<InteractiveTimelinePage> {
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
   }) {
-    final displayLabel = optional ? '$label (optional)' : label;
+    final displayLabel = optional ? '$label (Optional)' : label;
     return TextField(
       controller: controller,
       autofocus: autofocus,

@@ -849,7 +849,7 @@ class _SheetLabel extends StatelessWidget {
             ),
           if (optional)
             const TextSpan(
-              text: ' (optional)',
+              text: ' (Optional)',
               style: TextStyle(color: _placeholder),
             ),
         ],

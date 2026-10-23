@@ -310,7 +310,7 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
 
             // ── Photos ────────────────────────────────────────────────────
             const OptionalFieldLabel(
-              'Photos (optional)',
+              'Photos (Optional)',
               style: TextStyle(
                 fontFamily: AppTypography.bodyFamily,
                 fontSize: AppTypography.bodySize,

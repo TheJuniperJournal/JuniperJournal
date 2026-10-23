@@ -1163,7 +1163,7 @@ class _TimelineField extends StatelessWidget {
             children: [
               if (optional)
                 const TextSpan(
-                  text: ' (optional)',
+                  text: ' (Optional)',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w400,

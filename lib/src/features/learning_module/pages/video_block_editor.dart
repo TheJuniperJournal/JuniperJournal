@@ -480,7 +480,7 @@ class _Label extends StatelessWidget {
         children: [
           if (optional)
             const TextSpan(
-              text: ' (optional)',
+              text: ' (Optional)',
               style: TextStyle(color: _VideoBlockEditorScreenState._muted),
             ),
         ],

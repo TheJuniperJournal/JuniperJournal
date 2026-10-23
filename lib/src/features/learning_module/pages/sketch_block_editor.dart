@@ -1309,7 +1309,7 @@ class _FieldLabel extends StatelessWidget {
         children: [
           if (optional)
             const TextSpan(
-              text: ' (optional)',
+              text: ' (Optional)',
               style: TextStyle(
                 fontFamily: AppTypography.bodyFamily,
                 color: _SketchBlockEditorScreenState._muted,

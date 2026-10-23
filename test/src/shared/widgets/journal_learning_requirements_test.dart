@@ -42,7 +42,7 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Assessment Type (optional)'), findsNothing);
+    expect(find.text('Assessment Type (Optional)'), findsNothing);
     expect(find.byType(AssessmentBlockSection), findsNothing);
     await tester.tap(find.text('Next'));
     await tester.pump();

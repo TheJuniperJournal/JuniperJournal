@@ -2907,7 +2907,7 @@ class ProjectCommunitiesSection extends StatelessWidget {
                 const _SectionTitle('Communities'),
                 if (showOptional)
                   OptionalFieldLabel(
-                    ' (optional)',
+                    ' (Optional)',
                     style: TextStyle(
                       fontFamily: AppTypography.bodyFamily,
                       color: Colors.grey,
