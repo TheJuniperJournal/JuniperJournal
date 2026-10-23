@@ -55,10 +55,12 @@ class HomeShellScreen extends StatefulWidget {
     this.initialSection = 0,
     this.restoreJournal = true,
     this.informationPage,
+    this.initialLibrarySubject,
   });
   final int initialSection;
   final bool restoreJournal;
   final String? informationPage;
+  final String? initialLibrarySubject;
 
   @override
   State<HomeShellScreen> createState() => _HomeShellScreenState();
@@ -97,6 +99,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     JournalPublication.onPublished = _journalPublished;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.restoreJournal) _restoreInterruptedJournal();
+      if (widget.initialLibrarySubject != null) {
+        _libraryKey.currentState?.selectSubject(widget.initialLibrarySubject!);
+      }
     });
     _projectsFuture = _loadFeedProjects();
     _loadUnreadCount();
@@ -585,6 +590,40 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  Future<void> _navigateSection(int index, {String? subject}) async {
+    final navigator = Navigator.of(context);
+    if (!await JournalDraftGuard.leaveCurrent(navigator) || !mounted) return;
+    if (widget.informationPage != null) {
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => HomeShellScreen(
+            initialSection: index,
+            restoreJournal: false,
+            initialLibrarySubject: subject,
+          ),
+        ),
+        (_) => false,
+      );
+      return;
+    }
+    while (navigator.canPop()) {
+      final route = desktopRouteObserver.current;
+      final popped = await navigator.maybePop();
+      if (!popped || !mounted) return;
+      // maybePop honors each editor's PopScope and autosave hooks.
+      await WidgetsBinding.instance.endOfFrame;
+      if (desktopRouteObserver.current == route) return;
+    }
+    if (mounted) {
+      _selectSection(index);
+      if (subject != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _libraryKey.currentState?.selectSubject(subject);
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     PageRefreshState.remember(context, {
@@ -593,34 +632,12 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     });
     return AdaptiveAppShell(
       selectedIndex: widget.informationPage == null ? _selectedIndex : -1,
-      onSelect: (index) async {
-        final navigator = Navigator.of(context);
-        if (!await JournalDraftGuard.leaveCurrent(navigator) || !mounted)
-          return;
-        if (widget.informationPage != null) {
-          navigator.pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) =>
-                  HomeShellScreen(initialSection: index, restoreJournal: false),
-            ),
-            (_) => false,
-          );
-          return;
-        }
-        while (navigator.canPop()) {
-          final route = desktopRouteObserver.current;
-          final popped = await navigator.maybePop();
-          if (!popped || !mounted) return;
-          // maybePop honors each editor's PopScope and autosave hooks.
-          await WidgetsBinding.instance.endOfFrame;
-          if (desktopRouteObserver.current == route) return;
-        }
-        if (mounted) _selectSection(index);
-      },
+      onSelect: (index) => _navigateSection(index),
       onCreate: _showCreateOptions,
       mobileNavigation: _buildNavBar(context),
       desktopSidebar: UserProfilePage(
         key: _desktopProfileKey,
+        onSubjectSelected: (subject) => _navigateSection(1, subject: subject),
         compact: true,
         onProfileUpdated: _refreshProjects,
         onSettings: () => pushAppRoute(
@@ -839,6 +856,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                         _visitedSections.contains(2)
                             ? UserProfilePage(
                                 key: _profileKey,
+                                onSubjectSelected: (subject) =>
+                                    _navigateSection(1, subject: subject),
                                 onProfileUpdated: _refreshProjects,
                               )
                             : const SizedBox.shrink(),

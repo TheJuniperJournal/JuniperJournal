@@ -1,3 +1,4 @@
+import 'home.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/persistent_desktop_shell.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
@@ -26,6 +27,7 @@ class UserProfilePage extends StatefulWidget {
   const UserProfilePage({
     super.key,
     this.onProfileUpdated,
+    this.onSubjectSelected,
     this.compact = false,
     this.onSettings,
     this.onLogout,
@@ -36,6 +38,7 @@ class UserProfilePage extends StatefulWidget {
   });
 
   final Future<void> Function()? onProfileUpdated;
+  final ValueChanged<String>? onSubjectSelected;
   final bool compact;
   final VoidCallback? onSettings, onLogout, onNotifications, onMessages;
   final int notificationCount, unreadMessageCount;
@@ -511,18 +514,22 @@ class UserProfilePageState extends State<UserProfilePage> {
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () => pushAppRoute(
-                    _navigationContext,
-                    MaterialPageRoute(
-                      builder: (_) => Scaffold(
-                        appBar: AppBar(title: Text(subject.$1)),
-                        body: ProjectBrowsePage(
-                          library: true,
-                          initialSubject: subject.$1,
+                  onTap: () {
+                    if (widget.onSubjectSelected != null) {
+                      widget.onSubjectSelected!(subject.$1);
+                    } else {
+                      pushAppRoute(
+                        _navigationContext,
+                        MaterialPageRoute(
+                          builder: (_) => HomeShellScreen(
+                            initialSection: 1,
+                            initialLibrarySubject: subject.$1,
+                            restoreJournal: false,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
+                      );
+                    }
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(

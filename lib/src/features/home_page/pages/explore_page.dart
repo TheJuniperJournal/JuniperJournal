@@ -117,6 +117,18 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
   bool _onlyBookmarks = false;
   bool _loading = true;
   bool _error = false;
+  void selectSubject(String subject) {
+    _search.clear();
+    setState(() {
+      for (final values in _filters.values) {
+        values.clear();
+      }
+      _filters['Subject']!.add(subject);
+      _onlyBookmarks = false;
+      _communitiesMode = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();

@@ -114,6 +114,41 @@ class _Communities extends CommunitiesRepo {
 
 void main() {
   testWidgets(
+    'sidebar subject selection filters the regular library and can be changed',
+    (tester) async {
+      tester.view.physicalSize = const Size(1100, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final key = GlobalKey<ProjectBrowsePageState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProjectBrowsePage(
+              key: key,
+              library: true,
+              projectsRepo: _Repo(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      key.currentState!.selectSubject('Energy & Systems');
+      await tester.pumpAndSettle();
+      expect(find.text('Solar Panel'), findsOneWidget);
+      expect(find.text('Terrarium Garden'), findsNothing);
+      expect(find.text('Subject (1)'), findsOneWidget);
+      expect(find.byType(TextField), findsWidgets);
+      expect(find.byType(BackButton), findsNothing);
+      key.currentState!.selectSubject('Environment & Sustainability');
+      await tester.pumpAndSettle();
+      expect(find.text('Terrarium Garden'), findsOneWidget);
+      expect(find.text('Solar Panel'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'community projects reuse Explore cards without the landing hero',
     (tester) async {
       tester.view.physicalSize = const Size(1200, 1800);
