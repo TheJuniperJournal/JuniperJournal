@@ -17,8 +17,7 @@ import '../../../shared/widgets/adaptive_app_shell.dart';
 import 'project_notification_destination.dart';
 import '../../../shared/widgets/create_menu_dialog.dart';
 import '../../../shared/widgets/app_refresh_indicator.dart';
-import '../../project/pages/project_development_flow.dart'
-    show normalizePhase;
+import '../../project/pages/project_development_flow.dart' show normalizePhase;
 import '../../../shared/widgets/journal_project_link.dart';
 import '../../project/pages/journal_entry_view.dart';
 import '../../../backend/db/models/journal_entry.dart';
@@ -950,10 +949,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   : 'Untitled Project';
               final tags = project.tags;
               final feedEntry = _feedEntryByProject[projectId]!;
-              final imageUrl = journalFeedPreviewImage(
-                feedEntry.content,
-                projectCover: project.imageUrl,
-              );
+              final imageUrl = journalFeedPreviewImage(feedEntry.content);
               final ownerId = project.userId;
 
               final ownerLabel = ownerId == null

@@ -59,11 +59,10 @@ List<String> journalPreviewImageSources(List<dynamic> content) {
   return sources.toList();
 }
 
-/// A journal photo takes priority; a project cover represents entries without one.
-String? journalFeedPreviewImage(List<dynamic> content, {String? projectCover}) {
+/// Home previews belong exclusively to the journal entry represented by the card.
+String? journalFeedPreviewImage(List<dynamic> content) {
   final images = journalPreviewImageSources(content);
-  if (images.isNotEmpty) return images.first;
-  return projectCover?.trim().isNotEmpty == true ? projectCover!.trim() : null;
+  return images.isEmpty ? null : images.first;
 }
 
 class JournalPreviewImage extends StatelessWidget {

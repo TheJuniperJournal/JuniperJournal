@@ -3,22 +3,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/features/project/pages/project_development_flow.dart';
 
 void main() {
-  test('Home uses project cover only when the journal has no photo', () {
-    expect(
-      journalFeedPreviewImage(
-        [],
-        projectCover: 'https://example.com/cover.jpg',
-      ),
-      'https://example.com/cover.jpg',
-    );
-    expect(
-      journalFeedPreviewImage([
-        {'type': 'image', 'url': 'https://example.com/journal.jpg'},
-      ], projectCover: 'https://example.com/cover.jpg'),
-      'https://example.com/journal.jpg',
-    );
-    expect(journalFeedPreviewImage([], projectCover: '  '), isNull);
-  });
+  test(
+    'Home previews use only photos saved in the displayed journal entry',
+    () {
+      expect(journalFeedPreviewImage([]), isNull);
+      expect(
+        journalFeedPreviewImage([
+          {'type': 'image', 'url': 'https://example.com/journal.jpg'},
+        ]),
+        'https://example.com/journal.jpg',
+      );
+      expect(
+        journalFeedPreviewImage([
+          {'stage': 'overview', 'summary': 'Text only'},
+        ]),
+        isNull,
+      );
+    },
+  );
   test('feed previews support old URL aliases and storage-only images', () {
     final sources = journalContentImageUrls([
       {
