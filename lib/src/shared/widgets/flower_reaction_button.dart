@@ -10,10 +10,13 @@ class FlowerReactionButton extends StatefulWidget {
     required this.target,
     required this.targetId,
     this.repo,
+    this.builder,
   });
   final FlowerTarget target;
   final String targetId;
   final FlowerReactionsRepo? repo;
+  final Widget Function(BuildContext, FlowerState?, bool, VoidCallback)?
+  builder;
   @override
   State<FlowerReactionButton> createState() => _FlowerReactionButtonState();
 }
@@ -83,6 +86,8 @@ class _FlowerReactionButtonState extends State<FlowerReactionButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.builder != null)
+      return widget.builder!(context, _value, _busy, _toggle);
     final selected = _value?.selected ?? false;
     final count = _value?.count ?? 0;
     return Semantics(

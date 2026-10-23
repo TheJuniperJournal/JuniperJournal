@@ -1,3 +1,4 @@
+import '../widgets/message_gesture_surface.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
@@ -313,44 +314,83 @@ class _MessageBubble extends StatelessWidget {
                 ? MainAxisAlignment.end
                 : MainAxisAlignment.start,
             children: [
-              Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.72,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: isSent ? AppColors.primary : AppColors.surfaceInput,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(18),
-                    topRight: const Radius.circular(18),
-                    bottomLeft: Radius.circular(isSent ? 18 : 4),
-                    bottomRight: Radius.circular(isSent ? 4 : 18),
-                  ),
-                ),
-                child: ConversationBody(
-                  message.content,
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.bodySize,
-                    color: isSent ? Colors.white : Colors.black87,
-                    height: 1.3,
-                  ),
+              FlowerReactionButton(
+                key: ValueKey(message.id),
+                target: FlowerTarget.message,
+                targetId: message.id,
+                builder: (context, reaction, busy, toggle) => Column(
+                  crossAxisAlignment: isSent
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    MessageGestureSurface(
+                      onReply: onReply,
+                      onLike: toggle,
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.72,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSent
+                              ? AppColors.primary
+                              : AppColors.surfaceInput,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(18),
+                            topRight: const Radius.circular(18),
+                            bottomLeft: Radius.circular(isSent ? 18 : 4),
+                            bottomRight: Radius.circular(isSent ? 4 : 18),
+                          ),
+                        ),
+                        child: ConversationBody(
+                          message.content,
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            color: isSent ? Colors.white : Colors.black87,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if ((reaction?.count ?? 0) > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: 4,
+                          left: 8,
+                          right: 8,
+                        ),
+                        child: Semantics(
+                          label: '${reaction!.count} likes',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.local_florist,
+                                size: 14,
+                                color: reaction.selected
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${reaction.count}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
-          ),
-          TextButton.icon(
-            onPressed: onReply,
-            icon: const Icon(Icons.reply, size: 16),
-            label: const Text('Reply'),
-          ),
-          FlowerReactionButton(
-            key: ValueKey(message.id),
-            target: FlowerTarget.message,
-            targetId: message.id,
           ),
         ],
       ),
