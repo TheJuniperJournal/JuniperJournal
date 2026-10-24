@@ -1,3 +1,4 @@
+import '../widgets/message_thread.dart';
 import '../widgets/message_emoji_reactions.dart';
 import '../widgets/message_gesture_surface.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
@@ -225,37 +226,55 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
                 _maybeScrollToBottom();
 
+                final threads = groupMessageThreads(messages);
+                Widget bubble(
+                  Message msg, {
+                  required Message threadParent,
+                  bool inlineReply = false,
+                }) {
+                  final isSent = msg.senderId == _currentUserId;
+                  return _MessageBubble(
+                    key: ValueKey('bubble-${msg.id}'),
+                    message: msg,
+                    isSent: isSent,
+                    showSenderName: !isSent,
+                    senderFirstName: widget.isGroup
+                        ? msg.resolvedSenderName.split(' ').first
+                        : widget.otherUserName.split(' ').first,
+                    inlineReply: inlineReply,
+                    onReply: () => _inputController.replyTo(
+                      threadParent.id,
+                      widget.isGroup || threadParent.senderId == _currentUserId
+                          ? threadParent.resolvedSenderName
+                          : widget.otherUserName,
+                      threadParent.content,
+                    ),
+                  );
+                }
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 12,
                   ),
-                  itemCount: messages.length,
+                  itemCount: threads.length,
                   itemBuilder: (_, index) {
-                    final msg = messages[index];
-                    final isSent = msg.senderId == _currentUserId;
-                    // Show the sender name above the first bubble in each consecutive group
-                    final isFirstInGroup =
-                        index == 0 ||
-                        messages[index - 1].senderId != msg.senderId;
-                    final showSenderName = !isSent && isFirstInGroup;
-
-                    final senderName = widget.isGroup
-                        ? msg.resolvedSenderName.split(' ').first
-                        : widget.otherUserName.split(' ').first;
-                    return _MessageBubble(
-                      message: msg,
-                      isSent: isSent,
-                      showSenderName: showSenderName,
-                      senderFirstName: senderName,
-                      onReply: () => _inputController.replyTo(
-                        msg.id,
-                        widget.isGroup || isSent
-                            ? msg.resolvedSenderName
-                            : widget.otherUserName,
-                        msg.content,
+                    final thread = threads[index];
+                    return InlineMessageThread(
+                      key: ValueKey('thread-${thread.parent.id}'),
+                      parent: bubble(
+                        thread.parent,
+                        threadParent: thread.parent,
                       ),
+                      replies: [
+                        for (final reply in thread.replies)
+                          bubble(
+                            reply,
+                            threadParent: thread.parent,
+                            inlineReply: true,
+                          ),
+                      ],
                     );
                   },
                 );
@@ -279,13 +298,16 @@ class _MessageBubble extends StatelessWidget {
   final bool showSenderName;
   final String senderFirstName;
   final VoidCallback onReply;
+  final bool inlineReply;
 
   const _MessageBubble({
+    super.key,
     required this.message,
     required this.isSent,
     required this.showSenderName,
     required this.senderFirstName,
     required this.onReply,
+    this.inlineReply = false,
   });
 
   @override
@@ -354,6 +376,7 @@ class _MessageBubble extends StatelessWidget {
                               ),
                               child: ConversationBody(
                                 message.content,
+                                showReply: !inlineReply,
                                 style: TextStyle(
                                   fontFamily: AppTypography.bodyFamily,
                                   fontSize: AppTypography.bodySize,

@@ -247,9 +247,15 @@ class _ConversationComposerState extends State<ConversationComposer> {
 }
 
 class ConversationBody extends StatelessWidget {
-  const ConversationBody(this.content, {super.key, this.style});
+  const ConversationBody(
+    this.content, {
+    super.key,
+    this.style,
+    this.showReply = true,
+  });
   final String content;
   final TextStyle? style;
+  final bool showReply;
   @override
   Widget build(BuildContext context) {
     final data = ConversationContent.parse(content);
@@ -285,7 +291,7 @@ class ConversationBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (data.reply != null)
+        if (showReply && data.reply != null)
           Container(
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 6),
