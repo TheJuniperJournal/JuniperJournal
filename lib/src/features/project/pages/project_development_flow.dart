@@ -8586,12 +8586,10 @@ class _IdeatingIdeasPreview extends StatelessWidget {
             title: data.ideas[i].title.text.trim().isEmpty
                 ? 'Idea ${i + 1}'
                 : data.ideas[i].title.text.trim(),
-            color: _ideaColor(i),
             children: [
               Text(
                 'Idea Score: ${_formatIdeaScore(data.scores[data.ideas[i].id])}',
                 style: TextStyle(
-                  color: _ideaColor(i),
                   fontSize: AppTypography.bodySize,
                   fontWeight: FontWeight.w500,
                 ),
@@ -8786,15 +8784,10 @@ class _ReadOnlyDecisionMatrix extends StatelessWidget {
 }
 
 class _PreviewPanel extends StatelessWidget {
-  const _PreviewPanel({
-    required this.title,
-    required this.children,
-    this.color = _devGreen,
-  });
+  const _PreviewPanel({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -8804,7 +8797,7 @@ class _PreviewPanel extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: color.withValues(alpha: .45)),
+        border: Border.all(color: _devGreen.withValues(alpha: .45)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -8814,7 +8807,7 @@ class _PreviewPanel extends StatelessWidget {
             title,
             style: TextStyle(
               fontFamily: AppTypography.headingFamily,
-              color: color,
+              color: _devGreen,
               fontSize: AppTypography.sectionTitleSize,
               fontWeight: FontWeight.w600,
             ),
