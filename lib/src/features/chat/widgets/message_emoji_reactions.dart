@@ -2,7 +2,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../../backend/db/supabase_database.dart';
 
-const messageReactionEmojis = ['❤️', '👍', '😂', '🎉', '😮', '😢', '🙏', '🌱'];
+const messageReactionEmojis = [
+  '🌼',
+  '❤️',
+  '👍',
+  '😂',
+  '🎉',
+  '😮',
+  '😢',
+  '🙏',
+  '🌱',
+];
 
 class MessageEmojiReactions extends StatefulWidget {
   const MessageEmojiReactions({
@@ -11,7 +21,8 @@ class MessageEmojiReactions extends StatefulWidget {
     required this.builder,
   });
   final String targetId;
-  final Widget Function(BuildContext, VoidCallback, Widget) builder;
+  final Widget Function(BuildContext, VoidCallback, VoidCallback, Widget)
+  builder;
   @override
   State<MessageEmojiReactions> createState() => _MessageEmojiReactionsState();
 }
@@ -77,26 +88,10 @@ class _MessageEmojiReactionsState extends State<MessageEmojiReactions> {
       final client = SupabaseDatabase.instance.client;
       final user = client.auth.currentUser;
       if (user == null) throw StateError('Sign in to react.');
-      if (_selected.contains(emoji)) {
-        await client
-            .from('message_emoji_reactions')
-            .delete()
-            .eq('target_id', widget.targetId)
-            .eq('user_id', user.id)
-            .eq('emoji', emoji);
-      } else {
-        await client
-            .from('message_emoji_reactions')
-            .upsert(
-              {
-                'target_id': widget.targetId,
-                'user_id': user.id,
-                'emoji': emoji,
-              },
-              onConflict: 'target_id,user_id,emoji',
-              ignoreDuplicates: true,
-            );
-      }
+      await client.rpc(
+        'toggle_message_reaction',
+        params: {'p_target': widget.targetId, 'p_emoji': emoji},
+      );
       await _load();
     } catch (_) {
       if (mounted)
@@ -125,7 +120,7 @@ class _MessageEmojiReactionsState extends State<MessageEmojiReactions> {
           PopupMenuItem(
             value: emoji,
             child: Text(
-              '$emoji${_selected.contains(emoji) ? '  ✓' : ''}',
+              '${emoji == '🌼' ? '🌼 Like' : emoji}${_selected.contains(emoji) ? '  ✓' : ''}',
               style: const TextStyle(fontSize: 22),
             ),
           ),
@@ -138,6 +133,7 @@ class _MessageEmojiReactionsState extends State<MessageEmojiReactions> {
   Widget build(BuildContext context) => widget.builder(
     context,
     _open,
+    () => _toggle('🌼'),
     ConstrainedBox(
       constraints: BoxConstraints(
         maxWidth: MediaQuery.sizeOf(context).width * .72,

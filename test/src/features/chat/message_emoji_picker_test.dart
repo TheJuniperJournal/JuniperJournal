@@ -15,12 +15,13 @@ void main() {
             body: Center(
               child: MessageEmojiReactions(
                 targetId: 'fixture',
-                builder: (context, open, counts) => MessageGestureSurface(
-                  onReply: () => replies++,
-                  onLike: () => likes++,
-                  onReactions: open,
-                  child: const Text('Message'),
-                ),
+                builder: (context, open, toggleLike, counts) =>
+                    MessageGestureSurface(
+                      onReply: () => replies++,
+                      onLike: () => likes++,
+                      onReactions: open,
+                      child: const Text('Message'),
+                    ),
               ),
             ),
           ),
@@ -33,7 +34,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       for (final emoji in messageReactionEmojis) {
-        expect(find.text(emoji), findsOneWidget);
+        expect(find.text(emoji == '🌼' ? '🌼 Like' : emoji), findsOneWidget);
       }
       expect(likes, 0);
       expect(replies, 0);
