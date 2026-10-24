@@ -81,4 +81,27 @@ void main() {
     expect(find.text('Text 2'), findsOneWidget);
     expect(find.textContaining('Original'), findsNothing);
   });
+  testWidgets('desktop reply thread stays compact and on the parent side', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: InlineMessageThread(
+            parent: Text('Parent'),
+            replies: [
+              Align(alignment: Alignment.centerRight, child: Text('Reply')),
+            ],
+          ),
+        ),
+      ),
+    );
+    final parent = tester.getRect(find.text('Parent'));
+    final reply = tester.getRect(find.text('Reply'));
+    expect(reply.right - parent.left, lessThanOrEqualTo(560));
+    expect(reply.right, lessThan(700));
+    expect(tester.takeException(), isNull);
+  });
 }

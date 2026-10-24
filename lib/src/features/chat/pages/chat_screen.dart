@@ -169,124 +169,131 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<Message>>(
-              stream: _messages,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting &&
-                    !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<List<Message>>(
+                  stream: _messages,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        !snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                final messages = snapshot.data ?? [];
+                    final messages = snapshot.data ?? [];
 
-                if (messages.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48,
-                          color: Colors.grey.shade300,
+                    if (messages.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 48,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No messages yet',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.textSecondary,
+                                fontSize: AppTypography.helperSize,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Say hello!',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.textSecondary,
+                                fontSize: AppTypography.helperSize,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'No messages yet',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textSecondary,
-                            fontSize: AppTypography.helperSize,
-                          ),
+                      );
+                    }
+
+                    for (final msg in messages) {
+                      _inputController.remember(
+                        msg.senderId,
+                        widget.isGroup || msg.senderId == _currentUserId
+                            ? msg.resolvedSenderName
+                            : widget.otherUserName,
+                        msg.senderUsername,
+                      );
+                    }
+                    _maybeScrollToBottom();
+
+                    final threads = groupMessageThreads(messages);
+                    Widget bubble(
+                      Message msg, {
+                      required Message threadParent,
+                      bool inlineReply = false,
+                    }) {
+                      final isSent = msg.senderId == _currentUserId;
+                      return _MessageBubble(
+                        key: ValueKey('bubble-${msg.id}'),
+                        message: msg,
+                        isSent: isSent,
+                        showSenderName: !isSent,
+                        senderFirstName: widget.isGroup
+                            ? msg.resolvedSenderName.split(' ').first
+                            : widget.otherUserName.split(' ').first,
+                        inlineReply: inlineReply,
+                        onReply: () => _inputController.replyTo(
+                          threadParent.id,
+                          widget.isGroup ||
+                                  threadParent.senderId == _currentUserId
+                              ? threadParent.resolvedSenderName
+                              : widget.otherUserName,
+                          threadParent.content,
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Say hello!',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textSecondary,
-                            fontSize: AppTypography.helperSize,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                      );
+                    }
 
-                for (final msg in messages) {
-                  _inputController.remember(
-                    msg.senderId,
-                    widget.isGroup || msg.senderId == _currentUserId
-                        ? msg.resolvedSenderName
-                        : widget.otherUserName,
-                    msg.senderUsername,
-                  );
-                }
-                _maybeScrollToBottom();
-
-                final threads = groupMessageThreads(messages);
-                Widget bubble(
-                  Message msg, {
-                  required Message threadParent,
-                  bool inlineReply = false,
-                }) {
-                  final isSent = msg.senderId == _currentUserId;
-                  return _MessageBubble(
-                    key: ValueKey('bubble-${msg.id}'),
-                    message: msg,
-                    isSent: isSent,
-                    showSenderName: !isSent,
-                    senderFirstName: widget.isGroup
-                        ? msg.resolvedSenderName.split(' ').first
-                        : widget.otherUserName.split(' ').first,
-                    inlineReply: inlineReply,
-                    onReply: () => _inputController.replyTo(
-                      threadParent.id,
-                      widget.isGroup || threadParent.senderId == _currentUserId
-                          ? threadParent.resolvedSenderName
-                          : widget.otherUserName,
-                      threadParent.content,
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  itemCount: threads.length,
-                  itemBuilder: (_, index) {
-                    final thread = threads[index];
-                    return InlineMessageThread(
-                      key: ValueKey('thread-${thread.parent.id}'),
-                      parent: bubble(
-                        thread.parent,
-                        threadParent: thread.parent,
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
                       ),
-                      replies: [
-                        for (final reply in thread.replies)
-                          bubble(
-                            reply,
+                      itemCount: threads.length,
+                      itemBuilder: (_, index) {
+                        final thread = threads[index];
+                        return InlineMessageThread(
+                          key: ValueKey('thread-${thread.parent.id}'),
+                          isSent: thread.parent.senderId == _currentUserId,
+                          parent: bubble(
+                            thread.parent,
                             threadParent: thread.parent,
-                            inlineReply: true,
                           ),
-                      ],
+                          replies: [
+                            for (final reply in thread.replies)
+                              bubble(
+                                reply,
+                                threadParent: thread.parent,
+                                inlineReply: true,
+                              ),
+                          ],
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+              _InputBar(
+                controller: _inputController,
+                sending: _sending,
+                onSend: _sendMessage,
+              ),
+            ],
           ),
-          _InputBar(
-            controller: _inputController,
-            sending: _sending,
-            onSend: _sendMessage,
-          ),
-        ],
+        ),
       ),
     );
   }

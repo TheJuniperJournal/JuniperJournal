@@ -46,7 +46,9 @@ class InlineMessageThread extends StatefulWidget {
     super.key,
     required this.parent,
     required this.replies,
+    this.isSent = false,
   });
+  final bool isSent;
   final Widget parent;
   final List<Widget> replies;
   @override
@@ -56,35 +58,41 @@ class InlineMessageThread extends StatefulWidget {
 class _InlineMessageThreadState extends State<InlineMessageThread> {
   bool _expanded = true;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      widget.parent,
-      if (widget.replies.isNotEmpty) ...[
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: () => setState(() => _expanded = !_expanded),
-            child: Text(
-              '${widget.replies.length} ${widget.replies.length == 1 ? 'reply' : 'replies'}${_expanded ? ' · Hide' : ' · View'}',
-            ),
-          ),
-        ),
-        if (_expanded)
-          Container(
-            margin: const EdgeInsets.only(left: 12, bottom: 16),
-            padding: const EdgeInsets.only(left: 20, bottom: 8),
-            decoration: const BoxDecoration(
-              border: Border(
-                left: BorderSide(color: AppColors.borderLight, width: 3),
+  Widget build(BuildContext context) => Align(
+    alignment: widget.isSent ? Alignment.centerRight : Alignment.centerLeft,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          widget.parent,
+          if (widget.replies.isNotEmpty) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => setState(() => _expanded = !_expanded),
+                child: Text(
+                  '${widget.replies.length} ${widget.replies.length == 1 ? 'reply' : 'replies'}${_expanded ? ' · Hide' : ' · View'}',
+                ),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: widget.replies,
-            ),
-          ),
-      ],
-    ],
+            if (_expanded)
+              Container(
+                margin: const EdgeInsets.only(left: 12, bottom: 16),
+                padding: const EdgeInsets.only(left: 20, bottom: 8),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: AppColors.borderLight, width: 3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: widget.replies,
+                ),
+              ),
+          ],
+        ],
+      ),
+    ),
   );
 }
