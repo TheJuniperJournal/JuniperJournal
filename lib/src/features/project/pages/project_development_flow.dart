@@ -8658,127 +8658,142 @@ class _ReadOnlyDecisionMatrix extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const columnWidth = 72.0;
-    return PageScrollWithFooter(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE5E5E5)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 154,
-                    height: 58,
-                    child: _MatrixHeader('Criteria'),
-                  ),
-                  for (var i = 0; i < ideas.length; i++)
-                    Container(
-                      width: columnWidth,
-                      height: 58,
-                      alignment: Alignment.center,
-                      color: _ideaColor(i).withValues(alpha: .14),
-                      child: _MatrixHeader(
-                        ideas[i].title.text.trim().isEmpty
-                            ? 'Idea ${i + 1}'
-                            : ideas[i].title.text.trim(),
-                        color: _ideaColor(i),
-                      ),
-                    ),
-                ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const criteriaWidth = 220.0;
+        final columnWidth = ideas.isEmpty
+            ? 160.0
+            : ((constraints.maxWidth - criteriaWidth - 2) / ideas.length).clamp(
+                160.0,
+                double.infinity,
+              );
+        return PageScrollWithFooter(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+                borderRadius: BorderRadius.circular(12),
               ),
-              for (final criterion in criteria.where(
-                (item) => item.name.text.trim().isNotEmpty,
-              ))
-                Row(
-                  children: [
-                    Container(
-                      width: 154,
-                      height: 62,
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: Color(0xFFE5E5E5)),
-                        ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: criteriaWidth,
+                        height: 72,
+                        child: _MatrixHeader('Criteria'),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            criterion.name.text,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
+                      for (var i = 0; i < ideas.length; i++)
+                        Container(
+                          width: columnWidth,
+                          height: 72,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          color: _ideaColor(i).withValues(alpha: .14),
+                          child: _MatrixHeader(
+                            ideas[i].title.text.trim().isEmpty
+                                ? 'Idea ${i + 1}'
+                                : ideas[i].title.text.trim(),
+                            color: _ideaColor(i),
+                          ),
+                        ),
+                    ],
+                  ),
+                  for (final criterion in criteria.where(
+                    (item) => item.name.text.trim().isNotEmpty,
+                  ))
+                    Row(
+                      children: [
+                        Container(
+                          width: criteriaWidth,
+                          height: 76,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Color(0xFFE5E5E5)),
                             ),
                           ),
-                          Text(
-                            'Weight: ${criterion.weight.text}%',
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: AppColors.textSecondary,
-                              fontSize: AppTypography.helperSize,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                criterion.name.text,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              Text(
+                                'Weight: ${criterion.weight.text}%',
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  color: AppColors.textSecondary,
+                                  fontSize: AppTypography.helperSize,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        for (var i = 0; i < ideas.length; i++)
+                          Container(
+                            width: columnWidth,
+                            height: 76,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _ideaColor(i).withValues(alpha: .05),
+                              border: const Border(
+                                top: BorderSide(color: Color(0xFFE5E5E5)),
+                                left: BorderSide(color: Color(0xFFE5E5E5)),
+                              ),
+                            ),
+                            child: Text(
+                              criterion.ratingFor(ideas[i].id)?.toString() ??
+                                  '--',
+                              style: TextStyle(
+                                color: _ideaColor(i),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
-                    for (var i = 0; i < ideas.length; i++)
-                      Container(
-                        width: columnWidth,
-                        height: 62,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _ideaColor(i).withValues(alpha: .05),
-                          border: const Border(
-                            top: BorderSide(color: Color(0xFFE5E5E5)),
-                            left: BorderSide(color: Color(0xFFE5E5E5)),
-                          ),
-                        ),
-                        child: Text(
-                          criterion.ratingFor(ideas[i].id)?.toString() ?? '--',
-                          style: TextStyle(
-                            color: _ideaColor(i),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: criteriaWidth,
+                        height: 56,
+                        child: _MatrixHeader('Total Score'),
                       ),
-                  ],
-                ),
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 154,
-                    height: 44,
-                    child: _MatrixHeader('Total Score'),
+                      for (var i = 0; i < ideas.length; i++)
+                        SizedBox(
+                          width: columnWidth,
+                          height: 56,
+                          child: Center(
+                            child: Text(
+                              _formatIdeaScore(scores[ideas[i].id]),
+                              style: TextStyle(
+                                color: _ideaColor(i),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  for (var i = 0; i < ideas.length; i++)
-                    SizedBox(
-                      width: columnWidth,
-                      height: 44,
-                      child: Center(
-                        child: Text(
-                          _formatIdeaScore(scores[ideas[i].id]),
-                          style: TextStyle(
-                            color: _ideaColor(i),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
