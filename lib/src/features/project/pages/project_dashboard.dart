@@ -415,7 +415,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                             child: Column(
                               children: [
                                 SizedBox(
-                                  height: 1400 + _overviewContentOffset,
+                                  height: 987 + _overviewContentOffset,
                                   child: Stack(
                                     children: [
                                       _buildHeader(context),
@@ -435,16 +435,11 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                                         ),
                                         child: _buildProjectBasics(),
                                       ),
-                                      Transform.translate(
-                                        offset: Offset(
-                                          0,
-                                          _overviewContentOffset,
-                                        ),
-                                        child: _buildImpactSummary(),
-                                      ),
                                     ],
                                   ),
                                 ),
+                                _buildImpactSummary(),
+                                const SizedBox(height: 40),
                                 _buildLearningObjectives(),
                                 const SizedBox(height: 16),
                                 if (_participant) const SizedBox(height: 16),
@@ -1145,172 +1140,95 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
     );
   }
 
-  Widget _buildImpactSummary() {
-    return Stack(
+  Widget _buildImpactSummary() => Container(
+    key: const ValueKey('project-impact-preview'),
+    width: _sectionWidth,
+    padding: const EdgeInsets.all(28),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFE0E0E0)),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Positioned(
-          left: _sectionInset,
-          top: 987,
-          width: _sectionWidth,
-          height: 380,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE0E0E0)),
-              borderRadius: BorderRadius.circular(5),
-            ),
+        const _SectionTitle('Impact Summary'),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE2E2E2)),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ),
-        Positioned(
-          left: _sectionInset + 28,
-          top: 999,
-          child: _SectionTitle('Impact Summary'),
-        ),
-        Positioned(
-          left: _sectionInset + 28,
-          top: 1029,
-          width: _sectionWidth - 56,
-          height: 115,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE2E2E2)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(18, 12, 18, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Ecological Impact', style: AppTypography.helper),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    'Ecological Impact',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.textSecondary,
-                      fontSize: AppTypography.helperSize,
-                      height: 1.4,
-                      fontWeight: FontWeight.w400,
+                    _impactTotal.toStringAsFixed(2),
+                    style: AppTypography.pageTitle.copyWith(
+                      fontSize: AppTypography.displaySize,
+                      color: _green,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _impactTotal.toStringAsFixed(2),
-                        style: TextStyle(
-                          fontFamily: AppTypography.headingFamily,
-                          color: _green,
-                          fontSize: AppTypography.displaySize,
-                          height: 1,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          'EcoPoints',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            height: 1,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Spacer(),
-                  Text(
-                    'From ${_impacts.length} recorded impact entries',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.helperSize,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  const Text('EcoPoints', style: AppTypography.body),
                 ],
               ),
-            ),
-          ),
-        ),
-        Positioned(
-          left: _sectionInset + 16,
-          top: 1160,
-          child: Text(
-            'Impact Category Breakdown',
-            style: TextStyle(
-              fontFamily: AppTypography.bodyFamily,
-              color: AppColors.textSecondary,
-              fontSize: AppTypography.helperSize,
-              height: 1.4,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-        Positioned(
-          left: _sectionInset + 16,
-          top: 1194,
-          width: _sectionWidth - 32,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: _ImpactLabel(
-                  label: 'Energy',
-                  points: _categoryPoints('Energy'),
-                  measurements: _impactTotals.measurementsFor('Energy'),
-                  icon: _EnergyImpactIcon(),
-                ),
-              ),
-              Expanded(
-                child: _ImpactLabel(
-                  label: 'Waste',
-                  points: _categoryPoints('Waste'),
-                  measurements: _impactTotals.measurementsFor('Waste'),
-                  icon: _WasteImpactIcon(),
-                ),
-              ),
-              Expanded(
-                child: _ImpactLabel(
-                  label: 'Water',
-                  points: _categoryPoints('Water'),
-                  measurements: _impactTotals.measurementsFor('Water'),
-                  icon: _WaterImpactIcon(),
-                ),
-              ),
-              Expanded(
-                child: _ImpactLabel(
-                  label: 'Biological Growth',
-                  points: _categoryPoints('Biological Growth'),
-                  measurements: _impactTotals.measurementsFor(
-                    'Biological Growth',
-                  ),
-                  icon: _BioImpactIcon(),
-                ),
-              ),
-              Expanded(
-                child: _ImpactLabel(
-                  label: 'Education',
-                  points: _categoryPoints('Education'),
-                  measurements: _impactTotals.measurementsFor('Education'),
-                  icon: _EducationImpactIcon(),
-                ),
+              const SizedBox(height: 24),
+              Text(
+                'From ${_impacts.length} recorded impact entries',
+                style: AppTypography.helper,
               ),
             ],
           ),
         ),
+        const SizedBox(height: 32),
+        const Text('Impact Category Breakdown', style: AppTypography.helper),
+        const SizedBox(height: 28),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 560 ? 5 : 2;
+            final width = (constraints.maxWidth - (columns - 1) * 20) / columns;
+            return Wrap(
+              spacing: 20,
+              runSpacing: 28,
+              children: [
+                for (final item in <(String, Widget)>[
+                  ('Energy', _EnergyImpactIcon()),
+                  ('Waste', _WasteImpactIcon()),
+                  ('Water', _WaterImpactIcon()),
+                  ('Biological Growth', _BioImpactIcon()),
+                  ('Education', _EducationImpactIcon()),
+                ])
+                  SizedBox(
+                    width: width,
+                    child: _ImpactLabel(
+                      label: item.$1,
+                      points: _categoryPoints(item.$1),
+                      measurements: _impactTotals.measurementsFor(item.$1),
+                      icon: item.$2,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
       ],
-    );
-  }
+    ),
+  );
 
   Widget _buildLearningObjectives() {
     final objectives = _learningObjectives;
     return Container(
       width: _sectionWidth,
-      padding: const EdgeInsets.fromLTRB(22, 12, 22, 20),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE0E0E0)),

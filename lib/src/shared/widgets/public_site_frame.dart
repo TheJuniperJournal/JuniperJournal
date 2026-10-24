@@ -1,3 +1,4 @@
+import '../../features/site/pages/site_information_page.dart';
 import 'page_refresh_state.dart';
 import 'desktop_page_scroll.dart';
 import 'package:flutter/material.dart';
@@ -104,23 +105,42 @@ class PublicSiteFrame extends StatelessWidget {
                                       child: const Text('Support'),
                                     ),
                                   ] else
-                                    PopupMenuButton<String>(
-                                      tooltip: 'Site navigation',
-                                      onSelected: navigate,
-                                      itemBuilder: (_) => const [
-                                        PopupMenuItem(
-                                          value: '/explore',
-                                          child: Text('Explore'),
-                                        ),
-                                        PopupMenuItem(
-                                          value: '/about',
-                                          child: Text('About'),
-                                        ),
-                                        PopupMenuItem(
-                                          value: '/support',
-                                          child: Text('Support'),
-                                        ),
-                                      ],
+                                    Semantics(
+                                      label: 'Site navigation',
+                                      child: IconButton(
+                                        icon: const Icon(Icons.menu),
+                                        onPressed: () async {
+                                          final overlay = navigatorKey
+                                              .currentState
+                                              ?.overlay;
+                                          if (overlay == null) return;
+                                          final target = await showMenu<String>(
+                                            context: overlay.context,
+                                            position:
+                                                const RelativeRect.fromLTRB(
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                ),
+                                            items: const [
+                                              PopupMenuItem(
+                                                value: '/explore',
+                                                child: Text('Explore'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: '/about',
+                                                child: Text('About'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: '/support',
+                                                child: Text('Support'),
+                                              ),
+                                            ],
+                                          );
+                                          if (target != null) navigate(target);
+                                        },
+                                      ),
                                     ),
                                   const SizedBox(width: 8),
                                   FilledButton(
@@ -148,7 +168,29 @@ class PublicSiteFrame extends StatelessWidget {
                       constraints: BoxConstraints(
                         maxWidth: hideHeader ? double.infinity : 1160,
                       ),
-                      child: child,
+                      child: SiteFooterScope(child: child),
+                    ),
+                  ),
+                ),
+              ),
+              Material(
+                color: Colors.white,
+                child: SafeArea(
+                  top: false,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1160),
+                      child: SiteFooter(
+                        key: const ValueKey('global-site-footer'),
+                        compact: true,
+                        onNavigate: (page) {
+                          navigatorKey.currentState?.push(
+                            MaterialPageRoute(
+                              builder: (_) => SiteInformationPage(page: page),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

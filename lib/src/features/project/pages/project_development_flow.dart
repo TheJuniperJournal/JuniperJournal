@@ -8705,8 +8705,8 @@ class _PreviewPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: AppMetrics.fieldGap),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      margin: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: color.withValues(alpha: .45)),
@@ -8724,7 +8724,7 @@ class _PreviewPanel extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           ...children,
         ],
       ),

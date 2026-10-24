@@ -410,43 +410,65 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
   }
 }
 
-class SiteFooter extends StatelessWidget {
-  const SiteFooter({super.key});
+/// Pages retain a footer when rendered independently; the app frame supplies
+/// one shared footer when a navigator is hosted inside it.
+class SiteFooterScope extends InheritedWidget {
+  const SiteFooterScope({super.key, required super.child});
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(top: 36),
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-    decoration: const BoxDecoration(
-      border: Border(top: BorderSide(color: Color(0xFFE8EDE8))),
-    ),
-    child: Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 24,
-      runSpacing: 12,
-      children: [
-        const Text(
-          'Juniper Journal · Learn. Create. Grow.',
-          style: TextStyle(color: Color(0xFF667269)),
-        ),
-        Wrap(
-          children: [
-            for (final entry in sitePageTitles.entries)
-              TextButton(
-                onPressed: () {
-                  if (PageRefreshState.currentDestination?['kind'] == entry.key)
-                    return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SiteInformationPage(page: entry.key),
-                    ),
-                  );
-                },
-                child: Text(entry.value),
-              ),
-          ],
-        ),
-      ],
-    ),
-  );
+  bool updateShouldNotify(SiteFooterScope oldWidget) => false;
+}
+
+class SiteFooter extends StatelessWidget {
+  const SiteFooter({super.key, this.onNavigate, this.compact = false});
+  final ValueChanged<String>? onNavigate;
+  final bool compact;
+  @override
+  Widget build(BuildContext context) {
+    if (onNavigate == null &&
+        context.dependOnInheritedWidgetOfExactType<SiteFooterScope>() != null)
+      return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(top: compact ? 0 : 36),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: compact ? 8 : 24),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE8EDE8))),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 24,
+        runSpacing: 12,
+        children: [
+          if (!compact || MediaQuery.sizeOf(context).width >= 700)
+            const Text(
+              'Juniper Journal · Learn. Create. Grow.',
+              style: TextStyle(color: Color(0xFF667269)),
+            ),
+          Wrap(
+            children: [
+              for (final entry in sitePageTitles.entries)
+                TextButton(
+                  onPressed: () {
+                    if (PageRefreshState.currentDestination?['kind'] ==
+                        entry.key)
+                      return;
+                    if (onNavigate != null) {
+                      onNavigate!(entry.key);
+                      return;
+                    }
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SiteInformationPage(page: entry.key),
+                      ),
+                    );
+                  },
+                  child: Text(entry.value),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

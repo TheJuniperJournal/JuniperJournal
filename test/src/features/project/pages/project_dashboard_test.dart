@@ -155,6 +155,47 @@ class _SettingsAccessRepo extends _CountingProjectsRepo {
 }
 
 void main() {
+  for (final wide in [false, true]) {
+    testWidgets(
+      'impact preview keeps breathing room and wraps categories at ${wide ? "desktop" : "mobile"} width',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        tester.view.physicalSize = wide
+            ? const Size(1440, 1000)
+            : const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ProjectDashboard(
+              projectId: 'p',
+              projectName: 'QA preview',
+              tags: const [],
+              isOwner: false,
+              projectsRepo: _RefreshProjectsRepo(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final impact = tester.getRect(
+          find.byKey(const ValueKey('project-impact-preview')),
+        );
+        final title = tester.getRect(find.text('Impact Summary'));
+        final objectives = tester.getRect(find.text('Learning Objectives'));
+        expect(title.left - impact.left, greaterThanOrEqualTo(24));
+        expect(objectives.top - impact.bottom, greaterThanOrEqualTo(32));
+        final energy = tester.getTopLeft(find.text('Energy'));
+        final growth = tester.getTopLeft(find.text('Biological Growth'));
+        if (wide) {
+          expect(growth.dy, closeTo(energy.dy, .1));
+        } else {
+          expect(growth.dy, greaterThan(energy.dy));
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets(
     'hosted desktop dashboard keeps all tabs aligned without a second scrollbar gutter',
     (tester) async {
