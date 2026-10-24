@@ -32,6 +32,7 @@ class _SketchSelection {
 }
 
 class SketchBlockData {
+  final Size? canvasSize;
   final String title;
   final String caption;
   final String inquiryLens;
@@ -44,6 +45,7 @@ class SketchBlockData {
   final List<SketchImagePlaceholder> imagePlaceholders;
 
   const SketchBlockData({
+    this.canvasSize,
     this.title = '',
     this.caption = '',
     this.inquiryLens = 'None',
@@ -63,6 +65,8 @@ class SketchBlockData {
   }
 
   Map<String, dynamic> toJson() => {
+    if (canvasSize != null) 'canvas_width': canvasSize!.width,
+    if (canvasSize != null) 'canvas_height': canvasSize!.height,
     'title': title,
     'caption': caption,
     'inquiry_lens': inquiryLens,
@@ -80,6 +84,7 @@ class SketchBlockData {
 
   factory SketchBlockData.fromJson(Map<String, dynamic> json) {
     return SketchBlockData(
+      canvasSize: _decodeCanvasSize(json),
       title: json['title']?.toString() ?? '',
       caption: json['caption']?.toString() ?? '',
       inquiryLens: json['inquiry_lens']?.toString() ?? 'None',
@@ -97,6 +102,62 @@ class SketchBlockData {
         SketchImagePlaceholder.fromJson,
       ),
     );
+  }
+
+  static Size? _decodeCanvasSize(Map<String, dynamic> json) {
+    final width = (json['canvas_width'] as num?)?.toDouble();
+    final height = (json['canvas_height'] as num?)?.toDouble();
+    if (width == null ||
+        height == null ||
+        !width.isFinite ||
+        !height.isFinite ||
+        width <= 0 ||
+        height <= 0)
+      return null;
+    return Size(width, height);
+  }
+
+  // Older sketches stored pixel positions without their canvas dimensions.
+  // Include their content bounds so annotations and drawings remain visible.
+  Size get effectiveCanvasSize {
+    if (canvasSize != null) return canvasSize!;
+    var width = 345.0;
+    var height = 206.0;
+    void include(Offset point) {
+      width = math.max(width, point.dx + 16);
+      height = math.max(height, point.dy + 16);
+    }
+
+    for (final stroke in strokes) {
+      for (final point in stroke.points) {
+        include(point);
+      }
+    }
+    for (final shape in shapes) {
+      include(shape.rect.bottomRight);
+    }
+    for (final arrow in arrows) {
+      include(arrow.start);
+      include(arrow.end);
+    }
+    for (final image in imagePlaceholders) {
+      include(image.rect.bottomRight);
+    }
+    for (final item in textItems) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: item.text,
+          style: TextStyle(
+            fontSize: item.fontSize,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      include(item.position + Offset(painter.width, painter.height));
+      painter.dispose();
+    }
+    return Size(width, height);
   }
 
   static AssessmentBlockData _decodeAssessment(Map<String, dynamic> json) {
@@ -381,6 +442,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   static const _screenWidth = 393.0;
   static const _canvasHeight = 254.0;
   static const _toolbarHeight = 48.0;
+  Size? _canvasSize;
   late final TextEditingController _titleController;
   late final TextEditingController _captionController;
   SketchTool _activeTool = SketchTool.pen;
@@ -420,6 +482,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
   void initState() {
     super.initState();
     final data = widget.initialData;
+    _canvasSize = data?.effectiveCanvasSize;
     _titleController = TextEditingController(text: data?.title ?? '');
     _captionController = TextEditingController(text: data?.caption ?? '');
     _inquiryLensData = data == null
@@ -455,6 +518,7 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
     }
     Navigator.of(context).pop(
       SketchBlockData(
+        canvasSize: _canvasSize,
         title: _titleController.text.trim(),
         caption: _captionController.text.trim(),
         inquiryLens: _inquiryLensData.selectedLens,
@@ -1179,6 +1243,8 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(25, 0, 23, 0),
                             child: _CanvasBox(
+                              canvasSize: _canvasSize,
+                              onCanvasSize: (size) => _canvasSize = size,
                               activeTool: _activeTool,
                               selectedColor: _selectedColor,
                               strokes: _strokes,
@@ -1425,6 +1491,8 @@ class _TextFieldBox extends StatelessWidget {
 }
 
 class _CanvasBox extends StatelessWidget {
+  final Size? canvasSize;
+  final ValueChanged<Size> onCanvasSize;
   final SketchTool activeTool;
   final Color selectedColor;
   final List<SketchStroke> strokes;
@@ -1451,6 +1519,8 @@ class _CanvasBox extends StatelessWidget {
   final ValueChanged<SketchTool> onToolSelected;
 
   const _CanvasBox({
+    required this.canvasSize,
+    required this.onCanvasSize,
     required this.activeTool,
     required this.selectedColor,
     required this.strokes,
@@ -1478,11 +1548,14 @@ class _CanvasBox extends StatelessWidget {
       height: _SketchBlockEditorScreenState._canvasHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final drawingSize = Size(
-            constraints.maxWidth,
-            _SketchBlockEditorScreenState._canvasHeight -
-                _SketchBlockEditorScreenState._toolbarHeight,
-          );
+          final drawingSize =
+              canvasSize ??
+              Size(
+                constraints.maxWidth,
+                _SketchBlockEditorScreenState._canvasHeight -
+                    _SketchBlockEditorScreenState._toolbarHeight,
+              );
+          onCanvasSize(drawingSize);
           final canPan =
               activeTool == SketchTool.pen ||
               activeTool == SketchTool.erase ||
@@ -1499,74 +1572,94 @@ class _CanvasBox extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: constraints.maxWidth,
-                    height: drawingSize.height,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanStart: canPan
-                                ? (details) => onPanStart(details, drawingSize)
-                                : null,
-                            onPanUpdate: canPan
-                                ? (details) => onPanUpdate(details, drawingSize)
-                                : null,
-                            onPanEnd: canPan
-                                ? (details) => onPanEnd(details, drawingSize)
-                                : null,
-                            onTapUp: (details) => onTapUp(details, drawingSize),
-                            child: CustomPaint(
-                              painter: _SketchPainter(
-                                strokes: strokes,
-                                textItems: textItems,
-                                shapes: shapes,
-                                arrows: arrows,
-                                imagePlaceholders: imagePlaceholders,
-                                pendingArrowStart: pendingArrowStart,
-                                draftArrowEnd: draftArrowEnd,
-                                selection: selection,
+                    height:
+                        _SketchBlockEditorScreenState._canvasHeight -
+                        _SketchBlockEditorScreenState._toolbarHeight,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: SizedBox(
+                        width: drawingSize.width,
+                        height: drawingSize.height,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onPanStart: canPan
+                                    ? (details) =>
+                                          onPanStart(details, drawingSize)
+                                    : null,
+                                onPanUpdate: canPan
+                                    ? (details) =>
+                                          onPanUpdate(details, drawingSize)
+                                    : null,
+                                onPanEnd: canPan
+                                    ? (details) =>
+                                          onPanEnd(details, drawingSize)
+                                    : null,
+                                onTapUp: (details) =>
+                                    onTapUp(details, drawingSize),
+                                child: CustomPaint(
+                                  painter: _SketchPainter(
+                                    strokes: strokes,
+                                    textItems: textItems,
+                                    shapes: shapes,
+                                    arrows: arrows,
+                                    imagePlaceholders: imagePlaceholders,
+                                    pendingArrowStart: pendingArrowStart,
+                                    draftArrowEnd: draftArrowEnd,
+                                    selection: selection,
+                                  ),
+                                  size: drawingSize,
+                                ),
                               ),
-                              size: drawingSize,
                             ),
-                          ),
-                        ),
-                        for (final image in imagePlaceholders)
-                          if (image.publicUrl.isNotEmpty)
-                            Positioned.fromRect(
-                              rect: image.rect,
-                              child: IgnorePointer(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: ProtectedImage.network(
-                                    image.publicUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const SizedBox.shrink(),
+                            for (final image in imagePlaceholders)
+                              if (image.publicUrl.isNotEmpty)
+                                Positioned.fromRect(
+                                  rect: image.rect,
+                                  child: IgnorePointer(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: ProtectedImage.network(
+                                        image.publicUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            if (_selectionBounds(selection) case final bounds?)
+                              Positioned(
+                                left: _deleteButtonPosition(
+                                  bounds,
+                                  drawingSize,
+                                ).dx,
+                                top: _deleteButtonPosition(
+                                  bounds,
+                                  drawingSize,
+                                ).dy,
+                                child: _DeleteSelectionButton(
+                                  onTap: onDeleteSelected,
+                                ),
+                              ),
+                            ..._resizeHandles(drawingSize),
+                            if (uploadingImage)
+                              const Positioned.fill(
+                                child: ColoredBox(
+                                  color: Color(0x22FFFFFF),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color:
+                                          _SketchBlockEditorScreenState._green,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        if (_selectionBounds(selection) case final bounds?)
-                          Positioned(
-                            left: _deleteButtonPosition(bounds, drawingSize).dx,
-                            top: _deleteButtonPosition(bounds, drawingSize).dy,
-                            child: _DeleteSelectionButton(
-                              onTap: onDeleteSelected,
-                            ),
-                          ),
-                        ..._resizeHandles(drawingSize),
-                        if (uploadingImage)
-                          const Positioned.fill(
-                            child: ColoredBox(
-                              color: Color(0x22FFFFFF),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: _SketchBlockEditorScreenState._green,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const Divider(height: 1, color: Color(0xFFE6E6E6)),
@@ -1977,7 +2070,7 @@ class _SketchPainter extends CustomPainter {
         ),
         maxLines: 3,
         textDirection: TextDirection.ltr,
-      )..layout(maxWidth: size.width - item.position.dx - 8);
+      )..layout(maxWidth: math.max(1.0, size.width - item.position.dx - 8));
       painter.paint(canvas, item.position);
     }
     _drawSelection(canvas);
@@ -2224,14 +2317,14 @@ class SketchEvidencePreview extends StatelessWidget {
   final SketchBlockData data;
   @override
   Widget build(BuildContext context) => AspectRatio(
-    aspectRatio: 345 / 206,
+    aspectRatio: data.effectiveCanvasSize.aspectRatio,
     child: ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: FittedBox(
         fit: BoxFit.contain,
         child: SizedBox(
-          width: 345,
-          height: 206,
+          width: data.effectiveCanvasSize.width,
+          height: data.effectiveCanvasSize.height,
           child: Stack(
             children: [
               Positioned.fill(
