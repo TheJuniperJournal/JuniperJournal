@@ -225,6 +225,9 @@ class MyApp extends StatelessWidget {
                           initialLocation: _launchLocation,
                           navigatorKey: ecoRewardNavigatorKey,
                           initialPage: initialPage,
+                          appParentPage: const _SessionGate(
+                            restoreJournal: false,
+                          ),
                           parentPage:
                               restored ||
                                   destinationNeedsAppParent(

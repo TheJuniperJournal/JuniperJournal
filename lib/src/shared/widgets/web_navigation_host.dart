@@ -20,9 +20,14 @@ class WebNavigationHost extends StatefulWidget {
     required this.initialPage,
     required this.observers,
     this.parentPage,
+    this.appParentPage,
   });
   final String initialLocation;
   final Widget? parentPage;
+
+  /// Stable signed-in shell for later browser-history navigation, even when
+  /// this host originally bootstrapped at the login screen.
+  final Widget? appParentPage;
   final GlobalKey<NavigatorState> navigatorKey;
   final Widget initialPage;
   final List<NavigatorObserver> observers;
@@ -93,7 +98,8 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
     );
     nav.pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => widget.parentPage ?? widget.initialPage,
+        builder: (_) =>
+            widget.appParentPage ?? widget.parentPage ?? widget.initialPage,
       ),
       (_) => false,
     );
