@@ -234,6 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       Message msg, {
                       required Message threadParent,
                       bool inlineReply = false,
+                      bool threadOriginal = false,
                     }) {
                       final isSent = msg.senderId == _currentUserId;
                       return _MessageBubble(
@@ -245,6 +246,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ? msg.resolvedSenderName.split(' ').first
                             : widget.otherUserName.split(' ').first,
                         inlineReply: inlineReply,
+                        threadOriginal: threadOriginal,
                         onReply: () => _inputController.replyTo(
                           threadParent.id,
                           widget.isGroup ||
@@ -271,6 +273,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           parent: bubble(
                             thread.parent,
                             threadParent: thread.parent,
+                            threadOriginal: thread.replies.isNotEmpty,
                           ),
                           replies: [
                             for (final reply in thread.replies)
@@ -306,6 +309,7 @@ class _MessageBubble extends StatelessWidget {
   final String senderFirstName;
   final VoidCallback onReply;
   final bool inlineReply;
+  final bool threadOriginal;
 
   const _MessageBubble({
     super.key,
@@ -315,124 +319,155 @@ class _MessageBubble extends StatelessWidget {
     required this.senderFirstName,
     required this.onReply,
     this.inlineReply = false,
+    this.threadOriginal = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Column(
-        crossAxisAlignment: isSent
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          if (showSenderName && !isSent)
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 2),
-              child: Text(
-                senderFirstName,
-                style: const TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          Row(
-            mainAxisAlignment: isSent
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, available) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Column(
+            crossAxisAlignment: isSent
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
-              MessageEmojiReactions(
-                key: ValueKey('emojis-${message.id}'),
-                targetId: message.id,
-                builder: (context, openEmojis, emojiCounts) =>
-                    FlowerReactionButton(
-                      key: ValueKey(message.id),
-                      target: FlowerTarget.message,
-                      targetId: message.id,
-                      builder: (context, reaction, busy, toggle) => Column(
-                        crossAxisAlignment: isSent
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                        children: [
-                          MessageGestureSurface(
-                            onReply: onReply,
-                            onLike: toggle,
-                            onReactions: openEmojis,
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.of(context).size.width * 0.72,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSent
-                                    ? AppColors.primary
-                                    : AppColors.surfaceInput,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(18),
-                                  topRight: const Radius.circular(18),
-                                  bottomLeft: Radius.circular(isSent ? 18 : 4),
-                                  bottomRight: Radius.circular(isSent ? 4 : 18),
-                                ),
-                              ),
-                              child: ConversationBody(
-                                message.content,
-                                showReply: !inlineReply,
-                                style: TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.bodySize,
-                                  color: isSent ? Colors.white : Colors.black87,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if ((reaction?.count ?? 0) > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: 4,
-                                left: 8,
-                                right: 8,
-                              ),
-                              child: Semantics(
-                                label: '${reaction!.count} likes',
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.local_florist,
-                                      size: 14,
-                                      color: reaction.selected
-                                          ? AppColors.primary
-                                          : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${reaction.count}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textSecondary,
+              if (showSenderName && !isSent)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 2),
+                  child: Text(
+                    senderFirstName,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              Row(
+                mainAxisAlignment: isSent
+                    ? MainAxisAlignment.end
+                    : MainAxisAlignment.start,
+                children: [
+                  MessageEmojiReactions(
+                    key: ValueKey('emojis-${message.id}'),
+                    targetId: message.id,
+                    builder: (context, openEmojis, emojiCounts) =>
+                        FlowerReactionButton(
+                          key: ValueKey(message.id),
+                          target: FlowerTarget.message,
+                          targetId: message.id,
+                          builder: (context, reaction, busy, toggle) => Column(
+                            crossAxisAlignment: isSent
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            children: [
+                              MessageGestureSurface(
+                                onReply: onReply,
+                                onLike: toggle,
+                                onReactions: openEmojis,
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        (MediaQuery.of(context).size.width *
+                                                .72)
+                                            .clamp(
+                                              0.0,
+                                              available.maxWidth.clamp(
+                                                0.0,
+                                                500.0,
+                                              ),
+                                            ),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: threadOriginal
+                                        ? Colors.white
+                                        : isSent
+                                        ? AppColors.primary
+                                        : AppColors.surfaceInput,
+                                    border: threadOriginal
+                                        ? Border.all(
+                                            color: AppColors.borderLight,
+                                            width: 1.5,
+                                          )
+                                        : null,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(18),
+                                      topRight: const Radius.circular(18),
+                                      bottomLeft: Radius.circular(
+                                        isSent ? 18 : 4,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        isSent ? 4 : 18,
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                  child: ConversationBody(
+                                    message.content,
+                                    showReply: !inlineReply,
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: threadOriginal
+                                          ? AppTypography.helperSize
+                                          : AppTypography.bodySize,
+                                      color: threadOriginal
+                                          ? AppColors.textSecondary
+                                          : isSent
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      height: 1.3,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          emojiCounts,
-                        ],
-                      ),
-                    ),
+                              if ((reaction?.count ?? 0) > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 4,
+                                    left: 8,
+                                    right: 8,
+                                  ),
+                                  child: Semantics(
+                                    label: '${reaction!.count} likes',
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.local_florist,
+                                          size: 14,
+                                          color: reaction.selected
+                                              ? AppColors.primary
+                                              : AppColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${reaction.count}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              emojiCounts,
+                            ],
+                          ),
+                        ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

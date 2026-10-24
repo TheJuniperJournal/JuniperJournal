@@ -61,7 +61,7 @@ class _InlineMessageThreadState extends State<InlineMessageThread> {
   Widget build(BuildContext context) => Align(
     alignment: widget.isSent ? Alignment.centerRight : Alignment.centerLeft,
     child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560),
+      constraints: const BoxConstraints(maxWidth: 440),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -72,22 +72,24 @@ class _InlineMessageThreadState extends State<InlineMessageThread> {
               child: TextButton(
                 onPressed: () => setState(() => _expanded = !_expanded),
                 child: Text(
-                  '${widget.replies.length} ${widget.replies.length == 1 ? 'reply' : 'replies'}${_expanded ? ' · Hide' : ' · View'}',
+                  '${widget.replies.length} ${widget.replies.length == 1 ? 'Reply' : 'Replies'}',
                 ),
               ),
             ),
             if (_expanded)
-              Container(
-                margin: const EdgeInsets.only(left: 12, bottom: 16),
-                padding: const EdgeInsets.only(left: 20, bottom: 8),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: AppColors.borderLight, width: 3),
+              CustomPaint(
+                painter: const _ReplyConnectorPainter(),
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 40,
+                    right: 4,
+                    top: 4,
+                    bottom: 22,
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: widget.replies,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: widget.replies,
+                  ),
                 ),
               ),
           ],
@@ -95,4 +97,27 @@ class _InlineMessageThreadState extends State<InlineMessageThread> {
       ),
     ),
   );
+}
+
+class _ReplyConnectorPainter extends CustomPainter {
+  const _ReplyConnectorPainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.borderLight.withValues(alpha: .7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    final bottom = size.height - 6;
+    final bend = bottom < 24 ? bottom : 24.0;
+    final path = Path()
+      ..moveTo(13, 0)
+      ..lineTo(13, bottom - bend)
+      ..quadraticBezierTo(13, bottom, 13 + bend, bottom)
+      ..lineTo(40, bottom);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_ReplyConnectorPainter oldDelegate) => false;
 }

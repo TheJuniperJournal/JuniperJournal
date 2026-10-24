@@ -55,13 +55,13 @@ void main() {
         ),
       ),
     );
-    expect(find.text('2 replies · Hide'), findsOneWidget);
+    expect(find.text('2 Replies'), findsOneWidget);
     expect(find.text('First reply'), findsOneWidget);
-    await tester.tap(find.text('2 replies · Hide'));
+    await tester.tap(find.text('2 Replies'));
     await tester.pumpAndSettle();
     expect(find.text('Original'), findsOneWidget);
     expect(find.text('First reply'), findsNothing);
-    await tester.tap(find.text('2 replies · View'));
+    await tester.tap(find.text('2 Replies'));
     await tester.pumpAndSettle();
     expect(find.text('Second reply'), findsOneWidget);
   });
