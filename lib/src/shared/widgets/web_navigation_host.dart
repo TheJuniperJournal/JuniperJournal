@@ -103,6 +103,9 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
       ),
       (_) => false,
     );
+    for (final parent in projectNavigationParents(page)) {
+      nav.push(restoredDetailRoute(parent));
+    }
     nav.push(restoredDetailRoute(page));
     _history.write(location, replace: true);
     _opening = false;
@@ -137,6 +140,9 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
     onGenerateInitialRoutes: (_, __) => [
       if (widget.parentPage != null)
         MaterialPageRoute<void>(builder: (_) => widget.parentPage!),
+      if (widget.parentPage != null)
+        for (final parent in projectNavigationParents(widget.initialPage))
+          restoredDetailRoute(parent),
       if (widget.parentPage != null)
         restoredDetailRoute(
           widget.initialPage,

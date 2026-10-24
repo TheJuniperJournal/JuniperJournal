@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -94,255 +95,258 @@ class _CreateAnchoringPhenomenonScreenState extends State<AnchoringPhenomenon> {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top bar
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        CupertinoIcons.back,
-                        color: AppColors.iconPrimary,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top bar
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          CupertinoIcons.back,
+                          color: AppColors.iconPrimary,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        tooltip: 'Back',
                       ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      tooltip: 'Back',
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              moduleName,
+                              style: const TextStyle(
+                                fontFamily: AppTypography.headingFamily,
+                                fontSize: AppTypography.sectionTitleSize,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              formattedDate,
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.helperSize,
+                                color: AppColors.lightGrey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Navigation and question type dropdowns
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      _buildNavigationDropdown(),
+                      _buildQuestionTypeDropdown(),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Dynamic text inputs
+                  ..._controllers.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final controller = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            moduleName,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.headingFamily,
-                              fontSize: AppTypography.sectionTitleSize,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.darkText,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.helperSize,
-                              color: AppColors.lightGrey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Navigation and question type dropdowns
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    _buildNavigationDropdown(),
-                    _buildQuestionTypeDropdown(),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Dynamic text inputs
-                ..._controllers.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final controller = entry.value;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            minLines: 5,
-                            controller: controller,
-                            maxLines: null,
-                            decoration: InputDecoration(
-                              hintText: '',
-                              hintStyle: const TextStyle(
-                                color: AppColors.hintText,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 14,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1,
+                          Expanded(
+                            child: TextFormField(
+                              minLines: 5,
+                              controller: controller,
+                              maxLines: null,
+                              decoration: InputDecoration(
+                                hintText: '',
+                                hintStyle: const TextStyle(
+                                  color: AppColors.hintText,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 14,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: AppColors.error,
-                                  width: 1.5,
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: AppColors.error,
-                                  width: 1.5,
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                errorBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(
+                                    color: AppColors.error,
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(
+                                    color: AppColors.error,
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: false,
                               ),
-                              filled: false,
-                            ),
-                            validator: index == 0
-                                ? (value) {
-                                    // Only validate the first text field - require at least one explanation
-                                    final hasContent = _controllers.any(
-                                      (ctrl) => ctrl.text.trim().isNotEmpty,
-                                    );
-                                    if (!hasContent) {
-                                      return 'At least one explanation must be completed';
+                              validator: index == 0
+                                  ? (value) {
+                                      // Only validate the first text field - require at least one explanation
+                                      final hasContent = _controllers.any(
+                                        (ctrl) => ctrl.text.trim().isNotEmpty,
+                                      );
+                                      if (!hasContent) {
+                                        return 'At least one explanation must be completed';
+                                      }
+                                      return null;
                                     }
-                                    return null;
-                                  }
-                                : null,
+                                  : null,
+                            ),
                           ),
-                        ),
-                        if (_controllers.length > 1) ...[
-                          const SizedBox(width: 8),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              setState(() {
-                                controller.dispose();
-                                _controllers.removeAt(index);
-                              });
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.error),
-                                color: AppColors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  CupertinoIcons.minus,
-                                  size: 20,
-                                  color: Colors.red,
+                          if (_controllers.length > 1) ...[
+                            const SizedBox(width: 8),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () {
+                                setState(() {
+                                  controller.dispose();
+                                  _controllers.removeAt(index);
+                                });
+                              },
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppColors.error),
+                                  color: AppColors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    CupertinoIcons.minus,
+                                    size: 20,
+                                    color: Colors.red,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
-                    ),
-                  );
-                }),
+                      ),
+                    );
+                  }),
 
-                // Add button
-                Row(
-                  children: [
-                    InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () {
-                        setState(() {
-                          _controllers.add(TextEditingController());
-                        });
-                      },
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.borderLight),
-                          color: AppColors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            CupertinoIcons.add,
-                            size: 20,
-                            color: AppColors.iconPrimary,
+                  // Add button
+                  Row(
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(18),
+                        onTap: () {
+                          setState(() {
+                            _controllers.add(TextEditingController());
+                          });
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.borderLight),
+                            color: AppColors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              CupertinoIcons.add,
+                              size: 20,
+                              color: AppColors.iconPrimary,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppMetrics.fieldGap),
-
-                // Complete button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      textStyle: const TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.buttonSize,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final repo = LearningModuleRepo();
-                        final moduleId = widgetModule['id'].toString();
-                        final navigator = Navigator.of(context);
-
-                        // Get all non-empty text from controllers
-                        final allText = _controllers
-                            .map((controller) => controller.text.trim())
-                            .where((text) => text.isNotEmpty)
-                            .toList();
-
-                        // Save to database
-                        final success = await repo.updateAnchoringPhenomenon(
-                          id: moduleId,
-                          creatorAction: _selectedQuestionType,
-                          inquiry: allText,
-                        );
-
-                        if (success) {
-                          // Navigate to next screen
-                          pushAppRoute(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  LearningObjectiveScreen(module: widgetModule),
-                            ),
-                          );
-                        } else {
-                          showTopSnackBar(
-                            context,
-                            'Failed to save anchoring phenomenon',
-                            isError: true,
-                          );
-                        }
-                      }
-                    },
-                    child: const Text('Complete'),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppMetrics.fieldGap),
+
+                  // Complete button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.buttonSize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          final repo = LearningModuleRepo();
+                          final moduleId = widgetModule['id'].toString();
+                          final navigator = Navigator.of(context);
+
+                          // Get all non-empty text from controllers
+                          final allText = _controllers
+                              .map((controller) => controller.text.trim())
+                              .where((text) => text.isNotEmpty)
+                              .toList();
+
+                          // Save to database
+                          final success = await repo.updateAnchoringPhenomenon(
+                            id: moduleId,
+                            creatorAction: _selectedQuestionType,
+                            inquiry: allText,
+                          );
+
+                          if (success) {
+                            // Navigate to next screen
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LearningObjectiveScreen(
+                                  module: widgetModule,
+                                ),
+                              ),
+                            );
+                          } else {
+                            showTopSnackBar(
+                              context,
+                              'Failed to save anchoring phenomenon',
+                              isError: true,
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Complete'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

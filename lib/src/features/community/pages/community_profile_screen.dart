@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../../shared/styling/app_metrics.dart';
 import '../../../backend/db/models/project.dart';
@@ -258,107 +259,109 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen> {
         ),
         RefreshIndicator(
           onRefresh: _load,
-          child: ListView(
-            padding: const EdgeInsets.only(
-              bottom: AppMetrics.pageBottomPadding,
-            ),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              const SizedBox(height: 28),
-              Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.topCenter,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 48),
-                    constraints: BoxConstraints(
-                      minHeight: MediaQuery.sizeOf(context).height - 160,
-                    ),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(32),
+          child: PageScrollWithFooter(
+            child: ListView(
+              padding: const EdgeInsets.only(
+                bottom: AppMetrics.pageBottomPadding,
+              ),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                const SizedBox(height: 28),
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 48),
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.sizeOf(context).height - 160,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(32),
+                        ),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(24, 68, 24, 40),
+                      child: Column(
+                        children: [
+                          Text(
+                            _community.name,
+                            style: AppTypography.pageTitle,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          if (!_loading && !_loadError)
+                            ProfileEcoPointsCard(
+                              points: _restricted
+                                  ? (_publicSummary?['eco_points'] as num? ?? 0)
+                                        .toDouble()
+                                  : _records.fold<double>(
+                                      0,
+                                      (sum, record) => sum + record.ecoPoints,
+                                    ),
+                            ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            width: double.infinity,
+                            child: SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: false,
+                                  label: Text('Progress'),
+                                ),
+                                ButtonSegment(
+                                  value: true,
+                                  label: Text('Members'),
+                                ),
+                              ],
+                              selected: {_membersTab},
+                              showSelectedIcon: false,
+                              onSelectionChanged: (value) =>
+                                  setState(() => _membersTab = value.first),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          if (_loading)
+                            const Padding(
+                              padding: EdgeInsets.all(40),
+                              child: CircularProgressIndicator(),
+                            )
+                          else if (_loadError)
+                            TextButton(
+                              onPressed: _load,
+                              child: const Text(
+                                'Could not load community activity. Tap to retry.',
+                              ),
+                            )
+                          else
+                            AppContentTransition(
+                              index: _membersTab,
+                              child: Column(
+                                children: _membersTab
+                                    ? _memberWidgets()
+                                    : [..._progressWidgets()],
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    padding: const EdgeInsets.fromLTRB(24, 68, 24, 40),
-                    child: Column(
-                      children: [
-                        Text(
-                          _community.name,
-                          style: AppTypography.pageTitle,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        if (!_loading && !_loadError)
-                          ProfileEcoPointsCard(
-                            points: _restricted
-                                ? (_publicSummary?['eco_points'] as num? ?? 0)
-                                      .toDouble()
-                                : _records.fold<double>(
-                                    0,
-                                    (sum, record) => sum + record.ecoPoints,
-                                  ),
-                          ),
-                        const SizedBox(height: 28),
-                        SizedBox(
-                          width: double.infinity,
-                          child: SegmentedButton<bool>(
-                            segments: const [
-                              ButtonSegment(
-                                value: false,
-                                label: Text('Progress'),
-                              ),
-                              ButtonSegment(
-                                value: true,
-                                label: Text('Members'),
-                              ),
-                            ],
-                            selected: {_membersTab},
-                            showSelectedIcon: false,
-                            onSelectionChanged: (value) =>
-                                setState(() => _membersTab = value.first),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        if (_loading)
-                          const Padding(
-                            padding: EdgeInsets.all(40),
-                            child: CircularProgressIndicator(),
-                          )
-                        else if (_loadError)
-                          TextButton(
-                            onPressed: _load,
-                            child: const Text(
-                              'Could not load community activity. Tap to retry.',
-                            ),
-                          )
-                        else
-                          AppContentTransition(
-                            index: _membersTab,
-                            child: Column(
-                              children: _membersTab
-                                  ? _memberWidgets()
-                                  : [..._progressWidgets()],
-                            ),
-                          ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                      child: _avatar(
+                        _community.imageUrl,
+                        radius: 52,
+                        community: true,
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                    child: _avatar(
-                      _community.imageUrl,
-                      radius: 52,
-                      community: true,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -595,48 +598,50 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen> {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(ctx).height * .7,
           ),
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(24),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(title, style: AppTypography.sectionTitle),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(ctx).maybePop(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (records.isEmpty)
-                const Text(
-                  'Completed entries in this subject will appear as the community documents its work.',
-                  style: AppTypography.helper,
+          child: PageScrollWithFooter(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(24),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(title, style: AppTypography.sectionTitle),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(ctx).maybePop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
                 ),
-              for (final project in projects.values)
-                ListTile(
-                  title: Text(project.projectName),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    pushAppRoute(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProjectDashboard(
-                          projectId: project.id,
-                          projectName: project.projectName,
-                          tags: project.tags,
-                          isOwner: project.userId == _userId,
+                const SizedBox(height: 16),
+                if (records.isEmpty)
+                  const Text(
+                    'Completed entries in this subject will appear as the community documents its work.',
+                    style: AppTypography.helper,
+                  ),
+                for (final project in projects.values)
+                  ListTile(
+                    title: Text(project.projectName),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      pushAppRoute(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProjectDashboard(
+                            projectId: project.id,
+                            projectName: project.projectName,
+                            tags: project.tags,
+                            isOwner: project.userId == _userId,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-            ],
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       ),

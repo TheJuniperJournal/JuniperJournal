@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../../site/pages/site_information_page.dart';
 import '../../../shared/widgets/explore_project_card.dart';
 import '../../../shared/widgets/account_required_prompt.dart';
@@ -422,76 +423,78 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
               ? const Center(child: CircularProgressIndicator())
               : AppRefreshIndicator(
                   onRefresh: reload,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-                    children: [
-                      if (_error)
-                        const Padding(
-                          padding: EdgeInsets.all(32),
-                          child: Text(
-                            'Could not load projects. Pull down to retry.',
-                          ),
-                        )
-                      else if (filtered.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 60),
-                          child: Column(
-                            children: [
-                              Text(
-                                _searching
-                                    ? 'No matching projects'
-                                    : 'No projects yet',
-                                style: AppTypography.sectionTitle,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _searching
-                                    ? 'Try another search or adjust your filters.'
-                                    : 'Projects will appear here as new work is shared.',
-                                style: AppTypography.helper,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (widget.library ||
-                          widget.initialSubject != null ||
-                          _searching) ...[
-                        if (_searching)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                  child: PageScrollWithFooter(
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                      children: [
+                        if (_error)
+                          const Padding(
+                            padding: EdgeInsets.all(32),
                             child: Text(
-                              '${filtered.length} projects',
-                              style: AppTypography.helper,
+                              'Could not load projects. Pull down to retry.',
                             ),
-                          ),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final desktop =
-                                MediaQuery.sizeOf(context).width >= 1000;
-                            final cardWidth = desktop
-                                ? constraints.maxWidth.clamp(0.0, 280.0)
-                                : constraints.maxWidth;
-                            return Wrap(
-                              spacing: 16,
-                              alignment: desktop
-                                  ? WrapAlignment.center
-                                  : WrapAlignment.start,
+                          )
+                        else if (filtered.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 60),
+                            child: Column(
                               children: [
-                                for (final project in filtered)
-                                  SizedBox(
-                                    width: cardWidth,
-                                    child: _card(project),
-                                  ),
+                                Text(
+                                  _searching
+                                      ? 'No matching projects'
+                                      : 'No projects yet',
+                                  style: AppTypography.sectionTitle,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _searching
+                                      ? 'Try another search or adjust your filters.'
+                                      : 'Projects will appear here as new work is shared.',
+                                  style: AppTypography.helper,
+                                  textAlign: TextAlign.center,
+                                ),
                               ],
-                            );
-                          },
-                        ),
-                      ] else ...[
-                        for (final project in filtered) _card(project),
+                            ),
+                          )
+                        else if (widget.library ||
+                            widget.initialSubject != null ||
+                            _searching) ...[
+                          if (_searching)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                '${filtered.length} projects',
+                                style: AppTypography.helper,
+                              ),
+                            ),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final desktop =
+                                  MediaQuery.sizeOf(context).width >= 1000;
+                              final cardWidth = desktop
+                                  ? constraints.maxWidth.clamp(0.0, 280.0)
+                                  : constraints.maxWidth;
+                              return Wrap(
+                                spacing: 16,
+                                alignment: desktop
+                                    ? WrapAlignment.center
+                                    : WrapAlignment.start,
+                                children: [
+                                  for (final project in filtered)
+                                    SizedBox(
+                                      width: cardWidth,
+                                      child: _card(project),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                        ] else ...[
+                          for (final project in filtered) _card(project),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
         ),
@@ -501,31 +504,33 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
 
   Widget _subjectCollection(List<Project> projects) => AppRefreshIndicator(
     onRefresh: reload,
-    child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
-      children: [
-        if (_loading)
-          const Center(child: CircularProgressIndicator())
-        else if (_error)
-          TextButton(
-            onPressed: reload,
-            child: const Text('Could not load projects. Try again.'),
-          )
-        else if (projects.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Text(
-              'No public projects in this subject yet.',
-              textAlign: TextAlign.center,
-            ),
-          )
-        else ...[
-          Text('${projects.length} projects', style: AppTypography.helper),
-          const SizedBox(height: 16),
-          _projectGrid(projects),
+    child: PageScrollWithFooter(
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+        children: [
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error)
+            TextButton(
+              onPressed: reload,
+              child: const Text('Could not load projects. Try again.'),
+            )
+          else if (projects.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Text(
+                'No public projects in this subject yet.',
+                textAlign: TextAlign.center,
+              ),
+            )
+          else ...[
+            Text('${projects.length} projects', style: AppTypography.helper),
+            const SizedBox(height: 16),
+            _projectGrid(projects),
+          ],
         ],
-      ],
+      ),
     ),
   );
 
@@ -540,291 +545,297 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
         await reload();
       }
     },
-    child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
-      children: [
-        if (widget.publicLanding && widget.communityId == null) ...[
+    child: PageScrollWithFooter(
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+        children: [
+          if (widget.publicLanding && widget.communityId == null) ...[
+            const SizedBox(height: 24),
+            const Text(
+              'Innovate Ideas. Projects built together.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 34,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF24543C),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Discover sustainability projects, follow the process, and find communities learning together.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.6,
+                color: Color(0xFF667269),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (!widget.publicLanding && widget.communityId == null)
+            const Text(
+              'Find projects and communities.',
+              textAlign: TextAlign.center,
+              style: AppTypography.helper,
+            ),
           const SizedBox(height: 24),
-          const Text(
-            'Innovate Ideas. Projects built together.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 34,
-              height: 1.2,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF24543C),
-            ),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'Discover sustainability projects, follow the process, and find communities learning together.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.6,
-              color: Color(0xFF667269),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (!widget.publicLanding && widget.communityId == null)
-          const Text(
-            'Find projects and communities.',
-            textAlign: TextAlign.center,
-            style: AppTypography.helper,
-          ),
-        const SizedBox(height: 24),
-        if (widget.communityId == null)
-          Center(
-            child: CupertinoSlidingSegmentedControl<bool>(
-              groupValue: _communitiesMode,
-              children: const {
-                false: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text('Projects'),
-                ),
-                true: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text('Communities'),
-                ),
-              },
-              onValueChanged: (value) {
-                if (value == null) return;
-                setState(() {
-                  _communitiesMode = value;
-                  if (value)
-                    _communities ??=
-                        (widget.communitiesRepo ?? CommunitiesRepo())
-                            .getAllCommunities();
-                });
-              },
-            ),
-          ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _search,
-          onChanged: (_) => setState(() {}),
-          onSubmitted: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: _communitiesMode
-                ? 'Search communities'
-                : 'Search projects',
-            prefixIcon: const Icon(Icons.search, size: 28),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 20,
-            ),
-            suffixIcon: Padding(
-              padding: const EdgeInsets.all(8),
-              child: FilledButton(
-                onPressed: () {
-                  FocusScope.of(context).unfocus();
-                  setState(() {});
+          if (widget.communityId == null)
+            Center(
+              child: CupertinoSlidingSegmentedControl<bool>(
+                groupValue: _communitiesMode,
+                children: const {
+                  false: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text('Projects'),
+                  ),
+                  true: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text('Communities'),
+                  ),
                 },
-                child: const Text('Search'),
+                onValueChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _communitiesMode = value;
+                    if (value)
+                      _communities ??=
+                          (widget.communitiesRepo ?? CommunitiesRepo())
+                              .getAllCommunities();
+                  });
+                },
+              ),
+            ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: _communitiesMode
+                  ? 'Search communities'
+                  : 'Search projects',
+              prefixIcon: const Icon(Icons.search, size: 28),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 20,
+              ),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.all(8),
+                child: FilledButton(
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    setState(() {});
+                  },
+                  child: const Text('Search'),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        if (_communitiesMode) ...[
-          const SizedBox(height: 24),
-          _communityResults(),
-        ] else ...[
-          const SizedBox(height: 12),
-          _filterRow(),
-          if (_searching) ...[
+          const SizedBox(height: 16),
+          if (_communitiesMode) ...[
+            const SizedBox(height: 24),
+            _communityResults(),
+          ] else ...[
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final group in _filters.entries)
-                  for (final value in group.value)
-                    InputChip(
-                      label: Text(value),
-                      onDeleted: () =>
-                          setState(() => group.value.remove(value)),
-                    ),
-                TextButton(
-                  onPressed: () => setState(() {
-                    _search.clear();
-                    for (final values in _filters.values) {
-                      values.clear();
-                    }
-                  }),
-                  child: const Text('Clear search and filters'),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 28),
-          if (!_searching && widget.communityId == null) ...[
-            const Text('Explore by subject', style: AppTypography.sectionTitle),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 760
-                    ? 4
-                    : constraints.maxWidth >= 400
-                    ? 2
-                    : 1;
-                final width =
-                    (constraints.maxWidth - (columns - 1) * 12) / columns;
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    for (final subject in const [
-                      (
-                        'Environment & Sustainability',
-                        'environment',
-                        Color(0xFF12B85A),
+            _filterRow(),
+            if (_searching) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final group in _filters.entries)
+                    for (final value in group.value)
+                      InputChip(
+                        label: Text(value),
+                        onDeleted: () =>
+                            setState(() => group.value.remove(value)),
                       ),
-                      (
-                        'Engineering & Design',
-                        'engineering',
-                        Color(0xFF009ECB),
-                      ),
-                      ('Energy & Systems', 'energy', Color(0xFFE0B900)),
-                      (
-                        'Community & Built Environment',
-                        'community',
-                        Color(0xFFE85870),
-                      ),
-                    ])
-                      SizedBox(
-                        width: width,
-                        child: Material(
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: Color(0xFFE0E0E0)),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: () => _openSubject(subject.$1),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 24,
-                              ),
-                              child: Column(
-                                children: [
-                                  SvgPicture.asset(
-                                    'assets/project_setup/subject_${subject.$2}.svg',
-                                    width: 36,
-                                    height: 36,
-                                    colorFilter: ColorFilter.mode(
-                                      subject.$3,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  SizedBox(
-                                    height: 48,
-                                    child: Center(
-                                      child: Text(
-                                        subject.$1,
-                                        textAlign: TextAlign.center,
-                                        style: AppTypography.fieldLabel,
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _search.clear();
+                      for (final values in _filters.values) {
+                        values.clear();
+                      }
+                    }),
+                    child: const Text('Clear search and filters'),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 28),
+            if (!_searching && widget.communityId == null) ...[
+              const Text(
+                'Explore by subject',
+                style: AppTypography.sectionTitle,
+              ),
+              const SizedBox(height: 16),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 760
+                      ? 4
+                      : constraints.maxWidth >= 400
+                      ? 2
+                      : 1;
+                  final width =
+                      (constraints.maxWidth - (columns - 1) * 12) / columns;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      for (final subject in const [
+                        (
+                          'Environment & Sustainability',
+                          'environment',
+                          Color(0xFF12B85A),
+                        ),
+                        (
+                          'Engineering & Design',
+                          'engineering',
+                          Color(0xFF009ECB),
+                        ),
+                        ('Energy & Systems', 'energy', Color(0xFFE0B900)),
+                        (
+                          'Community & Built Environment',
+                          'community',
+                          Color(0xFFE85870),
+                        ),
+                      ])
+                        SizedBox(
+                          width: width,
+                          child: Material(
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () => _openSubject(subject.$1),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 24,
+                                ),
+                                child: Column(
+                                  children: [
+                                    SvgPicture.asset(
+                                      'assets/project_setup/subject_${subject.$2}.svg',
+                                      width: 36,
+                                      height: 36,
+                                      colorFilter: ColorFilter.mode(
+                                        subject.$3,
+                                        BlendMode.srcIn,
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Flexible(
+                                    const SizedBox(height: 20),
+                                    SizedBox(
+                                      height: 48,
+                                      child: Center(
                                         child: Text(
-                                          'View projects',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                          ),
+                                          subject.$1,
+                                          textAlign: TextAlign.center,
+                                          style: AppTypography.fieldLabel,
                                         ),
                                       ),
-                                      SizedBox(width: 4),
-                                      Icon(
-                                        Icons.arrow_forward,
-                                        size: 16,
-                                        color: AppColors.primary,
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            'View projects',
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Icon(
+                                          Icons.arrow_forward,
+                                          size: 16,
+                                          color: AppColors.primary,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-          ],
-          Text(
-            _searching
-                ? '${filtered.length} projects'
-                : widget.communityId != null
-                ? 'Community projects'
-                : 'Recent public projects',
-            style: AppTypography.sectionTitle,
-          ),
-          const SizedBox(height: 8),
-          if (!_searching)
-            const Text(
-              'Latest activity from the community.',
-              style: AppTypography.helper,
-            ),
-          const SizedBox(height: 16),
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else if (_error)
-            TextButton(
-              onPressed: reload,
-              child: const Text('Could not load projects. Try again.'),
-            )
-          else if (filtered.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Text(
-                _searching
-                    ? 'No matching projects. Try another search or adjust your filters.'
-                    : 'Public projects will appear here as new work is shared.',
-                textAlign: TextAlign.center,
+                    ],
+                  );
+                },
               ),
-            )
-          else ...[
-            _projectGrid(
-              _searching || widget.publicLanding || widget.communityId != null
-                  ? filtered
-                  : filtered.take(4).toList(),
+              const SizedBox(height: 32),
+            ],
+            Text(
+              _searching
+                  ? '${filtered.length} projects'
+                  : widget.communityId != null
+                  ? 'Community projects'
+                  : 'Recent public projects',
+              style: AppTypography.sectionTitle,
             ),
-            if (!_searching &&
-                !widget.publicLanding &&
-                widget.communityId == null) ...[
-              const SizedBox(height: 28),
+            const SizedBox(height: 8),
+            if (!_searching)
               const Text(
-                'Recommended projects',
-                style: AppTypography.sectionTitle,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _recommendationHistory.isEmpty
-                    ? 'Recent public projects to help you discover your interests.'
-                    : 'Based on the subjects and topics in your projects and bookmarks.',
+                'Latest activity from the community.',
                 style: AppTypography.helper,
               ),
-              const SizedBox(height: 16),
-              _recommendedGrid(filtered),
+            const SizedBox(height: 16),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_error)
+              TextButton(
+                onPressed: reload,
+                child: const Text('Could not load projects. Try again.'),
+              )
+            else if (filtered.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Text(
+                  _searching
+                      ? 'No matching projects. Try another search or adjust your filters.'
+                      : 'Public projects will appear here as new work is shared.',
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else ...[
+              _projectGrid(
+                _searching || widget.publicLanding || widget.communityId != null
+                    ? filtered
+                    : filtered.take(4).toList(),
+              ),
+              if (!_searching &&
+                  !widget.publicLanding &&
+                  widget.communityId == null) ...[
+                const SizedBox(height: 28),
+                const Text(
+                  'Recommended projects',
+                  style: AppTypography.sectionTitle,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _recommendationHistory.isEmpty
+                      ? 'Recent public projects to help you discover your interests.'
+                      : 'Based on the subjects and topics in your projects and bookmarks.',
+                  style: AppTypography.helper,
+                ),
+                const SizedBox(height: 16),
+                _recommendedGrid(filtered),
+              ],
             ],
           ],
+          if (widget.publicLanding && widget.communityId == null)
+            const SiteFooter(),
         ],
-        if (widget.publicLanding && widget.communityId == null)
-          const SiteFooter(),
-      ],
+      ),
     ),
   );
 
@@ -893,19 +904,22 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
             behavior: ScrollConfiguration.of(
               context,
             ).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    for (final title in _filters.keys) ...[
-                      _filterChip(title),
-                      if (title != _filters.keys.last) const SizedBox(width: 8),
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (final title in _filters.keys) ...[
+                        _filterChip(title),
+                        if (title != _filters.keys.last)
+                          const SizedBox(width: 8),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

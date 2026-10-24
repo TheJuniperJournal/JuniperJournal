@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
@@ -161,113 +162,121 @@ class _ImpactLogScreenState extends State<ImpactLogScreen> {
       children: [
         RefreshIndicator(
           onRefresh: _load,
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            itemCount: _entries.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final entry = _entries[index];
-              return InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () =>
-                    widget.isOwner ? _editEntry(entry) : _viewEntry(entry),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      // EcoPoints circle
-                      Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.4),
-                            width: 1.5,
+          child: PageScrollWithFooter(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: _entries.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final entry = _entries[index];
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () =>
+                      widget.isOwner ? _editEntry(entry) : _viewEntry(entry),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        // EcoPoints circle
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                entry.ecoPoints.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w400,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const Text(
+                                'EP',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.captionSize,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              entry.ecoPoints.toStringAsFixed(2),
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                fontSize: AppTypography.helperSize,
-                                fontWeight: FontWeight.w400,
-                                color: AppColors.primary,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                entry.title.isNotEmpty
+                                    ? entry.title
+                                    : 'Untitled Entry',
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: AppTypography.bodySize,
+                                ),
                               ),
-                            ),
-                            const Text(
-                              'EP',
-                              style: TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                fontSize: AppTypography.captionSize,
-                                color: AppColors.primary,
+                              const SizedBox(height: 2),
+                              // Metric + pattern chips
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  _Chip(entry.metric, color: AppColors.primary),
+                                  _Chip(
+                                    entry.patternType,
+                                    color: Colors.black54,
+                                  ),
+                                  _Chip(
+                                    entry.impactScale,
+                                    color: Colors.black38,
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.title.isNotEmpty
-                                  ? entry.title
-                                  : 'Untitled Entry',
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                fontWeight: FontWeight.w500,
-                                fontSize: AppTypography.bodySize,
+                              const SizedBox(height: 4),
+                              Text(
+                                _formattedDate(
+                                  entry.updatedAt ?? entry.createdAt,
+                                ),
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  color: AppColors.textSecondary,
+                                  fontSize: AppTypography.helperSize,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            // Metric + pattern chips
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 4,
-                              children: [
-                                _Chip(entry.metric, color: AppColors.primary),
-                                _Chip(entry.patternType, color: Colors.black54),
-                                _Chip(entry.impactScale, color: Colors.black38),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formattedDate(
-                                entry.updatedAt ?? entry.createdAt,
-                              ),
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                color: AppColors.textSecondary,
-                                fontSize: AppTypography.helperSize,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (widget.isOwner)
-                        IconButton(
-                          tooltip: 'Delete entry',
-                          onPressed: () => _deleteEntry(entry),
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.black45,
+                            ],
                           ),
                         ),
-                    ],
+                        if (widget.isOwner)
+                          IconButton(
+                            tooltip: 'Delete entry',
+                            onPressed: () => _deleteEntry(entry),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.black45,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         if (widget.isOwner)

@@ -173,28 +173,6 @@ class PublicSiteFrame extends StatelessWidget {
                   ),
                 ),
               ),
-              Material(
-                color: Colors.white,
-                child: SafeArea(
-                  top: false,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1160),
-                      child: SiteFooter(
-                        key: const ValueKey('global-site-footer'),
-                        compact: true,
-                        onNavigate: (page) {
-                          navigatorKey.currentState?.push(
-                            MaterialPageRoute(
-                              builder: (_) => SiteInformationPage(page: page),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           );
         },

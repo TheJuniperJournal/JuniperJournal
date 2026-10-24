@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -244,104 +245,106 @@ class _SummaryState extends State<Summary> {
                       ? const Center(
                           child: CircularProgressIndicator(color: _green),
                         )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(31, 25, 31, 45),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _LearningCodeCard(
-                                code: 'ENV-02B',
-                                focus: _subjectFocus,
-                              ),
-                              const SizedBox(height: 29),
-                              const _SectionTitle(
-                                'The Three Dimensions of Learning',
-                              ),
-                              const SizedBox(height: 9),
-                              const _SectionCopy(
-                                'These NGSS 3D learning components have been generated based on your input.',
-                              ),
-                              const SizedBox(height: AppMetrics.labelGap),
-                              _ChecklistCard(
-                                title: 'DCI',
-                                subtitle: 'Disciplinary Core Ideas',
-                                iconAsset:
-                                    'assets/learning_module/summary_dci.svg',
-                                accent: const Color(0xFF0AA5FF),
-                                generatedCount: _dci.values
-                                    .where((v) => v)
-                                    .length,
-                                options: _dci,
-                                onChanged: (option, value) =>
-                                    _toggle('dci', option, value),
-                              ),
-                              const SizedBox(height: 29),
-                              _ChecklistCard(
-                                title: 'SEP',
-                                subtitle: 'Science and Engineering Practices',
-                                iconAsset:
-                                    'assets/learning_module/summary_sep.svg',
-                                accent: const Color(0xFF5B78AD),
-                                generatedCount: _sep.values
-                                    .where((v) => v)
-                                    .length,
-                                options: _sep,
-                                onChanged: (option, value) =>
-                                    _toggle('sep', option, value),
-                              ),
-                              const SizedBox(height: 29),
-                              _ChecklistCard(
-                                title: 'CCCs',
-                                subtitle: 'Crosscutting Concepts',
-                                iconAsset:
-                                    'assets/learning_module/summary_ccc.svg',
-                                accent: const Color(0xFF434AAB),
-                                generatedCount: _ccc.values
-                                    .where((v) => v)
-                                    .length,
-                                options: _ccc,
-                                onChanged: (option, value) =>
-                                    _toggle('ccc', option, value),
-                              ),
-                              const SizedBox(height: 31),
-                              const _SectionTitle('Module Overview'),
-                              const SizedBox(height: 11),
-                              const _SectionCopy(
-                                'Review the key details that define your learning module before it is generated.',
-                              ),
-                              const SizedBox(height: AppMetrics.fieldGap),
-                              _ModuleOverviewCard(
-                                title: _title,
-                                subjectDomain: _subjectDomain,
-                                subjectFocus: _subjectFocus,
-                                difficulty: _difficulty,
-                              ),
-                              const SizedBox(height: 31),
-                              const _SectionTitle('Learning Overview'),
-                              const SizedBox(height: 11),
-                              const _SectionCopy(
-                                'Review the learning objectives that define the intended student outcomes.',
-                              ),
-                              const SizedBox(height: AppMetrics.fieldGap),
-                              _ObjectivesCard(objectives: _objectives),
-                              const SizedBox(height: 31),
-                              const _SectionTitle(
-                                'NGSS Performance Expectations',
-                              ),
-                              const SizedBox(height: AppMetrics.labelGap),
-                              const _SectionCopy(
-                                'The follow NGSS Performance Expectations align with the modules generated 3D components.',
-                              ),
-                              const SizedBox(height: 19),
-                              const Wrap(
-                                spacing: 16,
-                                runSpacing: 8,
-                                children: [
-                                  _NgssTag('MS-LS2-4'),
-                                  _NgssTag('MS-ESS2-2'),
-                                ],
-                              ),
-                            ],
+                      : PageScrollWithFooter(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(31, 25, 31, 45),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _LearningCodeCard(
+                                  code: 'ENV-02B',
+                                  focus: _subjectFocus,
+                                ),
+                                const SizedBox(height: 29),
+                                const _SectionTitle(
+                                  'The Three Dimensions of Learning',
+                                ),
+                                const SizedBox(height: 9),
+                                const _SectionCopy(
+                                  'These NGSS 3D learning components have been generated based on your input.',
+                                ),
+                                const SizedBox(height: AppMetrics.labelGap),
+                                _ChecklistCard(
+                                  title: 'DCI',
+                                  subtitle: 'Disciplinary Core Ideas',
+                                  iconAsset:
+                                      'assets/learning_module/summary_dci.svg',
+                                  accent: const Color(0xFF0AA5FF),
+                                  generatedCount: _dci.values
+                                      .where((v) => v)
+                                      .length,
+                                  options: _dci,
+                                  onChanged: (option, value) =>
+                                      _toggle('dci', option, value),
+                                ),
+                                const SizedBox(height: 29),
+                                _ChecklistCard(
+                                  title: 'SEP',
+                                  subtitle: 'Science and Engineering Practices',
+                                  iconAsset:
+                                      'assets/learning_module/summary_sep.svg',
+                                  accent: const Color(0xFF5B78AD),
+                                  generatedCount: _sep.values
+                                      .where((v) => v)
+                                      .length,
+                                  options: _sep,
+                                  onChanged: (option, value) =>
+                                      _toggle('sep', option, value),
+                                ),
+                                const SizedBox(height: 29),
+                                _ChecklistCard(
+                                  title: 'CCCs',
+                                  subtitle: 'Crosscutting Concepts',
+                                  iconAsset:
+                                      'assets/learning_module/summary_ccc.svg',
+                                  accent: const Color(0xFF434AAB),
+                                  generatedCount: _ccc.values
+                                      .where((v) => v)
+                                      .length,
+                                  options: _ccc,
+                                  onChanged: (option, value) =>
+                                      _toggle('ccc', option, value),
+                                ),
+                                const SizedBox(height: 31),
+                                const _SectionTitle('Module Overview'),
+                                const SizedBox(height: 11),
+                                const _SectionCopy(
+                                  'Review the key details that define your learning module before it is generated.',
+                                ),
+                                const SizedBox(height: AppMetrics.fieldGap),
+                                _ModuleOverviewCard(
+                                  title: _title,
+                                  subjectDomain: _subjectDomain,
+                                  subjectFocus: _subjectFocus,
+                                  difficulty: _difficulty,
+                                ),
+                                const SizedBox(height: 31),
+                                const _SectionTitle('Learning Overview'),
+                                const SizedBox(height: 11),
+                                const _SectionCopy(
+                                  'Review the learning objectives that define the intended student outcomes.',
+                                ),
+                                const SizedBox(height: AppMetrics.fieldGap),
+                                _ObjectivesCard(objectives: _objectives),
+                                const SizedBox(height: 31),
+                                const _SectionTitle(
+                                  'NGSS Performance Expectations',
+                                ),
+                                const SizedBox(height: AppMetrics.labelGap),
+                                const _SectionCopy(
+                                  'The follow NGSS Performance Expectations align with the modules generated 3D components.',
+                                ),
+                                const SizedBox(height: 19),
+                                const Wrap(
+                                  spacing: 16,
+                                  runSpacing: 8,
+                                  children: [
+                                    _NgssTag('MS-LS2-4'),
+                                    _NgssTag('MS-ESS2-2'),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                 ),

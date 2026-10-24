@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -307,148 +308,150 @@ class _LearningObjectiveScreenState extends State<LearningObjectiveScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: _screenWidth),
-            child: SingleChildScrollView(
-              child: SizedBox(
-                width: _screenWidth,
-                height: 812,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: 22,
-                      child: Text(
-                        'Learning Objectives',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: AppTypography.headingFamily,
-                          color: _textPrimary,
-                          fontSize: AppTypography.sectionTitleSize,
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  width: _screenWidth,
+                  height: 812,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 22,
+                        child: Text(
+                          'Learning Objectives',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.headingFamily,
+                            color: _textPrimary,
+                            fontSize: AppTypography.sectionTitleSize,
+                            height: 1,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 41,
+                        top: 18,
+                        width: 20,
+                        height: 20,
+                        child: AppTapTarget(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _returnToDashboard,
+                          child: const _BackChevron(),
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 63,
+                        child: Divider(
                           height: 1,
-                          fontWeight: FontWeight.w600,
+                          thickness: 1,
+                          color: Color(0xFFE6E6E6),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: 41,
-                      top: 18,
-                      width: 20,
-                      height: 20,
-                      child: AppTapTarget(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _returnToDashboard,
-                        child: const _BackChevron(),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: 63,
-                      child: Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0xFFE6E6E6),
-                      ),
-                    ),
-                    Positioned(
-                      left: 31,
-                      top: 93,
-                      child: Text(
-                        'Learning Objectives (${_rows.length}/$_maxObjectives)',
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          color: _textPrimary,
-                          fontSize: AppTypography.bodySize,
-                          height: 1.1,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 31,
-                      top: 114,
-                      width: _screenWidth - 76,
-                      child: Text(
-                        'Add specific description of why this answer is correct.',
-                        style: AppTypography.helper,
-                      ),
-                    ),
-                    Positioned(
-                      left: 29,
-                      top: 156,
-                      width: _screenWidth - 73,
-                      child: _ObjectiveList(
-                        rows: _rows,
-                        objectiveOptions: _learningObjectiveOptions,
-                        domainOptions: _subjectDomainOptions,
-                        onDelete: _removeObjective,
-                        onChanged: () => setState(() {}),
-                        showValidation: _showValidation,
-                      ),
-                    ),
-                    Positioned(
-                      left: 82,
-                      top: 433,
-                      width: 242,
-                      height: 33,
-                      child: OutlinedButton(
-                        onPressed: _rows.length >= _maxObjectives
-                            ? null
-                            : _addObjective,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _green,
-                          disabledForegroundColor: _green.withValues(
-                            alpha: 0.45,
-                          ),
-                          side: BorderSide(
-                            color: _rows.length >= _maxObjectives
-                                ? _green.withValues(alpha: 0.45)
-                                : _green,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: const Text(
-                          '+ Add Objective',
-                          style: TextStyle(
+                      Positioned(
+                        left: 31,
+                        top: 93,
+                        child: Text(
+                          'Learning Objectives (${_rows.length}/$_maxObjectives)',
+                          style: const TextStyle(
                             fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.buttonSize,
-                            height: 1,
+                            color: _textPrimary,
+                            fontSize: AppTypography.bodySize,
+                            height: 1.1,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: 40,
-                      top: 513,
-                      width: _screenWidth - 82,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _green,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                      Positioned(
+                        left: 31,
+                        top: 114,
+                        width: _screenWidth - 76,
+                        child: Text(
+                          'Add specific description of why this answer is correct.',
+                          style: AppTypography.helper,
                         ),
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: Colors.white,
-                            fontSize: AppTypography.buttonSize,
-                            height: 1,
-                            fontWeight: FontWeight.w500,
+                      ),
+                      Positioned(
+                        left: 29,
+                        top: 156,
+                        width: _screenWidth - 73,
+                        child: _ObjectiveList(
+                          rows: _rows,
+                          objectiveOptions: _learningObjectiveOptions,
+                          domainOptions: _subjectDomainOptions,
+                          onDelete: _removeObjective,
+                          onChanged: () => setState(() {}),
+                          showValidation: _showValidation,
+                        ),
+                      ),
+                      Positioned(
+                        left: 82,
+                        top: 433,
+                        width: 242,
+                        height: 33,
+                        child: OutlinedButton(
+                          onPressed: _rows.length >= _maxObjectives
+                              ? null
+                              : _addObjective,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _green,
+                            disabledForegroundColor: _green.withValues(
+                              alpha: 0.45,
+                            ),
+                            side: BorderSide(
+                              color: _rows.length >= _maxObjectives
+                                  ? _green.withValues(alpha: 0.45)
+                                  : _green,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text(
+                            '+ Add Objective',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.buttonSize,
+                              height: 1,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        left: 40,
+                        top: 513,
+                        width: _screenWidth - 82,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: Colors.white,
+                              fontSize: AppTypography.buttonSize,
+                              height: 1,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

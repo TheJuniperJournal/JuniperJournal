@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -214,193 +215,198 @@ class _ChallengeSettingsFormState extends State<ChallengeSettingsForm> {
           style: AppTypography.pageTitle,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cover image
-            AppTapTarget(
-              onTap: _pickImage,
-              child: Container(
-                width: double.infinity,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _newImage != null
-                    ? PickedImagePreview(file: _newImage!)
-                    : (existingImageUrl?.isNotEmpty == true)
-                    ? ProtectedImage.network(existingImageUrl!, fit: BoxFit.cover)
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
-                            Icons.add_photo_alternate_outlined,
-                            size: 32,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Change Cover Photo',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.bodySize,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Challenge Type'),
-            const SizedBox(height: 10),
-            _dropdownPill(
-              _types.firstWhere((t) => t.$1 == _type).$2,
-              'Type',
-              _types.map((t) => t.$2).toList(),
-              (label) => setState(
-                () => _type = _types.firstWhere((t) => t.$2 == label).$1,
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Design Challenge Name'),
-            const SizedBox(height: 10),
-            _field(_nameCtrl, 'e.g. Terrarium Project'),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Design Prompt (100 word limit)'),
-            const SizedBox(height: 10),
-            TextField(
-              buildCounter:
-                  (
-                    _, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => null,
-              controller: _promptCtrl,
-              minLines: 5,
-              maxLines: null,
-              maxLength: 600,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                color: AppColors.textPrimary,
-              ),
-              decoration: _inputDec('Design a... for... with the goal of...'),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Set Scale'),
-            const SizedBox(height: 10),
-            _dropdownPill(
-              _scale,
-              'Scale',
-              _scaleOptions,
-              (v) => setState(() => _scale = v),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Set Difficulty'),
-            const SizedBox(height: 10),
-            _dropdownPill(
-              _difficulty,
-              'Difficulty',
-              _difficultyOptions,
-              (v) => setState(() => _difficulty = v),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _labelGreen('Start'),
-            const SizedBox(height: 10),
-            _buildDateTimeRow(_startsAt, true),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _labelGreen('End'),
-            const SizedBox(height: 10),
-            _buildDateTimeRow(_endsAt, false),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                _label('All Day'),
-                const Spacer(),
-                Switch.adaptive(
-                  value: _allDay,
-                  activeTrackColor: AppColors.primary,
-                  onChanged: (v) => setState(() => _allDay = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppMetrics.sectionGap),
-
-            // Delete button
-            AppTapTarget(
-              onTap: _deleting ? null : _delete,
-              child: Center(
-                child: _deleting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.red,
-                        ),
-                      )
-                    : const Text(
-                        'Delete Design Challenge',
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.red,
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover image
+              AppTapTarget(
+                onTap: _pickImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTint,
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                  clipBehavior: Clip.antiAlias,
+                  child: _newImage != null
+                      ? PickedImagePreview(file: _newImage!)
+                      : (existingImageUrl?.isNotEmpty == true)
+                      ? ProtectedImage.network(
+                          existingImageUrl!,
+                          fit: BoxFit.cover,
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 32,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Change Cover Photo',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.bodySize,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                      )
-                    : const Text('Save'),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Challenge Type'),
+              const SizedBox(height: 10),
+              _dropdownPill(
+                _types.firstWhere((t) => t.$1 == _type).$2,
+                'Type',
+                _types.map((t) => t.$2).toList(),
+                (label) => setState(
+                  () => _type = _types.firstWhere((t) => t.$2 == label).$1,
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Design Challenge Name'),
+              const SizedBox(height: 10),
+              _field(_nameCtrl, 'e.g. Terrarium Project'),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Design Prompt (100 word limit)'),
+              const SizedBox(height: 10),
+              TextField(
+                buildCounter:
+                    (
+                      _, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
+                controller: _promptCtrl,
+                minLines: 5,
+                maxLines: null,
+                maxLength: 600,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.textPrimary,
+                ),
+                decoration: _inputDec('Design a... for... with the goal of...'),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Set Scale'),
+              const SizedBox(height: 10),
+              _dropdownPill(
+                _scale,
+                'Scale',
+                _scaleOptions,
+                (v) => setState(() => _scale = v),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Set Difficulty'),
+              const SizedBox(height: 10),
+              _dropdownPill(
+                _difficulty,
+                'Difficulty',
+                _difficultyOptions,
+                (v) => setState(() => _difficulty = v),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _labelGreen('Start'),
+              const SizedBox(height: 10),
+              _buildDateTimeRow(_startsAt, true),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _labelGreen('End'),
+              const SizedBox(height: 10),
+              _buildDateTimeRow(_endsAt, false),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  _label('All Day'),
+                  const Spacer(),
+                  Switch.adaptive(
+                    value: _allDay,
+                    activeTrackColor: AppColors.primary,
+                    onChanged: (v) => setState(() => _allDay = v),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppMetrics.sectionGap),
+
+              // Delete button
+              AppTapTarget(
+                onTap: _deleting ? null : _delete,
+                child: Center(
+                  child: _deleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.red,
+                          ),
+                        )
+                      : const Text(
+                          'Delete Design Challenge',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

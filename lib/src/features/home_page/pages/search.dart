@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'dart:async';
@@ -230,46 +231,49 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemBuilder: (context, index) {
-        final user = _friends[index];
-        final displayName = user.displayName ?? user.username ?? 'Unknown User';
-        final username = user.username;
-        final avatarUrl = user.avatarUrl;
-        final status = _friendStatuses[user.id] ?? 'none';
+    return PageScrollWithFooter(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        itemBuilder: (context, index) {
+          final user = _friends[index];
+          final displayName =
+              user.displayName ?? user.username ?? 'Unknown User';
+          final username = user.username;
+          final avatarUrl = user.avatarUrl;
+          final status = _friendStatuses[user.id] ?? 'none';
 
-        return ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          tileColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 4,
-          ),
-          leading: CircleAvatar(
-            backgroundColor: AppColors.primaryTint,
-            backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
-                ? NetworkImage(avatarUrl)
-                : null,
-            child: (avatarUrl == null || avatarUrl.isEmpty)
-                ? const Icon(Icons.person_outline, color: AppColors.primary)
-                : null,
-          ),
-          onTap: () => openUserProfile(context, user.id),
-          title: Text(
-            displayName,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: (username != null && username.isNotEmpty)
-              ? Text('@$username')
-              : const Text('Public profile'),
-          trailing: _buildFriendActionButton(userId: user.id, status: status),
-        );
-      },
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemCount: _friends.length,
+          return ListTile(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            tileColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 4,
+            ),
+            leading: CircleAvatar(
+              backgroundColor: AppColors.primaryTint,
+              backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: (avatarUrl == null || avatarUrl.isEmpty)
+                  ? const Icon(Icons.person_outline, color: AppColors.primary)
+                  : null,
+            ),
+            onTap: () => openUserProfile(context, user.id),
+            title: Text(
+              displayName,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: (username != null && username.isNotEmpty)
+                ? Text('@$username')
+                : const Text('Public profile'),
+            trailing: _buildFriendActionButton(userId: user.id, status: status),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemCount: _friends.length,
+      ),
     );
   }
 

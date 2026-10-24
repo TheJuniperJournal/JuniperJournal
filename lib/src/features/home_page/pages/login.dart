@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'password_recovery.dart';
 import '../../../shared/widgets/page_refresh_state.dart';
 import '../../../shared/widgets/persistent_desktop_shell.dart';
@@ -270,116 +271,118 @@ class _LoginScreenState extends State<LoginScreen> {
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1440),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: desktop ? 48 : 24,
-                  vertical: 24,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              key: const ValueKey('login-explore-link'),
-                              onPressed: _isLoading
-                                  ? null
-                                  : () => Navigator.of(context)
-                                        .pushNamedAndRemoveUntil(
-                                          '/explore',
-                                          (_) => false,
-                                        ),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                              ),
-                              child: const Text(
-                                'Juniper Journal',
-                                style: TextStyle(
-                                  fontFamily: AppTypography.headingFamily,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF204C35),
+              child: PageScrollWithFooter(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: desktop ? 48 : 24,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                key: const ValueKey('login-explore-link'),
+                                onPressed: _isLoading
+                                    ? null
+                                    : () => Navigator.of(context)
+                                          .pushNamedAndRemoveUntil(
+                                            '/explore',
+                                            (_) => false,
+                                          ),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
                                 ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        key: const ValueKey('login-back-to-explore'),
-                        onPressed: _isLoading
-                            ? null
-                            : () =>
-                                  Navigator.of(context).pushNamedAndRemoveUntil(
-                                    '/explore',
-                                    (_) => false,
+                                child: const Text(
+                                  'Juniper Journal',
+                                  style: TextStyle(
+                                    fontFamily: AppTypography.headingFamily,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF204C35),
                                   ),
-                        icon: const Icon(Icons.arrow_back, size: 18),
-                        label: const Text('Explore'),
-                      ),
-                    ),
-                    SizedBox(height: desktop ? 24 : 12),
-                    if (desktop)
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: (constraints.maxHeight - 160).clamp(
-                            520.0,
-                            800.0,
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              flex: 5,
-                              child: SizedBox(
-                                height: (constraints.maxHeight - 170).clamp(
-                                  480.0,
-                                  680.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Expanded(child: artwork),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'Learn. Create. Grow.',
-                                      style: TextStyle(
-                                        color: Color(0xFF204C35),
-                                        fontSize: 14,
-                                        letterSpacing: .8,
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 64),
-                            Expanded(flex: 4, child: Center(child: form)),
-                          ],
-                        ),
-                      )
-                    else ...[
-                      SizedBox(height: 180, child: artwork),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Learn. Create. Grow.',
-                        style: TextStyle(
-                          color: Color(0xFF204C35),
-                          fontSize: 14,
-                          letterSpacing: .8,
+                          ),
+                        ],
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          key: const ValueKey('login-back-to-explore'),
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.of(context)
+                                    .pushNamedAndRemoveUntil(
+                                      '/explore',
+                                      (_) => false,
+                                    ),
+                          icon: const Icon(Icons.arrow_back, size: 18),
+                          label: const Text('Explore'),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Center(child: form),
+                      SizedBox(height: desktop ? 24 : 12),
+                      if (desktop)
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: (constraints.maxHeight - 160).clamp(
+                              520.0,
+                              800.0,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: SizedBox(
+                                  height: (constraints.maxHeight - 170).clamp(
+                                    480.0,
+                                    680.0,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Expanded(child: artwork),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'Learn. Create. Grow.',
+                                        style: TextStyle(
+                                          color: Color(0xFF204C35),
+                                          fontSize: 14,
+                                          letterSpacing: .8,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 64),
+                              Expanded(flex: 4, child: Center(child: form)),
+                            ],
+                          ),
+                        )
+                      else ...[
+                        SizedBox(height: 180, child: artwork),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Learn. Create. Grow.',
+                          style: TextStyle(
+                            color: Color(0xFF204C35),
+                            fontSize: 14,
+                            letterSpacing: .8,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Center(child: form),
+                      ],
+                      SizedBox(height: desktop ? 24 : 32),
                     ],
-                    SizedBox(height: desktop ? 24 : 32),
-                  ],
+                  ),
                 ),
               ),
             ),

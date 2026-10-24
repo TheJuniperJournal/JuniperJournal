@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -137,53 +138,56 @@ class _SocialConnectionsPageState extends State<SocialConnectionsPage> {
                         ),
                       ),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      itemCount: data.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final person = data[index];
-                        final userId = person.id;
-                        final displayName =
-                            person.displayName ?? 'Unknown User';
-                        final username = person.username;
-                        final avatarUrl = person.avatarUrl;
+                  : PageScrollWithFooter(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        itemCount: data.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final person = data[index];
+                          final userId = person.id;
+                          final displayName =
+                              person.displayName ?? 'Unknown User';
+                          final username = person.username;
+                          final avatarUrl = person.avatarUrl;
 
-                        return ListTile(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          tileColor: Colors.white,
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.avatarBackground,
-                            backgroundImage:
-                                (avatarUrl != null && avatarUrl.isNotEmpty)
-                                ? NetworkImage(avatarUrl)
+                          return ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            tileColor: Colors.white,
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.avatarBackground,
+                              backgroundImage:
+                                  (avatarUrl != null && avatarUrl.isNotEmpty)
+                                  ? NetworkImage(avatarUrl)
+                                  : null,
+                              child: (avatarUrl == null || avatarUrl.isEmpty)
+                                  ? const Icon(
+                                      Icons.person,
+                                      color: AppColors.avatarIcon,
+                                    )
+                                  : null,
+                            ),
+                            title: Text(displayName),
+                            subtitle: username != null && username.isNotEmpty
+                                ? Text('@$username')
                                 : null,
-                            child: (avatarUrl == null || avatarUrl.isEmpty)
-                                ? const Icon(
-                                    Icons.person,
-                                    color: AppColors.avatarIcon,
-                                  )
-                                : null,
-                          ),
-                          title: Text(displayName),
-                          subtitle: username != null && username.isNotEmpty
-                              ? Text('@$username')
-                              : null,
-                          onTap: userId.isEmpty
-                              ? null
-                              : () {
-                                  pushAppRoute(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          PublicUserProfilePage(userId: userId),
-                                    ),
-                                  );
-                                },
-                        );
-                      },
+                            onTap: userId.isEmpty
+                                ? null
+                                : () {
+                                    pushAppRoute(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PublicUserProfilePage(
+                                          userId: userId,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                          );
+                        },
+                      ),
                     ),
             ),
           ],

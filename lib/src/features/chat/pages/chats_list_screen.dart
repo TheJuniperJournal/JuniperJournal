@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
@@ -262,63 +263,65 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   Widget _buildConversationList() {
     return RefreshIndicator(
       onRefresh: _loadConversations,
-      child: ListView.builder(
-        itemCount: _filtered.length,
-        itemBuilder: (_, index) {
-          final c = _filtered[index];
-          return Dismissible(
-            key: Key(c.conversationId),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 24),
-              child: const Icon(
-                Icons.delete_outline,
-                color: Colors.white,
-                size: 26,
-              ),
-            ),
-            confirmDismiss: (_) => _confirmAndDelete(c.conversationId),
-            onDismissed: (_) {
-              setState(() {
-                _conversations.removeWhere(
-                  (x) => x.conversationId == c.conversationId,
-                );
-                _filtered.removeWhere(
-                  (x) => x.conversationId == c.conversationId,
-                );
-              });
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ConversationTile(
-                  conversation: c,
-                  onTap: () async {
-                    await pushAppRoute(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChatScreen(
-                          conversationId: c.conversationId,
-                          otherUserName: c.resolvedDisplayName,
-                          otherAvatarUrl: c.isGroup ? null : c.otherAvatarUrl,
-                          isGroup: c.isGroup,
-                          canRenameGroup: c.isGroup,
-                          chatRepo: _chatRepo,
-                        ),
-                      ),
-                    );
-                    if (!mounted) return;
-                    _loadConversations();
-                  },
+      child: PageScrollWithFooter(
+        child: ListView.builder(
+          itemCount: _filtered.length,
+          itemBuilder: (_, index) {
+            final c = _filtered[index];
+            return Dismissible(
+              key: Key(c.conversationId),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 24),
+                child: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.white,
+                  size: 26,
                 ),
-                if (index < _filtered.length - 1)
-                  const Divider(height: 1, indent: 76, endIndent: 16),
-              ],
-            ),
-          );
-        },
+              ),
+              confirmDismiss: (_) => _confirmAndDelete(c.conversationId),
+              onDismissed: (_) {
+                setState(() {
+                  _conversations.removeWhere(
+                    (x) => x.conversationId == c.conversationId,
+                  );
+                  _filtered.removeWhere(
+                    (x) => x.conversationId == c.conversationId,
+                  );
+                });
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ConversationTile(
+                    conversation: c,
+                    onTap: () async {
+                      await pushAppRoute(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            conversationId: c.conversationId,
+                            otherUserName: c.resolvedDisplayName,
+                            otherAvatarUrl: c.isGroup ? null : c.otherAvatarUrl,
+                            isGroup: c.isGroup,
+                            canRenameGroup: c.isGroup,
+                            chatRepo: _chatRepo,
+                          ),
+                        ),
+                      );
+                      if (!mounted) return;
+                      _loadConversations();
+                    },
+                  ),
+                  if (index < _filtered.length - 1)
+                    const Divider(height: 1, indent: 76, endIndent: 16),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -543,57 +546,62 @@ class _NewMessageScreenState extends State<_NewMessageScreen> {
           if (hasSelection) ...[
             SizedBox(
               height: 72,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: selected
-                    .map(
-                      (f) => Padding(
-                        padding: const EdgeInsets.only(right: 14),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Stack(
-                              children: [
-                                UserAvatar(avatarUrl: f.avatarUrl, radius: 22),
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: AppTapTarget(
-                                    onTap: () => setState(
-                                      () => _selectedIds.remove(f.id),
-                                    ),
-                                    child: Container(
-                                      width: 18,
-                                      height: 18,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black54,
-                                        shape: BoxShape.circle,
+              child: PageScrollWithFooter(
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: selected
+                      .map(
+                        (f) => Padding(
+                          padding: const EdgeInsets.only(right: 14),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Stack(
+                                children: [
+                                  UserAvatar(
+                                    avatarUrl: f.avatarUrl,
+                                    radius: 22,
+                                  ),
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: AppTapTarget(
+                                      onTap: () => setState(
+                                        () => _selectedIds.remove(f.id),
                                       ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 11,
-                                        color: Colors.white,
+                                      child: Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 11,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              f.resolvedDisplayName.split(' ').first,
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                fontSize: AppTypography.helperSize,
-                                fontWeight: FontWeight.w500,
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                f.resolvedDisplayName.split(' ').first,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -626,51 +634,53 @@ class _NewMessageScreenState extends State<_NewMessageScreen> {
                       style: const TextStyle(color: Colors.black45),
                     ),
                   )
-                : ListView.builder(
-                    itemCount: _filtered.length,
-                    itemBuilder: (_, index) {
-                      final friend = _filtered[index];
-                      final isSelected = _selectedIds.contains(friend.id);
-                      return ListTile(
-                        leading: UserAvatar(
-                          avatarUrl: friend.avatarUrl,
-                          radius: 22,
-                        ),
-                        title: Text(
-                          friend.resolvedDisplayName,
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.bodySize,
-                            fontWeight: FontWeight.w500,
+                : PageScrollWithFooter(
+                    child: ListView.builder(
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, index) {
+                        final friend = _filtered[index];
+                        final isSelected = _selectedIds.contains(friend.id);
+                        return ListTile(
+                          leading: UserAvatar(
+                            avatarUrl: friend.avatarUrl,
+                            radius: 22,
                           ),
-                        ),
-                        subtitle: friend.username != null
-                            ? Text(
-                                '@${friend.username!}',
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.helperSize,
+                          title: Text(
+                            friend.resolvedDisplayName,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: friend.username != null
+                              ? Text(
+                                  '@${friend.username!}',
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.helperSize,
+                                  ),
+                                )
+                              : null,
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.primary,
+                                )
+                              : Icon(
+                                  Icons.circle_outlined,
+                                  color: Colors.grey.shade300,
                                 ),
-                              )
-                            : null,
-                        trailing: isSelected
-                            ? const Icon(
-                                Icons.check_circle,
-                                color: AppColors.primary,
-                              )
-                            : Icon(
-                                Icons.circle_outlined,
-                                color: Colors.grey.shade300,
-                              ),
-                        onTap: () => setState(() {
-                          if (isSelected) {
-                            _selectedIds.remove(friend.id);
-                          } else {
-                            _selectedIds.add(friend.id);
-                          }
-                        }),
-                      );
-                    },
+                          onTap: () => setState(() {
+                            if (isSelected) {
+                              _selectedIds.remove(friend.id);
+                            } else {
+                              _selectedIds.add(friend.id);
+                            }
+                          }),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],

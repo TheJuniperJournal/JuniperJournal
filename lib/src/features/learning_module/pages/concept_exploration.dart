@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -875,34 +876,37 @@ class _BlockList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(33, 47, 32, 24),
-      itemCount: blocks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppMetrics.fieldGap),
-      itemBuilder: (context, index) {
-        final block = blocks[index];
-        VoidCallback? onTap;
-        if (block.type.title == 'Text') {
-          onTap = () => onTextBlockTap(block.type, index);
-        } else if (block.type.title == 'Images') {
-          onTap = () => onImageBlockTap(block.type, index);
-        } else if (block.type.title == 'Sketch') {
-          onTap = () => onSketchBlockTap(block.type, index);
-        } else if (block.type.title == 'Video') {
-          onTap = () => onVideoBlockTap(block.type, index);
-        } else if (block.type.title == 'Table') {
-          onTap = () => onTableBlockTap(block.type, index);
-        } else if (block.type.title == 'Link') {
-          onTap = () => onLinkBlockTap(block.type, index);
-        } else if (block.type.title == 'Graph') {
-          onTap = () => onGraphBlockTap(block.type, index);
-        }
-        return _BlockCard(
-          block: block,
-          onTap: onTap,
-          onDelete: () => onDelete(index),
-        );
-      },
+    return PageScrollWithFooter(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(33, 47, 32, 24),
+        itemCount: blocks.length,
+        separatorBuilder: (_, __) =>
+            const SizedBox(height: AppMetrics.fieldGap),
+        itemBuilder: (context, index) {
+          final block = blocks[index];
+          VoidCallback? onTap;
+          if (block.type.title == 'Text') {
+            onTap = () => onTextBlockTap(block.type, index);
+          } else if (block.type.title == 'Images') {
+            onTap = () => onImageBlockTap(block.type, index);
+          } else if (block.type.title == 'Sketch') {
+            onTap = () => onSketchBlockTap(block.type, index);
+          } else if (block.type.title == 'Video') {
+            onTap = () => onVideoBlockTap(block.type, index);
+          } else if (block.type.title == 'Table') {
+            onTap = () => onTableBlockTap(block.type, index);
+          } else if (block.type.title == 'Link') {
+            onTap = () => onLinkBlockTap(block.type, index);
+          } else if (block.type.title == 'Graph') {
+            onTap = () => onGraphBlockTap(block.type, index);
+          }
+          return _BlockCard(
+            block: block,
+            onTap: onTap,
+            onDelete: () => onDelete(index),
+          );
+        },
+      ),
     );
   }
 }

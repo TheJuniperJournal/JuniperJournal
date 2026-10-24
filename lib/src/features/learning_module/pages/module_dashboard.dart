@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -25,126 +26,128 @@ class ModuleDashboardScreen extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: canvasWidth),
-            child: SingleChildScrollView(
-              child: SizedBox(
-                width: canvasWidth,
-                height: 861,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 21,
-                      top: 24,
-                      width: 47,
-                      height: 22,
-                      child: AppTapTarget(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => Navigator.of(
-                          context,
-                        ).popUntil((route) => route.isFirst),
-                        child: const Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Done',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: AppColors.primary,
-                              fontSize: AppTypography.buttonSize,
-                              height: 1,
-                              fontWeight: FontWeight.w500,
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  width: canvasWidth,
+                  height: 861,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 21,
+                        top: 24,
+                        width: 47,
+                        height: 22,
+                        child: AppTapTarget(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst),
+                          child: const Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Done',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.primary,
+                                fontSize: AppTypography.buttonSize,
+                                height: 1,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: (canvasWidth - 215) / 2,
-                      top: 24,
-                      width: 215,
-                      height: 40,
-                      child: _DashboardTag(),
-                    ),
-                    Positioned(
-                      right: 29,
-                      top: 24,
-                      width: 35,
-                      height: 35,
-                      child: AppTapTarget(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {},
-                        child: SvgPicture.asset(
-                          'assets/learning_module/dashboard_settings.svg',
-                          width: 35,
-                          height: 35,
+                      Positioned(
+                        left: (canvasWidth - 215) / 2,
+                        top: 24,
+                        width: 215,
+                        height: 40,
+                        child: _DashboardTag(),
+                      ),
+                      Positioned(
+                        right: 29,
+                        top: 24,
+                        width: 35,
+                        height: 35,
+                        child: AppTapTarget(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {},
+                          child: SvgPicture.asset(
+                            'assets/learning_module/dashboard_settings.svg',
+                            width: 35,
+                            height: 35,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: 26,
-                      top: 126,
-                      width: canvasWidth - 53,
-                      child: Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0xFFEDEDED),
+                      Positioned(
+                        left: 26,
+                        top: 126,
+                        width: canvasWidth - 53,
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Color(0xFFEDEDED),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      left: 37,
-                      top: 162,
-                      child: _DashboardCard(
-                        title: 'Concept\nExploration',
-                        icon: const _DashboardConceptIcon(),
-                        onTap: () {
-                          pushAppRoute(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ConceptExplorationScreen(module: module),
-                            ),
-                          );
-                        },
+                      Positioned(
+                        left: 37,
+                        top: 162,
+                        child: _DashboardCard(
+                          title: 'Concept\nExploration',
+                          icon: const _DashboardConceptIcon(),
+                          onTap: () {
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ConceptExplorationScreen(module: module),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      left: canvasWidth / 2 + 17,
-                      top: 162,
-                      child: _DashboardCard(
-                        title: 'Learning\nObjectives',
-                        iconAsset:
-                            'assets/learning_module/dashboard_learning_objectives.svg',
-                        iconWidth: 23,
-                        iconHeight: 26,
-                        onTap: () {
-                          pushAppRoute(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  LearningObjectiveScreen(module: module),
-                            ),
-                          );
-                        },
+                      Positioned(
+                        left: canvasWidth / 2 + 17,
+                        top: 162,
+                        child: _DashboardCard(
+                          title: 'Learning\nObjectives',
+                          iconAsset:
+                              'assets/learning_module/dashboard_learning_objectives.svg',
+                          iconWidth: 23,
+                          iconHeight: 26,
+                          onTap: () {
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    LearningObjectiveScreen(module: module),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      left: 37,
-                      top: 363,
-                      child: _DashboardCard(
-                        title: 'Learning\nSummary',
-                        iconAsset:
-                            'assets/learning_module/dashboard_learning_summary.svg',
-                        iconWidth: 22,
-                        iconHeight: 25,
-                        onTap: () {
-                          pushAppRoute(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Summary(module: module),
-                            ),
-                          );
-                        },
+                      Positioned(
+                        left: 37,
+                        top: 363,
+                        child: _DashboardCard(
+                          title: 'Learning\nSummary',
+                          iconAsset:
+                              'assets/learning_module/dashboard_learning_summary.svg',
+                          iconWidth: 22,
+                          iconHeight: 25,
+                          onTap: () {
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Summary(module: module),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

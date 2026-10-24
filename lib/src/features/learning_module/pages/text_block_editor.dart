@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
@@ -319,117 +320,119 @@ class _TextBlockEditorScreenState extends State<TextBlockEditorScreen> {
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 18, 27),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionLabel(label: 'Content'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _LabeledField(
-                          label: 'Title',
-                          optional: true,
-                          child: _TextInputBox(
-                            controller: _titleController,
-                            maxLength: 100,
-                            height: 64,
-                            singleLine: true,
-                          ),
-                        ),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _SectionLabel(label: 'Text Content'),
-                        const SizedBox(height: 10),
-                        _TextContentEditor(
-                          controller: _contentController,
-                          maxLength: 5000,
-                          showError: _showValidation && !_hasContent,
-                          fontSize: _fontSize,
-                          bold: _bold,
-                          italic: _italic,
-                          underline: _underline,
-                          alignment: _alignment,
-                          onFontSizeChanged: (value) {
-                            setState(() => _fontSize = value);
-                          },
-                          onBold: () => setState(() => _bold = !_bold),
-                          onItalic: () => setState(() => _italic = !_italic),
-                          onUnderline: () {
-                            setState(() => _underline = !_underline);
-                          },
-                          onAlignmentChanged: (value) {
-                            setState(() => _alignment = value);
-                          },
-                        ),
-                        if (_showValidation && !_hasContent) ...[
-                          const SizedBox(height: 7),
-                          const Text(
-                            'Add text content or supporting media.',
-                            style: AppTypography.helper,
-                          ),
-                        ],
-                        const SizedBox(height: 23),
-                        const _SectionLabel(
-                          label: 'Supporting Media',
-                          optional: true,
-                        ),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        Row(
-                          children: [
-                            _SmallOutlineButton(
-                              label: 'Add Image',
-                              filled: _mediaItems.isNotEmpty,
-                              onTap: _addImage,
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 18, 27),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionLabel(label: 'Content'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _LabeledField(
+                            label: 'Title',
+                            optional: true,
+                            child: _TextInputBox(
+                              controller: _titleController,
+                              maxLength: 100,
+                              height: 64,
+                              singleLine: true,
                             ),
-                            const Spacer(),
-                            _SmallOutlineButton(
-                              label: 'Add Sketch',
-                              onTap: () {},
+                          ),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _SectionLabel(label: 'Text Content'),
+                          const SizedBox(height: 10),
+                          _TextContentEditor(
+                            controller: _contentController,
+                            maxLength: 5000,
+                            showError: _showValidation && !_hasContent,
+                            fontSize: _fontSize,
+                            bold: _bold,
+                            italic: _italic,
+                            underline: _underline,
+                            alignment: _alignment,
+                            onFontSizeChanged: (value) {
+                              setState(() => _fontSize = value);
+                            },
+                            onBold: () => setState(() => _bold = !_bold),
+                            onItalic: () => setState(() => _italic = !_italic),
+                            onUnderline: () {
+                              setState(() => _underline = !_underline);
+                            },
+                            onAlignmentChanged: (value) {
+                              setState(() => _alignment = value);
+                            },
+                          ),
+                          if (_showValidation && !_hasContent) ...[
+                            const SizedBox(height: 7),
+                            const Text(
+                              'Add text content or supporting media.',
+                              style: AppTypography.helper,
                             ),
                           ],
-                        ),
-                        if (_mediaItems.isNotEmpty) ...[
-                          const SizedBox(height: AppMetrics.sectionGap),
-                          _ImagesSection(
-                            items: _mediaItems,
-                            controllers: _mediaControllers,
-                            uploadingIndexes: _uploadingIndexes,
-                            onAddImage: _addImage,
-                            onRemove: _removeImage,
-                            onUpload: _showUploadSheet,
+                          const SizedBox(height: 23),
+                          const _SectionLabel(
+                            label: 'Supporting Media',
+                            optional: true,
                           ),
-                          if (_uploadError != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              _uploadError!,
-                              style: const TextStyle(
-                                color: Color(0xFFD12E2E),
-                                fontSize: AppTypography.helperSize,
-                                fontWeight: FontWeight.w600,
+                          const SizedBox(height: AppMetrics.labelGap),
+                          Row(
+                            children: [
+                              _SmallOutlineButton(
+                                label: 'Add Image',
+                                filled: _mediaItems.isNotEmpty,
+                                onTap: _addImage,
+                              ),
+                              const Spacer(),
+                              _SmallOutlineButton(
+                                label: 'Add Sketch',
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
+                          if (_mediaItems.isNotEmpty) ...[
+                            const SizedBox(height: AppMetrics.sectionGap),
+                            _ImagesSection(
+                              items: _mediaItems,
+                              controllers: _mediaControllers,
+                              uploadingIndexes: _uploadingIndexes,
+                              onAddImage: _addImage,
+                              onRemove: _removeImage,
+                              onUpload: _showUploadSheet,
+                            ),
+                            if (_uploadError != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                _uploadError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFD12E2E),
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: AppMetrics.labelGap),
+                            _LabeledField(
+                              label: 'Evidence description',
+                              optional: true,
+                              child: _TextInputBox(
+                                controller: _captionController,
+                                maxLength: 200,
+                                height: 56,
+                                maxLines: 2,
                               ),
                             ),
                           ],
-                          const SizedBox(height: AppMetrics.labelGap),
-                          _LabeledField(
-                            label: 'Evidence description',
-                            optional: true,
-                            child: _TextInputBox(
-                              controller: _captionController,
-                              maxLength: 200,
-                              height: 56,
-                              maxLines: 2,
+                          const SizedBox(height: 27),
+
+                          const SizedBox(height: AppMetrics.sectionGap),
+                          Center(
+                            child: _PrimaryActionButton(
+                              label: _isEditing ? 'Save' : 'Add Block',
+                              onTap: _saveBlock,
                             ),
                           ),
                         ],
-                        const SizedBox(height: 27),
-
-                        const SizedBox(height: AppMetrics.sectionGap),
-                        Center(
-                          child: _PrimaryActionButton(
-                            label: _isEditing ? 'Save' : 'Add Block',
-                            onTap: _saveBlock,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

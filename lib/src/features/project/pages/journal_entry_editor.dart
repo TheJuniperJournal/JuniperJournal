@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'dart:convert';
@@ -717,14 +718,16 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               ),
             const Divider(height: 1, color: AppColors.divider),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (int i = 0; i < _blocks.length; i++)
-                      _buildBlock(i, _blocks[i]),
-                  ],
+              child: PageScrollWithFooter(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (int i = 0; i < _blocks.length; i++)
+                        _buildBlock(i, _blocks[i]),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -875,52 +878,57 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
             // Block content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (int i = 0; i < _blocks.length; i++)
-                      _buildBlock(i, _blocks[i]),
-                    // Tap empty space to focus last text block
-                    AppTapTarget(
-                      onTap: () {
-                        final lastText = _blocks.lastWhere(
-                          (b) => b.focusNode != null,
-                          orElse: () => _blocks.last,
-                        );
-                        lastText.focusNode?.requestFocus();
-                      },
-                      behavior: HitTestBehavior.translucent,
-                      child: const SizedBox(height: 80, width: double.infinity),
-                    ),
-                    JournalActionFooter(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          OutlinedButton(
-                            onPressed: _isSaving
-                                ? null
-                                : () => Navigator.of(context).maybePop(),
-                            child: const Text('Back'),
-                          ),
-                          const SizedBox(width: 16),
-                          FilledButton(
-                            onPressed: _isSaving
-                                ? null
-                                : () => _saveAndPop(submit: !_submitted),
-                            child: Text(
-                              _isSaving
-                                  ? 'Saving...'
-                                  : _submitted
-                                  ? 'Done'
-                                  : 'Submit',
-                            ),
-                          ),
-                        ],
+              child: PageScrollWithFooter(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (int i = 0; i < _blocks.length; i++)
+                        _buildBlock(i, _blocks[i]),
+                      // Tap empty space to focus last text block
+                      AppTapTarget(
+                        onTap: () {
+                          final lastText = _blocks.lastWhere(
+                            (b) => b.focusNode != null,
+                            orElse: () => _blocks.last,
+                          );
+                          lastText.focusNode?.requestFocus();
+                        },
+                        behavior: HitTestBehavior.translucent,
+                        child: const SizedBox(
+                          height: 80,
+                          width: double.infinity,
+                        ),
                       ),
-                    ),
-                  ],
+                      JournalActionFooter(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            OutlinedButton(
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => Navigator.of(context).maybePop(),
+                              child: const Text('Back'),
+                            ),
+                            const SizedBox(width: 16),
+                            FilledButton(
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => _saveAndPop(submit: !_submitted),
+                              child: Text(
+                                _isSaving
+                                    ? 'Saving...'
+                                    : _submitted
+                                    ? 'Done'
+                                    : 'Submit',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1062,55 +1070,57 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
         focusedBlock?.type == _BlockType.body;
     final isHeader = focusedBlock?.type == _BlockType.header;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // TT — toggle header/body
-          _ToolbarBtn(
-            child: _TtIcon(active: isHeader, enabled: isTextBlock),
-            active: isHeader,
-            onTap: isTextBlock ? _toggleHeaderBody : null,
-            tooltip: 'Toggle header / body',
-          ),
-          _ToolbarBtn(
-            icon: Icons.notes_outlined,
-            onTap: () => _insertAfterFocused(_Block.body('')),
-            tooltip: 'Add text',
-          ),
-          _ToolbarBtn(
-            icon: Icons.more_vert,
-            onTap: _showBlockActions,
-            tooltip: 'Move or remove block',
-          ),
-          Container(width: 1, height: 28, color: AppColors.divider),
-          // Camera
-          _ToolbarBtn(
-            icon: Icons.camera_alt_outlined,
-            onTap: () => _insertImage(ImageSource.camera),
-            tooltip: 'Take photo',
-          ),
-          // Gallery image
-          _ToolbarBtn(
-            icon: Icons.image_outlined,
-            onTap: () => _insertImage(ImageSource.gallery),
-            tooltip: 'Add image from gallery',
-          ),
-          // Table
-          _ToolbarBtn(
-            icon: Icons.table_chart_outlined,
-            onTap: _showInsertTableDialog,
-            tooltip: 'Insert table',
-          ),
-          // Math / π
-          _ToolbarBtn(
-            icon: Icons.functions_outlined,
-            onTap: _showInsertMathDialog,
-            tooltip: 'Insert formula',
-          ),
-        ],
+    return PageScrollWithFooter(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // TT — toggle header/body
+            _ToolbarBtn(
+              child: _TtIcon(active: isHeader, enabled: isTextBlock),
+              active: isHeader,
+              onTap: isTextBlock ? _toggleHeaderBody : null,
+              tooltip: 'Toggle header / body',
+            ),
+            _ToolbarBtn(
+              icon: Icons.notes_outlined,
+              onTap: () => _insertAfterFocused(_Block.body('')),
+              tooltip: 'Add text',
+            ),
+            _ToolbarBtn(
+              icon: Icons.more_vert,
+              onTap: _showBlockActions,
+              tooltip: 'Move or remove block',
+            ),
+            Container(width: 1, height: 28, color: AppColors.divider),
+            // Camera
+            _ToolbarBtn(
+              icon: Icons.camera_alt_outlined,
+              onTap: () => _insertImage(ImageSource.camera),
+              tooltip: 'Take photo',
+            ),
+            // Gallery image
+            _ToolbarBtn(
+              icon: Icons.image_outlined,
+              onTap: () => _insertImage(ImageSource.gallery),
+              tooltip: 'Add image from gallery',
+            ),
+            // Table
+            _ToolbarBtn(
+              icon: Icons.table_chart_outlined,
+              onTap: _showInsertTableDialog,
+              tooltip: 'Insert table',
+            ),
+            // Math / π
+            _ToolbarBtn(
+              icon: Icons.functions_outlined,
+              onTap: _showInsertMathDialog,
+              tooltip: 'Insert formula',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1225,59 +1235,61 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: cells.asMap().entries.map((rowEntry) {
-                  final r = rowEntry.key;
-                  final row = rowEntry.value;
-                  return Row(
-                    children: row.asMap().entries.map((colEntry) {
-                      final c = colEntry.key;
-                      final isFirstRow = r == 0;
-                      return Container(
-                        width: 110,
-                        decoration: BoxDecoration(
-                          color: isFirstRow
-                              ? AppColors.primary.withValues(alpha: 0.06)
-                              : Colors.white,
-                          border: Border(
-                            right: c < row.length - 1
-                                ? BorderSide(color: Colors.grey.shade300)
-                                : BorderSide.none,
-                            bottom: r < cells.length - 1
-                                ? BorderSide(color: Colors.grey.shade300)
-                                : BorderSide.none,
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: cells.asMap().entries.map((rowEntry) {
+                    final r = rowEntry.key;
+                    final row = rowEntry.value;
+                    return Row(
+                      children: row.asMap().entries.map((colEntry) {
+                        final c = colEntry.key;
+                        final isFirstRow = r == 0;
+                        return Container(
+                          width: 110,
+                          decoration: BoxDecoration(
+                            color: isFirstRow
+                                ? AppColors.primary.withValues(alpha: 0.06)
+                                : Colors.white,
+                            border: Border(
+                              right: c < row.length - 1
+                                  ? BorderSide(color: Colors.grey.shade300)
+                                  : BorderSide.none,
+                              bottom: r < cells.length - 1
+                                  ? BorderSide(color: Colors.grey.shade300)
+                                  : BorderSide.none,
+                            ),
                           ),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        child: TextField(
-                          controller: colEntry.value,
-                          readOnly: widget.readOnly,
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.bodySize,
-                            fontWeight: isFirstRow
-                                ? FontWeight.w500
-                                : FontWeight.w400,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                          child: TextField(
+                            controller: colEntry.value,
+                            readOnly: widget.readOnly,
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: isFirstRow
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            ),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            onChanged: widget.readOnly
+                                ? null
+                                : (_) => _hasChanges = true,
                           ),
-                          onChanged: widget.readOnly
-                              ? null
-                              : (_) => _hasChanges = true,
-                        ),
-                      );
-                    }).toList(),
-                  );
-                }).toList(),
+                        );
+                      }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ),

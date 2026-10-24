@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
@@ -1123,150 +1124,154 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
                   onBack: () => Navigator.of(context).pop<SketchBlockData?>(),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(0, 24, 0, 27),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(24, 0, 23, 0),
-                          child: _FieldLabel(label: 'Content'),
-                        ),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 0, 23, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FieldLabel(label: 'Title', optional: true),
-                              const SizedBox(height: 11),
-                              _TextFieldBox(
-                                controller: _titleController,
-                                maxLength: 100,
-                                height: 64,
-                                singleLine: true,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(25, 0, 25, 0),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: _FieldLabel(label: 'Canvas'),
-                              ),
-                              _UndoButton(
-                                asset:
-                                    'assets/learning_module/sketch_block_undo.svg',
-                                onTap: _undo,
-                                enabled: _undoStack.isNotEmpty,
-                              ),
-                              const SizedBox(width: 15),
-                              _UndoButton(
-                                asset:
-                                    'assets/learning_module/sketch_block_redo.svg',
-                                onTap: _redo,
-                                enabled: _redoStack.isNotEmpty,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(25, 0, 23, 0),
-                          child: _CanvasBox(
-                            activeTool: _activeTool,
-                            selectedColor: _selectedColor,
-                            strokes: _strokes,
-                            textItems: _textItems,
-                            shapes: _shapes,
-                            arrows: _arrows,
-                            imagePlaceholders: _imagePlaceholders,
-                            pendingArrowStart: _pendingArrowStart,
-                            draftArrowEnd: _draftArrowEnd,
-                            selection: _selection,
-                            uploadingImage: _uploadingImage,
-                            onDeleteSelected: _deleteSelection,
-                            onResizeStart: _beginSelectionResize,
-                            onResizeUpdate: _resizeSelection,
-                            onPanStart: _startPan,
-                            onPanUpdate: _updatePan,
-                            onPanEnd: _endPan,
-                            onTapUp: _handleTap,
-                            onToolSelected: _selectTool,
-                          ),
-                        ),
-                        if (_showContentError && !_hasCanvasContent) ...[
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(0, 24, 0, 27),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           const Padding(
-                            padding: EdgeInsets.fromLTRB(25, 8, 23, 0),
-                            child: Text(
-                              'Add a drawing, text, shape, or image to the canvas.',
-                              style: AppTypography.requirement,
-                            ),
+                            padding: EdgeInsets.fromLTRB(24, 0, 23, 0),
+                            child: _FieldLabel(label: 'Content'),
                           ),
-                        ],
-                        if (_uploadError != null) ...[
-                          const SizedBox(height: 7),
+                          const SizedBox(height: AppMetrics.labelGap),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 25),
-                            child: Text(
-                              _uploadError!,
-                              style: const TextStyle(
-                                color: Color(0xFFD12E2E),
-                                fontSize: AppTypography.helperSize,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            padding: const EdgeInsets.fromLTRB(24, 0, 23, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _FieldLabel(label: 'Title', optional: true),
+                                const SizedBox(height: 11),
+                                _TextFieldBox(
+                                  controller: _titleController,
+                                  maxLength: 100,
+                                  height: 64,
+                                  singleLine: true,
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                        const SizedBox(height: 11),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 22, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FieldLabel(label: 'Caption', optional: true),
-                              const SizedBox(height: 11),
-                              _TextFieldBox(
-                                controller: _captionController,
-                                maxLength: 300,
-                                height: 56,
-                                maxLines: 2,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-
-                        Center(
-                          child: SizedBox(
-                            width: 130,
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: _save,
-                              style: ElevatedButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: _green,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(9),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(25, 0, 25, 0),
+                            child: Row(
+                              children: [
+                                const Expanded(
+                                  child: _FieldLabel(label: 'Canvas'),
                                 ),
+                                _UndoButton(
+                                  asset:
+                                      'assets/learning_module/sketch_block_undo.svg',
+                                  onTap: _undo,
+                                  enabled: _undoStack.isNotEmpty,
+                                ),
+                                const SizedBox(width: 15),
+                                _UndoButton(
+                                  asset:
+                                      'assets/learning_module/sketch_block_redo.svg',
+                                  onTap: _redo,
+                                  enabled: _redoStack.isNotEmpty,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(25, 0, 23, 0),
+                            child: _CanvasBox(
+                              activeTool: _activeTool,
+                              selectedColor: _selectedColor,
+                              strokes: _strokes,
+                              textItems: _textItems,
+                              shapes: _shapes,
+                              arrows: _arrows,
+                              imagePlaceholders: _imagePlaceholders,
+                              pendingArrowStart: _pendingArrowStart,
+                              draftArrowEnd: _draftArrowEnd,
+                              selection: _selection,
+                              uploadingImage: _uploadingImage,
+                              onDeleteSelected: _deleteSelection,
+                              onResizeStart: _beginSelectionResize,
+                              onResizeUpdate: _resizeSelection,
+                              onPanStart: _startPan,
+                              onPanUpdate: _updatePan,
+                              onPanEnd: _endPan,
+                              onTapUp: _handleTap,
+                              onToolSelected: _selectTool,
+                            ),
+                          ),
+                          if (_showContentError && !_hasCanvasContent) ...[
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(25, 8, 23, 0),
+                              child: Text(
+                                'Add a drawing, text, shape, or image to the canvas.',
+                                style: AppTypography.requirement,
+                              ),
+                            ),
+                          ],
+                          if (_uploadError != null) ...[
+                            const SizedBox(height: 7),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 25,
                               ),
                               child: Text(
-                                _isEditing ? 'Save' : 'Add Block',
+                                _uploadError!,
                                 style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.buttonSize,
-                                  height: 1,
-                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFFD12E2E),
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 11),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 22, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _FieldLabel(label: 'Caption', optional: true),
+                                const SizedBox(height: 11),
+                                _TextFieldBox(
+                                  controller: _captionController,
+                                  maxLength: 300,
+                                  height: 56,
+                                  maxLines: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+
+                          Center(
+                            child: SizedBox(
+                              width: 130,
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: _save,
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: _green,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9),
+                                  ),
+                                ),
+                                child: Text(
+                                  _isEditing ? 'Save' : 'Add Block',
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.buttonSize,
+                                    height: 1,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

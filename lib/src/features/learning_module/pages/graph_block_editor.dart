@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_cell_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -320,137 +321,139 @@ class _GraphBlockEditorScreenState extends State<GraphBlockEditorScreen> {
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 22, 18, 36),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionLabel('Content'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        const _Label('Title', optional: true),
-                        const SizedBox(height: 10),
-                        _Input(
-                          controller: _titleController,
-                          maxLength: 100,
-                          height: 64,
-                          maxLines: 1,
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _Label('Graph Type'),
-                        const SizedBox(height: 10),
-                        _SelectBox(
-                          label: _graphType.label,
-                          icon: _GraphGlyph(type: _graphType),
-                          onTap: _selectGraphType,
-                        ),
-                        const SizedBox(height: 12),
-                        _GraphTable(
-                          graphType: _graphType,
-                          xControllers: _xControllers,
-                          yControllers: _yControllers,
-                          showValidation: _showValidation,
-                          onDelete: _removeRow,
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        Center(
-                          child: _OutlineButton(
-                            label: '+ Add Row',
-                            onTap: _addRow,
-                          ),
-                        ),
-                        const SizedBox(height: 25),
-                        const _Label('Axis Labels'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _SmallInput(
-                          label: _graphType == GraphType.pie
-                              ? 'Label Column Name'
-                              : 'X-Axis Label',
-                          controller: _xAxisController,
-                          showError: _showValidation,
-                        ),
-                        const SizedBox(height: 12),
-                        _SmallInput(
-                          label: _graphType == GraphType.pie
-                              ? 'Percent Column Name'
-                              : 'Y-Axis Label',
-                          controller: _yAxisController,
-                          showError: _showValidation,
-                        ),
-                        const SizedBox(height: 25),
-                        const _Label('Preview'),
-                        const SizedBox(height: 12),
-                        _ChartPreview(
-                          rows: chartRows,
-                          graphType: _graphType,
-                          title: _titleController.text.trim(),
-                          xAxisLabel: _xAxisController.text.trim(),
-                          yAxisLabel: _yAxisController.text.trim(),
-                        ),
-                        const SizedBox(height: 25),
-                        const _Label('Caption', optional: true),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Add specific description of the graph.',
-                          style: AppTypography.helper,
-                        ),
-                        const SizedBox(height: 12),
-                        _Input(
-                          controller: _captionController,
-                          maxLength: 300,
-                          height: 92,
-                          maxLines: 4,
-                          hintText: '',
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-
-                        if (_showValidation && !_canSave) ...[
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 22, 18, 36),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionLabel('Content'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          const _Label('Title', optional: true),
                           const SizedBox(height: 10),
-                          Text(
-                            !_hasAxisLabels
-                                ? 'Enter both axis or column labels.'
-                                : _graphType == GraphType.pie
-                                ? 'Enter at least two pie rows and make percentages total 100.'
-                                : 'Enter valid numeric graph values before saving.',
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: _error,
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
+                          _Input(
+                            controller: _titleController,
+                            maxLength: 100,
+                            height: 64,
+                            maxLines: 1,
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _Label('Graph Type'),
+                          const SizedBox(height: 10),
+                          _SelectBox(
+                            label: _graphType.label,
+                            icon: _GraphGlyph(type: _graphType),
+                            onTap: _selectGraphType,
+                          ),
+                          const SizedBox(height: 12),
+                          _GraphTable(
+                            graphType: _graphType,
+                            xControllers: _xControllers,
+                            yControllers: _yControllers,
+                            showValidation: _showValidation,
+                            onDelete: _removeRow,
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          Center(
+                            child: _OutlineButton(
+                              label: '+ Add Row',
+                              onTap: _addRow,
+                            ),
+                          ),
+                          const SizedBox(height: 25),
+                          const _Label('Axis Labels'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _SmallInput(
+                            label: _graphType == GraphType.pie
+                                ? 'Label Column Name'
+                                : 'X-Axis Label',
+                            controller: _xAxisController,
+                            showError: _showValidation,
+                          ),
+                          const SizedBox(height: 12),
+                          _SmallInput(
+                            label: _graphType == GraphType.pie
+                                ? 'Percent Column Name'
+                                : 'Y-Axis Label',
+                            controller: _yAxisController,
+                            showError: _showValidation,
+                          ),
+                          const SizedBox(height: 25),
+                          const _Label('Preview'),
+                          const SizedBox(height: 12),
+                          _ChartPreview(
+                            rows: chartRows,
+                            graphType: _graphType,
+                            title: _titleController.text.trim(),
+                            xAxisLabel: _xAxisController.text.trim(),
+                            yAxisLabel: _yAxisController.text.trim(),
+                          ),
+                          const SizedBox(height: 25),
+                          const _Label('Caption', optional: true),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Add specific description of the graph.',
+                            style: AppTypography.helper,
+                          ),
+                          const SizedBox(height: 12),
+                          _Input(
+                            controller: _captionController,
+                            maxLength: 300,
+                            height: 92,
+                            maxLines: 4,
+                            hintText: '',
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+
+                          if (_showValidation && !_canSave) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              !_hasAxisLabels
+                                  ? 'Enter both axis or column labels.'
+                                  : _graphType == GraphType.pie
+                                  ? 'Enter at least two pie rows and make percentages total 100.'
+                                  : 'Enter valid numeric graph values before saving.',
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: _error,
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 34),
+                          Center(
+                            child: SizedBox(
+                              width: 130,
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: _saving ? null : _save,
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: _green,
+                                  disabledBackgroundColor: const Color(
+                                    0xFFB8D8C1,
+                                  ),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  _saving
+                                      ? 'Saving...'
+                                      : (_isEditing ? 'Save' : 'Add Block'),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.buttonSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: 34),
-                        Center(
-                          child: SizedBox(
-                            width: 130,
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: _saving ? null : _save,
-                              style: ElevatedButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: _green,
-                                disabledBackgroundColor: const Color(
-                                  0xFFB8D8C1,
-                                ),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                _saving
-                                    ? 'Saving...'
-                                    : (_isEditing ? 'Save' : 'Add Block'),
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.buttonSize,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

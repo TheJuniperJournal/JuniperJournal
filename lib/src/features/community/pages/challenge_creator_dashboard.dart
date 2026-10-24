@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -353,45 +354,47 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
   }
 
   Widget _buildOverviewTab() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-      children: [
-        _DashboardTile(
-          icon: Icons.checklist_outlined,
-          label: 'Requirements',
-          subtitle: _requirementsSummary(),
-          onTap: () async {
-            if (_challenge == null) return;
-            // Navigate to an edit view of requirements
-            await pushAppRoute(
-              context,
-              MaterialPageRoute(
-                builder: (_) => _EditRequirementsWrapper(
-                  challenge: _challenge!,
-                  repo: _repo,
+    return PageScrollWithFooter(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        children: [
+          _DashboardTile(
+            icon: Icons.checklist_outlined,
+            label: 'Requirements',
+            subtitle: _requirementsSummary(),
+            onTap: () async {
+              if (_challenge == null) return;
+              // Navigate to an edit view of requirements
+              await pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => _EditRequirementsWrapper(
+                    challenge: _challenge!,
+                    repo: _repo,
+                  ),
                 ),
-              ),
-            );
-            _load();
-          },
-        ),
-        const SizedBox(height: 12),
-        _DashboardTile(
-          icon: Icons.attach_money_outlined,
-          label: 'Funding & Materials',
-          subtitle: _fundingSummary(),
-          onTap: () async {
-            if (_challenge == null) return;
-            await pushAppRoute(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChallengeFundingForm(challenge: _challenge!),
-              ),
-            );
-            _load();
-          },
-        ),
-      ],
+              );
+              _load();
+            },
+          ),
+          const SizedBox(height: 12),
+          _DashboardTile(
+            icon: Icons.attach_money_outlined,
+            label: 'Funding & Materials',
+            subtitle: _fundingSummary(),
+            onTap: () async {
+              if (_challenge == null) return;
+              await pushAppRoute(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChallengeFundingForm(challenge: _challenge!),
+                ),
+              );
+              _load();
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -408,126 +411,128 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
         ),
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      itemCount: _participants.length,
-      separatorBuilder: (_, __) =>
-          const Divider(height: 1, color: AppColors.divider),
-      itemBuilder: (_, i) {
-        final p = _participants[i];
-        final hasProject = p.projectId != null;
-        return InkWell(
-          onTap: hasProject ? () => _viewParticipantProject(p) : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primaryTint,
-                  backgroundImage: (p.avatarUrl?.isNotEmpty == true)
-                      ? NetworkImage(p.avatarUrl!)
-                      : null,
-                  child: (p.avatarUrl?.isNotEmpty != true)
-                      ? const Icon(
-                          Icons.person_outline,
-                          size: 18,
-                          color: AppColors.primary,
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                // Name + project name
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p.resolvedName,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        p.projectName?.isNotEmpty == true
-                            ? p.projectName!
-                            : 'No project linked',
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                          color: hasProject
-                              ? AppColors.textSecondary
-                              : AppColors.hintText,
-                        ),
-                      ),
-                    ],
+    return PageScrollWithFooter(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        itemCount: _participants.length,
+        separatorBuilder: (_, __) =>
+            const Divider(height: 1, color: AppColors.divider),
+        itemBuilder: (_, i) {
+          final p = _participants[i];
+          final hasProject = p.projectId != null;
+          return InkWell(
+            onTap: hasProject ? () => _viewParticipantProject(p) : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.primaryTint,
+                    backgroundImage: (p.avatarUrl?.isNotEmpty == true)
+                        ? NetworkImage(p.avatarUrl!)
+                        : null,
+                    child: (p.avatarUrl?.isNotEmpty != true)
+                        ? const Icon(
+                            Icons.person_outline,
+                            size: 18,
+                            color: AppColors.primary,
+                          )
+                        : null,
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Status + date stacked
-                if (p.hasSubmitted) ...[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Submitted',
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      if (p.submittedAt != null) ...[
-                        const SizedBox(height: 2),
+                  const SizedBox(width: 12),
+                  // Name + project name
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          DateFormat('MMM d').format(p.submittedAt!),
+                          p.resolvedName,
                           style: const TextStyle(
                             fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.helperSize,
-                            color: AppColors.textSecondary,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          p.projectName?.isNotEmpty == true
+                              ? p.projectName!
+                              : 'No project linked',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            color: hasProject
+                                ? AppColors.textSecondary
+                                : AppColors.hintText,
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                  AppTapTarget(
-                    onTap: () => _unsubmitParticipant(p),
-                    child: const Icon(
-                      Icons.close,
-                      size: 18,
-                      color: AppColors.textSecondary,
                     ),
                   ),
-                ] else ...[
-                  const Text(
-                    'Pending',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      color: AppColors.textSecondary,
+                  const SizedBox(width: 12),
+                  // Status + date stacked
+                  if (p.hasSubmitted) ...[
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'Submitted',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        if (p.submittedAt != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            DateFormat('MMM d').format(p.submittedAt!),
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  if (hasProject)
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: AppColors.textSecondary,
-                    )
-                  else
-                    const SizedBox(width: 18),
+                    const SizedBox(width: 10),
+                    AppTapTarget(
+                      onTap: () => _unsubmitParticipant(p),
+                      child: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ] else ...[
+                    const Text(
+                      'Pending',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    if (hasProject)
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      )
+                    else
+                      const SizedBox(width: 18),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -655,139 +660,141 @@ class _EditRequirementsWrapperState extends State<_EditRequirementsWrapper> {
         centerTitle: true,
         title: const Text('Requirements', style: AppTypography.pageTitle),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _rowField(
-              'Required Journal Entries',
-              _stepper(
-                _journalEntries,
-                0,
-                99,
-                (v) => setState(() => _journalEntries = v),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-            _rowField(
-              'Measurement Required',
-              Switch(
-                value: _measurementRequired,
-                onChanged: (v) => setState(() => _measurementRequired = v),
-                activeColor: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-            if (_isCommunityImpact) ...[
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               _rowField(
-                'Minimum Group Members Required',
+                'Required Journal Entries',
                 _stepper(
-                  _minGroupMembers,
-                  1,
-                  50,
-                  (v) => setState(() => _minGroupMembers = v),
+                  _journalEntries,
+                  0,
+                  99,
+                  (v) => setState(() => _journalEntries = v),
                 ),
               ),
               const SizedBox(height: AppMetrics.fieldGap),
-            ],
-            _sectionLabel('Required Metrics (Multi-Select)'),
-            const SizedBox(height: 10),
-            _pillGrid(_kMetrics, _selectedMetrics),
-            const SizedBox(height: AppMetrics.fieldGap),
-            if (_isPatternChange || _isCommunityImpact) ...[
-              _sectionLabel(
-                _isPatternChange
-                    ? 'Required Pattern (Select 1)'
-                    : 'Required Patterns',
+              _rowField(
+                'Measurement Required',
+                Switch(
+                  value: _measurementRequired,
+                  onChanged: (v) => setState(() => _measurementRequired = v),
+                  activeColor: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+              if (_isCommunityImpact) ...[
+                _rowField(
+                  'Minimum Group Members Required',
+                  _stepper(
+                    _minGroupMembers,
+                    1,
+                    50,
+                    (v) => setState(() => _minGroupMembers = v),
+                  ),
+                ),
+                const SizedBox(height: AppMetrics.fieldGap),
+              ],
+              _sectionLabel('Required Metrics (Multi-Select)'),
+              const SizedBox(height: 10),
+              _pillGrid(_kMetrics, _selectedMetrics),
+              const SizedBox(height: AppMetrics.fieldGap),
+              if (_isPatternChange || _isCommunityImpact) ...[
+                _sectionLabel(
+                  _isPatternChange
+                      ? 'Required Pattern (Select 1)'
+                      : 'Required Patterns',
+                ),
+                const SizedBox(height: 10),
+                _pillGrid(
+                  _patternOptions,
+                  _selectedPatterns,
+                  maxSelect: _isPatternChange ? 1 : null,
+                ),
+                const SizedBox(height: AppMetrics.fieldGap),
+              ],
+              Row(
+                children: [
+                  _sectionLabel('Insert External Link'),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.link,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              _pillGrid(
-                _patternOptions,
-                _selectedPatterns,
-                maxSelect: _isPatternChange ? 1 : null,
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-            ],
-            Row(
-              children: [
-                _sectionLabel('Insert External Link'),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.link,
-                  size: 18,
-                  color: AppColors.textSecondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _linkCtrl,
-              keyboardType: TextInputType.url,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: '',
-                hintStyle: const TextStyle(
+              TextField(
+                controller: _linkCtrl,
+                keyboardType: TextInputType.url,
+                style: const TextStyle(
                   fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.hintText,
-                  fontSize: AppTypography.helperSize,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.textPrimary,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 12,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderLight,
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderLight,
-                    width: 1,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.journalSectionGap),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  textStyle: const TextStyle(
+                decoration: InputDecoration(
+                  hintText: '',
+                  hintStyle: const TextStyle(
                     fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
+                    color: AppColors.hintText,
+                    fontSize: AppTypography.helperSize,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 12,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
                   ),
                 ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Save'),
               ),
-            ),
-          ],
+              const SizedBox(height: AppMetrics.journalSectionGap),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

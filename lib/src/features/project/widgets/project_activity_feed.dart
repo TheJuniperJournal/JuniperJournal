@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../backend/db/models/project_activity_event.dart';
@@ -211,24 +212,26 @@ class _ProjectActivityHistoryState extends State<ProjectActivityHistory> {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            for (final item in _items)
-              ActivityFeedTile(
-                key: ValueKey('activity-${item.id}'),
-                event: item,
-                onTap: () => Navigator.of(context).pop(item),
-              ),
-            if (_items.isEmpty && !_loading) const Text('No activity yet.'),
-            if (_loading)
-              const Center(child: CircularProgressIndicator())
-            else if (_more)
-              TextButton(
-                onPressed: _load,
-                child: const Text('Load more activity'),
-              ),
-          ],
+        child: PageScrollWithFooter(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              for (final item in _items)
+                ActivityFeedTile(
+                  key: ValueKey('activity-${item.id}'),
+                  event: item,
+                  onTap: () => Navigator.of(context).pop(item),
+                ),
+              if (_items.isEmpty && !_loading) const Text('No activity yet.'),
+              if (_loading)
+                const Center(child: CircularProgressIndicator())
+              else if (_more)
+                TextButton(
+                  onPressed: _load,
+                  child: const Text('Load more activity'),
+                ),
+            ],
+          ),
         ),
       ),
     ),

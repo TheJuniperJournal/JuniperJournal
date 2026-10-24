@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_cell_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -403,121 +404,123 @@ class _TableBlockEditorScreenState extends State<TableBlockEditorScreen> {
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 23, 18, 38),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _FieldLabel(label: 'Content'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _FieldLabel(label: 'Title', optional: true),
-                        const SizedBox(height: 10),
-                        _TitleField(controller: _titleController),
-                        const SizedBox(height: 13),
-                        const _FieldLabel(label: 'Columns'),
-                        const SizedBox(height: 11),
-                        _ColumnList(
-                          columns: _columns,
-                          controllers: _columnControllers,
-                          showValidation: _showValidation,
-                          onReorder: _reorderColumn,
-                          onDelete: _removeColumn,
-                        ),
-                        const SizedBox(height: 23),
-                        Center(
-                          child: _OutlineActionButton(
-                            label: '+ Add Column',
-                            width: 242,
-                            onTap: _columns.length >= _maxColumns
-                                ? null
-                                : _addColumn,
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 23, 18, 38),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _FieldLabel(label: 'Content'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _FieldLabel(label: 'Title', optional: true),
+                          const SizedBox(height: 10),
+                          _TitleField(controller: _titleController),
+                          const SizedBox(height: 13),
+                          const _FieldLabel(label: 'Columns'),
+                          const SizedBox(height: 11),
+                          _ColumnList(
+                            columns: _columns,
+                            controllers: _columnControllers,
+                            showValidation: _showValidation,
+                            onReorder: _reorderColumn,
+                            onDelete: _removeColumn,
                           ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _FieldLabel(label: 'Rows'),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _RowStepper(
-                              value: _rowCount,
-                              onIncrement: () => _changeRows(_rowCount + 1),
-                              onDecrement: () => _changeRows(_rowCount - 1),
+                          const SizedBox(height: 23),
+                          Center(
+                            child: _OutlineActionButton(
+                              label: '+ Add Column',
+                              width: 242,
+                              onTap: _columns.length >= _maxColumns
+                                  ? null
+                                  : _addColumn,
                             ),
-                            const SizedBox(width: 12),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _FieldLabel(label: 'Rows'),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _RowStepper(
+                                value: _rowCount,
+                                onIncrement: () => _changeRows(_rowCount + 1),
+                                onDecrement: () => _changeRows(_rowCount - 1),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'rows',
+                                style: TextStyle(
+                                  color: Color(0xB3000000),
+                                  fontSize: AppTypography.helperSize,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _TableGrid(
+                            columns: _columns,
+                            columnControllers: _columnControllers,
+                            rows: _rows,
+                            showValidation: _showValidation,
+                            onCellChanged: (rowIndex, columnId, value) {
+                              setState(() => _rows[rowIndex][columnId] = value);
+                            },
+                            onDeleteRow: _removeRow,
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          Center(
+                            child: _OutlineActionButton(
+                              label: '+ Add Row',
+                              width: 242,
+                              onTap: _rowCount >= _maxRows ? null : _addRow,
+                            ),
+                          ),
+                          const SizedBox(height: 29),
+
+                          if (_showValidation && !_canSave) ...[
+                            const SizedBox(height: 9),
                             const Text(
-                              'rows',
+                              'Name each column and enter at least one table value.',
                               style: TextStyle(
-                                color: Color(0xB3000000),
+                                fontFamily: AppTypography.bodyFamily,
+                                color: _error,
                                 fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-                        _TableGrid(
-                          columns: _columns,
-                          columnControllers: _columnControllers,
-                          rows: _rows,
-                          showValidation: _showValidation,
-                          onCellChanged: (rowIndex, columnId, value) {
-                            setState(() => _rows[rowIndex][columnId] = value);
-                          },
-                          onDeleteRow: _removeRow,
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        Center(
-                          child: _OutlineActionButton(
-                            label: '+ Add Row',
-                            width: 242,
-                            onTap: _rowCount >= _maxRows ? null : _addRow,
-                          ),
-                        ),
-                        const SizedBox(height: 29),
-
-                        if (_showValidation && !_canSave) ...[
-                          const SizedBox(height: 9),
-                          const Text(
-                            'Name each column and enter at least one table value.',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: _error,
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
+                          const SizedBox(height: 39),
+                          Center(
+                            child: SizedBox(
+                              width: 130,
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: _canSave ? _saveBlock : null,
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: _green,
+                                  disabledBackgroundColor: const Color(
+                                    0xFFB8D8C1,
+                                  ),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  _saving
+                                      ? 'Saving...'
+                                      : (_isEditing ? 'Save' : 'Add Block'),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.buttonSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: 39),
-                        Center(
-                          child: SizedBox(
-                            width: 130,
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: _canSave ? _saveBlock : null,
-                              style: ElevatedButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: _green,
-                                disabledBackgroundColor: const Color(
-                                  0xFFB8D8C1,
-                                ),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                _saving
-                                    ? 'Saving...'
-                                    : (_isEditing ? 'Save' : 'Add Block'),
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.buttonSize,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -861,45 +864,47 @@ class _TableGrid extends StatelessWidget {
         JournalPageLayout.widthFor(context, mobileWidth: 393) - 42;
     final cellWidth = ((available - 48) / columns.length).clamp(140.0, 320.0);
     final gridWidth = cellWidth * columns.length + 48;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: gridWidth,
-        child: Table(
-          border: TableBorder.all(color: const Color(0xFFC9C9C9)),
-          columnWidths: {
-            for (var index = 0; index < columns.length; index++)
-              index: FixedColumnWidth(cellWidth),
-            columns.length: const FixedColumnWidth(48),
-          },
-          children: [
-            TableRow(
-              decoration: const BoxDecoration(color: Color(0xFFCFCFCF)),
-              children: [
-                for (final label in [
-                  for (final controller in columnControllers)
-                    _shortHeader(controller.text.trim()),
-                  '',
-                ])
-                  _HeaderCell(label: label),
-              ],
-            ),
-            for (var rowIndex = 0; rowIndex < rows.length; rowIndex++)
+    return PageScrollWithFooter(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: gridWidth,
+          child: Table(
+            border: TableBorder.all(color: const Color(0xFFC9C9C9)),
+            columnWidths: {
+              for (var index = 0; index < columns.length; index++)
+                index: FixedColumnWidth(cellWidth),
+              columns.length: const FixedColumnWidth(48),
+            },
+            children: [
               TableRow(
+                decoration: const BoxDecoration(color: Color(0xFFCFCFCF)),
                 children: [
-                  for (final column in columns)
-                    _EditableCell(
-                      key: ValueKey('$rowIndex-${column.id}'),
-                      initialValue: rows[rowIndex][column.id] ?? '',
-                      showError: showValidation && false,
-                      onChanged: (value) {
-                        onCellChanged(rowIndex, column.id, value);
-                      },
-                    ),
-                  _DeleteRowCell(onTap: () => onDeleteRow(rowIndex)),
+                  for (final label in [
+                    for (final controller in columnControllers)
+                      _shortHeader(controller.text.trim()),
+                    '',
+                  ])
+                    _HeaderCell(label: label),
                 ],
               ),
-          ],
+              for (var rowIndex = 0; rowIndex < rows.length; rowIndex++)
+                TableRow(
+                  children: [
+                    for (final column in columns)
+                      _EditableCell(
+                        key: ValueKey('$rowIndex-${column.id}'),
+                        initialValue: rows[rowIndex][column.id] ?? '',
+                        showError: showValidation && false,
+                        onChanged: (value) {
+                          onCellChanged(rowIndex, column.id, value);
+                        },
+                      ),
+                    _DeleteRowCell(onTap: () => onDeleteRow(rowIndex)),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import '../../../shared/widgets/content_aligned_back_button.dart';
@@ -267,104 +268,106 @@ class _MetricsPageState extends State<MetricsPage> {
 
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-            // TAGS DISPLAY
-            Wrap(
-              spacing: 8,
-              children: widget.tags.map((tag) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTint,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Text(
-                    tag,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.primary,
-                      fontSize: AppTypography.captionSize,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // SELECT METRIC
-            DropdownButtonFormField<Map<String, dynamic>>(
-              initialValue: selectedMetric,
-              decoration: InputDecoration(
-                labelText: "Select Impact Metric",
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 14,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.borderLight),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.borderLight),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.borderLight),
-                ),
-              ),
-              items: metricOptions.map((opt) {
-                return DropdownMenuItem(value: opt, child: Text(opt["name"]));
-              }).toList(),
-              onChanged: (value) {
-                setState(() => selectedMetric = value);
-                calculateImpact();
-              },
-            ),
-
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            if (selectedMetric != null)
-              Column(
-                children: [
-                  buildInputRow("Baseline", baselineCtrl, unit!),
-                  const SizedBox(height: AppMetrics.fieldGap),
-
-                  buildInputRow("Post", postCtrl, unit),
-                  const SizedBox(height: AppMetrics.sectionGap),
-
-                  if (circleLabel != null) buildImpactCircle(circleLabel),
-
-                  const SizedBox(height: AppMetrics.fieldGap),
-
-                  Container(
+        child: PageScrollWithFooter(
+          child: ListView(
+            children: [
+              // TAGS DISPLAY
+              Wrap(
+                spacing: 8,
+                children: widget.tags.map((tag) {
+                  return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                      horizontal: 12,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: impactColor,
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.primaryTint,
+                      borderRadius: BorderRadius.circular(24),
                     ),
                     child: Text(
-                      impactLabel,
+                      tag,
                       style: const TextStyle(
                         fontFamily: AppTypography.bodyFamily,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        fontSize: AppTypography.bodySize,
+                        color: AppColors.primary,
+                        fontSize: AppTypography.captionSize,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                  ),
-                ],
+                  );
+                }).toList(),
               ),
-          ],
+
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // SELECT METRIC
+              DropdownButtonFormField<Map<String, dynamic>>(
+                initialValue: selectedMetric,
+                decoration: InputDecoration(
+                  labelText: "Select Impact Metric",
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 14,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.borderLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.borderLight),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.borderLight),
+                  ),
+                ),
+                items: metricOptions.map((opt) {
+                  return DropdownMenuItem(value: opt, child: Text(opt["name"]));
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => selectedMetric = value);
+                  calculateImpact();
+                },
+              ),
+
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              if (selectedMetric != null)
+                Column(
+                  children: [
+                    buildInputRow("Baseline", baselineCtrl, unit!),
+                    const SizedBox(height: AppMetrics.fieldGap),
+
+                    buildInputRow("Post", postCtrl, unit),
+                    const SizedBox(height: AppMetrics.sectionGap),
+
+                    if (circleLabel != null) buildImpactCircle(circleLabel),
+
+                    const SizedBox(height: AppMetrics.fieldGap),
+
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: impactColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        impactLabel,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: AppTypography.bodySize,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

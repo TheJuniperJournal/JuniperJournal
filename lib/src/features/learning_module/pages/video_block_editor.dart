@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
@@ -319,144 +320,147 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 18, 36),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Label('Content'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        const _Label('Title', optional: true),
-                        const SizedBox(height: 11),
-                        _InputBox(
-                          controller: _titleController,
-                          maxLength: 100,
-                          height: 64,
-                        ),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        Center(
-                          child: _ModeControl(
-                            mode: _mode,
-                            onChanged: (mode) => setState(() => _mode = mode),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_mode == VideoSourceMode.url) ...[
-                          const _Label('Video URL'),
-                          const SizedBox(height: 10),
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 18, 36),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _Label('Content'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          const _Label('Title', optional: true),
+                          const SizedBox(height: 11),
                           _InputBox(
-                            controller: _urlController,
-                            maxLength: 2000,
-                            height: 35,
-                            showCounter: false,
-                            error: showError && !_validUrl,
+                            controller: _titleController,
+                            maxLength: 100,
+                            height: 64,
                           ),
                           const SizedBox(height: AppMetrics.labelGap),
-                        ],
-                        _VideoPreview(
-                          mode: _mode,
-                          validUrl: _validUrl,
-                          url: _urlController.text.trim(),
-                          fileName: _fileName,
-                          uploading: _uploading,
-                          hasUpload: _storagePath.isNotEmpty,
-                          error: showError,
-                          onPick: _pickAndUploadVideo,
-                        ),
-                        if (_uploadError != null) ...[
-                          const SizedBox(height: 7),
-                          Text(
-                            _uploadError!,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: _error,
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
+                          Center(
+                            child: _ModeControl(
+                              mode: _mode,
+                              onChanged: (mode) => setState(() => _mode = mode),
                             ),
                           ),
-                        ] else if (showError) ...[
-                          const SizedBox(height: 7),
-                          Text(
-                            _mode == VideoSourceMode.upload
-                                ? 'Upload a video before adding this block.'
-                                : 'Enter a valid http or https video URL.',
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: _error,
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
+                          const SizedBox(height: 12),
+                          if (_mode == VideoSourceMode.url) ...[
+                            const _Label('Video URL'),
+                            const SizedBox(height: 10),
+                            _InputBox(
+                              controller: _urlController,
+                              maxLength: 2000,
+                              height: 35,
+                              showCounter: false,
+                              error: showError && !_validUrl,
                             ),
+                            const SizedBox(height: AppMetrics.labelGap),
+                          ],
+                          _VideoPreview(
+                            mode: _mode,
+                            validUrl: _validUrl,
+                            url: _urlController.text.trim(),
+                            fileName: _fileName,
+                            uploading: _uploading,
+                            hasUpload: _storagePath.isNotEmpty,
+                            error: showError,
+                            onPick: _pickAndUploadVideo,
                           ),
-                        ],
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _SmallButton(
-                              label: 'Remove',
-                              color: _error,
-                              onTap: _removeVideo,
+                          if (_uploadError != null) ...[
+                            const SizedBox(height: 7),
+                            Text(
+                              _uploadError!,
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: _error,
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
-                            _SmallButton(
-                              label: 'Replace',
-                              color: _green,
-                              onTap: _mode == VideoSourceMode.upload
-                                  ? _pickAndUploadVideo
-                                  : () {
-                                      _urlController.selection = TextSelection(
-                                        baseOffset: 0,
-                                        extentOffset:
-                                            _urlController.text.length,
-                                      );
-                                    },
+                          ] else if (showError) ...[
+                            const SizedBox(height: 7),
+                            Text(
+                              _mode == VideoSourceMode.upload
+                                  ? 'Upload a video before adding this block.'
+                                  : 'Enter a valid http or https video URL.',
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: _error,
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _Label('Description', optional: true),
-                        const SizedBox(height: 11),
-                        _InputBox(
-                          controller: _descriptionController,
-                          maxLength: 300,
-                          height: 56,
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-
-                        const SizedBox(height: AppMetrics.sectionGap),
-                        Center(
-                          child: SizedBox(
-                            width: 130,
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: _hasRequiredVideo && !_saving
-                                  ? _save
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: _green,
-                                disabledBackgroundColor: const Color(
-                                  0xFFB8D8C1,
-                                ),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(9),
-                                ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _SmallButton(
+                                label: 'Remove',
+                                color: _error,
+                                onTap: _removeVideo,
                               ),
-                              child: Text(
-                                _saving
-                                    ? 'Saving...'
-                                    : (_isEditing ? 'Save' : 'Add Block'),
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.buttonSize,
-                                  fontWeight: FontWeight.w500,
+                              _SmallButton(
+                                label: 'Replace',
+                                color: _green,
+                                onTap: _mode == VideoSourceMode.upload
+                                    ? _pickAndUploadVideo
+                                    : () {
+                                        _urlController.selection =
+                                            TextSelection(
+                                              baseOffset: 0,
+                                              extentOffset:
+                                                  _urlController.text.length,
+                                            );
+                                      },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _Label('Description', optional: true),
+                          const SizedBox(height: 11),
+                          _InputBox(
+                            controller: _descriptionController,
+                            maxLength: 300,
+                            height: 56,
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+
+                          const SizedBox(height: AppMetrics.sectionGap),
+                          Center(
+                            child: SizedBox(
+                              width: 130,
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: _hasRequiredVideo && !_saving
+                                    ? _save
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: _green,
+                                  disabledBackgroundColor: const Color(
+                                    0xFFB8D8C1,
+                                  ),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9),
+                                  ),
+                                ),
+                                child: Text(
+                                  _saving
+                                      ? 'Saving...'
+                                      : (_isEditing ? 'Save' : 'Add Block'),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.buttonSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -153,7 +154,9 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
         ),
       ),
       const SizedBox(height: 16),
-      Expanded(child: SingleChildScrollView(child: child)),
+      Expanded(
+        child: PageScrollWithFooter(child: SingleChildScrollView(child: child)),
+      ),
     ],
   );
 
@@ -403,39 +406,41 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                   context,
                 ).copyWith(scrollbars: false),
                 child: Scrollbar(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Create Forum Post',
-                                  style: AppTypography.pageTitle,
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Create Forum Post',
+                                    style: AppTypography.pageTitle,
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                tooltip: 'Close new post',
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints.tightFor(
-                                  width: 32,
-                                  height: 32,
+                                IconButton(
+                                  tooltip: 'Close new post',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 32,
+                                    height: 32,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: _busy
+                                      ? null
+                                      : () => Navigator.pop(context),
+                                  icon: const Icon(Icons.close, size: 18),
                                 ),
-                                visualDensity: VisualDensity.compact,
-                                onPressed: _busy
-                                    ? null
-                                    : () => Navigator.pop(context),
-                                icon: const Icon(Icons.close, size: 18),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 1, color: Color(0xFFD0D0D0)),
-                          const SizedBox(height: AppMetrics.labelGap),
-                          _composer(),
-                        ],
+                              ],
+                            ),
+                            const Divider(height: 1, color: Color(0xFFD0D0D0)),
+                            const SizedBox(height: AppMetrics.labelGap),
+                            _composer(),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -766,114 +771,123 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
         controller: _feedScroll,
         child: RefreshIndicator(
           onRefresh: _load,
-          child: CustomScrollView(
-            key: const ValueKey('project-forum-feed'),
-            controller: _feedScroll,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    const Text(
-                      'Filter',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        color: _green,
-                        fontSize: AppTypography.helperSize,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ScrollConfiguration(
-                        behavior: ScrollConfiguration.of(context).copyWith(
-                          dragDevices: {
-                            PointerDeviceKind.touch,
-                            PointerDeviceKind.mouse,
-                            PointerDeviceKind.trackpad,
-                            PointerDeviceKind.stylus,
-                          },
+          child: PageScrollWithFooter(
+            child: CustomScrollView(
+              key: const ValueKey('project-forum-feed'),
+              controller: _feedScroll,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Filter',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: _green,
+                          fontSize: AppTypography.helperSize,
                         ),
-                        child: SingleChildScrollView(
-                          key: const ValueKey('forum-category-filters'),
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              for (final category in projectPostCategories)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: FilterChip(
-                                    label: Text(
-                                      category,
-                                      style: const TextStyle(
-                                        fontFamily: AppTypography.bodyFamily,
-                                        fontSize: AppTypography.captionSize,
-                                        fontWeight: FontWeight.w400,
-                                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context).copyWith(
+                            dragDevices: {
+                              PointerDeviceKind.touch,
+                              PointerDeviceKind.mouse,
+                              PointerDeviceKind.trackpad,
+                              PointerDeviceKind.stylus,
+                            },
+                          ),
+                          child: PageScrollWithFooter(
+                            child: SingleChildScrollView(
+                              key: const ValueKey('forum-category-filters'),
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  for (final category in projectPostCategories)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: FilterChip(
+                                        label: Text(
+                                          category,
+                                          style: const TextStyle(
+                                            fontFamily:
+                                                AppTypography.bodyFamily,
+                                            fontSize: AppTypography.captionSize,
+                                            fontWeight: FontWeight.w400,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        selected: _filters.contains(category),
+                                        showCheckmark: false,
+                                        backgroundColor: _green,
+                                        selectedColor: const Color(0xFF3E8753),
+                                        side: BorderSide.none,
+                                        shape: const StadiumBorder(),
+                                        onSelected: (_) => setState(() {
+                                          if (!_filters.add(category)) {
+                                            _filters.remove(category);
+                                          }
+                                        }),
                                       ),
                                     ),
-                                    selected: _filters.contains(category),
-                                    showCheckmark: false,
-                                    backgroundColor: _green,
-                                    selectedColor: const Color(0xFF3E8753),
-                                    side: BorderSide.none,
-                                    shape: const StadiumBorder(),
-                                    onSelected: (_) => setState(() {
-                                      if (!_filters.add(category)) {
-                                        _filters.remove(category);
-                                      }
-                                    }),
-                                  ),
-                                ),
-                            ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_filters.isNotEmpty)
+                        IconButton(
+                          tooltip: 'Clear filters',
+                          onPressed: () => setState(_filters.clear),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: _green,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                if (visible.isEmpty)
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      key: const ValueKey('forum-empty-space'),
+                      height: 180,
+                      child: Center(
+                        child: Text(
+                          !_participant
+                              ? 'The bulletin is available to project members.'
+                              : _posts.isEmpty
+                              ? 'Nothing yet… Tap + to start a discussion.'
+                              : 'No posts match your filters.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            color: Colors.grey,
+                            fontSize: AppTypography.bodySize,
                           ),
                         ),
                       ),
                     ),
-                    if (_filters.isNotEmpty)
-                      IconButton(
-                        tooltip: 'Clear filters',
-                        onPressed: () => setState(_filters.clear),
-                        icon: const Icon(Icons.close, size: 16, color: _green),
+                  ),
+                SliverList.list(
+                  children: [
+                    for (final post in visible)
+                      KeyedSubtree(
+                        key: post.id == widget.initialPostId
+                            ? _notificationPostKey
+                            : ValueKey('forum-post-${post.id}'),
+                        child: _bulletinWidth(_postCard(post)),
                       ),
                   ],
                 ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 10)),
-              if (visible.isEmpty)
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    key: const ValueKey('forum-empty-space'),
-                    height: 180,
-                    child: Center(
-                      child: Text(
-                        !_participant
-                            ? 'The bulletin is available to project members.'
-                            : _posts.isEmpty
-                            ? 'Nothing yet… Tap + to start a discussion.'
-                            : 'No posts match your filters.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          color: Colors.grey,
-                          fontSize: AppTypography.bodySize,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              SliverList.list(
-                children: [
-                  for (final post in visible)
-                    KeyedSubtree(
-                      key: post.id == widget.initialPostId
-                          ? _notificationPostKey
-                          : ValueKey('forum-post-${post.id}'),
-                      child: _bulletinWidth(_postCard(post)),
-                    ),
-                ],
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 88)),
-            ],
+                const SliverToBoxAdapter(child: SizedBox(height: 88)),
+              ],
+            ),
           ),
         ),
       ),
@@ -1545,50 +1559,52 @@ class _ProjectCommentsState extends State<_ProjectComments> {
                           targetId: c.id,
                         ),
                       );
-                  return ListView(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    children: [
-                      if (selected != null) ...[
-                        const Text(
-                          'Notified reply',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                  return PageScrollWithFooter(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      children: [
+                        if (selected != null) ...[
+                          const Text(
+                            'Notified reply',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          commentTile(selected, notified: true),
+                          const Divider(),
+                        ],
+                        Text(
+                          widget.post.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: AppTypography.sectionTitleSize,
+                          ),
                         ),
-                        commentTile(selected, notified: true),
+                        const SizedBox(height: 8),
+                        Text(widget.post.body),
+                        for (final image in widget.post.imageUrls)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: ProtectedImage.network(
+                              image,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  const Text('Image unavailable'),
+                            ),
+                          ),
                         const Divider(),
+                        if (comments.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text(
+                              'No comments yet.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ),
+                        for (final c in comments)
+                          if (c.id != selected?.id) commentTile(c),
                       ],
-                      Text(
-                        widget.post.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: AppTypography.sectionTitleSize,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(widget.post.body),
-                      for (final image in widget.post.imageUrls)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: ProtectedImage.network(
-                            image,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                const Text('Image unavailable'),
-                          ),
-                        ),
-                      const Divider(),
-                      if (comments.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Text(
-                            'No comments yet.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textSecondary),
-                          ),
-                        ),
-                      for (final c in comments)
-                        if (c.id != selected?.id) commentTile(c),
-                    ],
+                    ),
                   );
                 },
               ),

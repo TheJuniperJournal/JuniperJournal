@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'project_development_flow.dart';
@@ -510,11 +511,13 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadEntries,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        itemCount: _entries.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (_, index) => _buildEntryCard(_entries[index]),
+      child: PageScrollWithFooter(
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          itemCount: _entries.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (_, index) => _buildEntryCard(_entries[index]),
+        ),
       ),
     );
   }

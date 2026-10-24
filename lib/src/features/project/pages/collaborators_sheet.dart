@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
@@ -169,16 +170,18 @@ class _CollaboratorsSheetState extends State<CollaboratorsSheet> {
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : ListView(
-                        controller: scrollController,
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                        children: [
-                          _buildCurrentCollaboratorsSection(),
-                          if (widget.isOwner) ...[
-                            const SizedBox(height: AppMetrics.fieldGap),
-                            _buildInviteFriendsSection(),
+                    : PageScrollWithFooter(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                          children: [
+                            _buildCurrentCollaboratorsSection(),
+                            if (widget.isOwner) ...[
+                              const SizedBox(height: AppMetrics.fieldGap),
+                              _buildInviteFriendsSection(),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
               ),
             ],

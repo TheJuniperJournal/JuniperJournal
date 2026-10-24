@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -230,153 +231,155 @@ class _ChallengeSetupFormState extends State<ChallengeSetupForm> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cover image
-            AppTapTarget(
-              onTap: _pickImage,
-              child: Container(
-                width: double.infinity,
-                height: 160,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _imageFile != null
-                    ? PickedImagePreview(file: _imageFile!)
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
-                            Icons.add_photo_alternate_outlined,
-                            size: 36,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Add Cover Photo',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.buttonSize,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Design Challenge Name'),
-            const SizedBox(height: 10),
-            _field(_nameCtrl, 'e.g. Terrarium Project'),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Design Prompt (100 word limit)'),
-            const SizedBox(height: 10),
-            TextField(
-              buildCounter:
-                  (
-                    _, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => null,
-              controller: _promptCtrl,
-              minLines: 5,
-              maxLines: null,
-              maxLength: 600,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                color: AppColors.textPrimary,
-              ),
-              decoration: _inputDec('Design a... for... with the goal of...'),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Set Scale'),
-            const SizedBox(height: 10),
-            _dropdownPill(
-              _scale,
-              'Scale',
-              _scaleOptions,
-              (v) => setState(() => _scale = v),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _label('Set Difficulty'),
-            const SizedBox(height: 10),
-            _dropdownPill(
-              _difficulty,
-              'Difficulty',
-              _difficultyOptions,
-              (v) => setState(() => _difficulty = v),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _labelGreen('Start'),
-            const SizedBox(height: 10),
-            _buildDateTimeRow(_startsAt, true),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _labelGreen('End'),
-            const SizedBox(height: 10),
-            _buildDateTimeRow(_endsAt, false),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            Row(
-              children: [
-                _label('All Day'),
-                const Spacer(),
-                Switch.adaptive(
-                  value: _allDay,
-                  activeTrackColor: AppColors.primary,
-                  onChanged: (v) => setState(() => _allDay = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppMetrics.sectionGap),
-
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _uploading ? null : _next,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover image
+              AppTapTarget(
+                onTap: _pickImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTint,
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                child: _uploading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                  clipBehavior: Clip.antiAlias,
+                  child: _imageFile != null
+                      ? PickedImagePreview(file: _imageFile!)
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 36,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Add Cover Photo',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.buttonSize,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                      )
-                    : const Text('Next'),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Design Challenge Name'),
+              const SizedBox(height: 10),
+              _field(_nameCtrl, 'e.g. Terrarium Project'),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Design Prompt (100 word limit)'),
+              const SizedBox(height: 10),
+              TextField(
+                buildCounter:
+                    (
+                      _, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
+                controller: _promptCtrl,
+                minLines: 5,
+                maxLines: null,
+                maxLength: 600,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.textPrimary,
+                ),
+                decoration: _inputDec('Design a... for... with the goal of...'),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Set Scale'),
+              const SizedBox(height: 10),
+              _dropdownPill(
+                _scale,
+                'Scale',
+                _scaleOptions,
+                (v) => setState(() => _scale = v),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _label('Set Difficulty'),
+              const SizedBox(height: 10),
+              _dropdownPill(
+                _difficulty,
+                'Difficulty',
+                _difficultyOptions,
+                (v) => setState(() => _difficulty = v),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _labelGreen('Start'),
+              const SizedBox(height: 10),
+              _buildDateTimeRow(_startsAt, true),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _labelGreen('End'),
+              const SizedBox(height: 10),
+              _buildDateTimeRow(_endsAt, false),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              Row(
+                children: [
+                  _label('All Day'),
+                  const Spacer(),
+                  Switch.adaptive(
+                    value: _allDay,
+                    activeTrackColor: AppColors.primary,
+                    onChanged: (v) => setState(() => _allDay = v),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppMetrics.sectionGap),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _uploading ? null : _next,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: _uploading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Next'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

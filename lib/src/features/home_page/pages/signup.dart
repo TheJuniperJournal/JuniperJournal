@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -339,8 +340,10 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                         child: KeyedSubtree(
                           key: ValueKey(_step),
-                          child: SingleChildScrollView(
-                            child: _buildCurrentStep(),
+                          child: PageScrollWithFooter(
+                            child: SingleChildScrollView(
+                              child: _buildCurrentStep(),
+                            ),
                           ),
                         ),
                       ),

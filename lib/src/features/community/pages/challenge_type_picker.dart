@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -89,75 +90,77 @@ class _ChallengeTypePickerState extends State<ChallengeTypePicker> {
             ),
             const SizedBox(height: AppMetrics.fieldGap),
             Expanded(
-              child: ListView.separated(
-                itemCount: _types.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppMetrics.labelGap),
-                itemBuilder: (_, i) {
-                  final t = _types[i];
-                  final isSelected = _selected == t.value;
-                  return AppTapTarget(
-                    onTap: () => setState(() => _selected = t.value),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryTint,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF6B4EFF)
-                              : Colors.transparent,
-                          width: 2,
+              child: PageScrollWithFooter(
+                child: ListView.separated(
+                  itemCount: _types.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppMetrics.labelGap),
+                  itemBuilder: (_, i) {
+                    final t = _types[i];
+                    final isSelected = _selected == t.value;
+                    return AppTapTarget(
+                      onTap: () => setState(() => _selected = t.value),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryTint,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF6B4EFF)
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                t.icon,
+                                size: 22,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    t.label,
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.bodySize,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    t.description,
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.bodySize,
+                                      color: AppColors.primaryDark,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              t.icon,
-                              size: 22,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  t.label,
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.bodySize,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.primaryDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  t.description,
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.bodySize,
-                                    color: AppColors.primaryDark,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 16),

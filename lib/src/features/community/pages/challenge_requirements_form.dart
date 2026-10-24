@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -177,74 +178,29 @@ class _ChallengeRequirementsFormState extends State<ChallengeRequirementsForm> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Journal entries stepper
-            _rowField(
-              'Required Journal Entries',
-              Row(
-                children: [
-                  _stepperBtn(
-                    Icons.remove,
-                    () => setState(
-                      () =>
-                          _journalEntries = (_journalEntries - 1).clamp(0, 99),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '$_journalEntries',
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _stepperBtn(
-                    Icons.add,
-                    () => setState(
-                      () =>
-                          _journalEntries = (_journalEntries + 1).clamp(0, 99),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // Measurement required toggle
-            _rowField(
-              'Measurement Required',
-              Switch(
-                value: _measurementRequired,
-                onChanged: (v) => setState(() => _measurementRequired = v),
-                activeColor: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // Community Impact: min group members
-            if (_isCommunityImpact) ...[
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Journal entries stepper
               _rowField(
-                'Minimum Group Members Required',
+                'Required Journal Entries',
                 Row(
                   children: [
                     _stepperBtn(
                       Icons.remove,
                       () => setState(
-                        () => _minGroupMembers = (_minGroupMembers - 1).clamp(
-                          1,
-                          50,
+                        () => _journalEntries = (_journalEntries - 1).clamp(
+                          0,
+                          99,
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '$_minGroupMembers',
+                      '$_journalEntries',
                       style: const TextStyle(
                         fontFamily: AppTypography.bodyFamily,
                         fontSize: AppTypography.bodySize,
@@ -255,9 +211,9 @@ class _ChallengeRequirementsFormState extends State<ChallengeRequirementsForm> {
                     _stepperBtn(
                       Icons.add,
                       () => setState(
-                        () => _minGroupMembers = (_minGroupMembers + 1).clamp(
-                          1,
-                          50,
+                        () => _journalEntries = (_journalEntries + 1).clamp(
+                          0,
+                          99,
                         ),
                       ),
                     ),
@@ -265,108 +221,159 @@ class _ChallengeRequirementsFormState extends State<ChallengeRequirementsForm> {
                 ),
               ),
               const SizedBox(height: AppMetrics.fieldGap),
-            ],
 
-            // Required metrics
-            _sectionLabel('Required Metrics (Multi-Select)'),
-            const SizedBox(height: 10),
-            _pillGrid(_kMetrics, _selectedMetrics),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // Required pattern (Pattern Change → select 1; Community Impact → select from list)
-            if (_isPatternChange) ...[
-              _sectionLabel('Required Pattern (Select 1)'),
-              const SizedBox(height: 10),
-              _pillGrid(_patternOptions, _selectedPatterns, maxSelect: 1),
-              const SizedBox(height: AppMetrics.fieldGap),
-            ] else if (_isCommunityImpact) ...[
-              _sectionLabel('Required Patterns'),
-              const SizedBox(height: 10),
-              _pillGrid(_patternOptions, _selectedPatterns),
-              const SizedBox(height: AppMetrics.fieldGap),
-            ],
-
-            // External link
-            Row(
-              children: [
-                _sectionLabel('Insert External Link'),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.link,
-                  size: 18,
-                  color: AppColors.textSecondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _linkCtrl,
-              keyboardType: TextInputType.url,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: '',
-                hintStyle: const TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.hintText,
-                  fontSize: AppTypography.bodySize,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 12,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderLight,
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderLight,
-                    width: 1,
-                  ),
+              // Measurement required toggle
+              _rowField(
+                'Measurement Required',
+                Switch(
+                  value: _measurementRequired,
+                  onChanged: (v) => setState(() => _measurementRequired = v),
+                  activeColor: AppColors.primary,
                 ),
               ),
-            ),
-            const SizedBox(height: AppMetrics.journalSectionGap),
+              const SizedBox(height: AppMetrics.fieldGap),
 
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+              // Community Impact: min group members
+              if (_isCommunityImpact) ...[
+                _rowField(
+                  'Minimum Group Members Required',
+                  Row(
+                    children: [
+                      _stepperBtn(
+                        Icons.remove,
+                        () => setState(
+                          () => _minGroupMembers = (_minGroupMembers - 1).clamp(
+                            1,
+                            50,
+                          ),
                         ),
-                      )
-                    : const Text('Save'),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$_minGroupMembers',
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _stepperBtn(
+                        Icons.add,
+                        () => setState(
+                          () => _minGroupMembers = (_minGroupMembers + 1).clamp(
+                            1,
+                            50,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppMetrics.fieldGap),
+              ],
+
+              // Required metrics
+              _sectionLabel('Required Metrics (Multi-Select)'),
+              const SizedBox(height: 10),
+              _pillGrid(_kMetrics, _selectedMetrics),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // Required pattern (Pattern Change → select 1; Community Impact → select from list)
+              if (_isPatternChange) ...[
+                _sectionLabel('Required Pattern (Select 1)'),
+                const SizedBox(height: 10),
+                _pillGrid(_patternOptions, _selectedPatterns, maxSelect: 1),
+                const SizedBox(height: AppMetrics.fieldGap),
+              ] else if (_isCommunityImpact) ...[
+                _sectionLabel('Required Patterns'),
+                const SizedBox(height: 10),
+                _pillGrid(_patternOptions, _selectedPatterns),
+                const SizedBox(height: AppMetrics.fieldGap),
+              ],
+
+              // External link
+              Row(
+                children: [
+                  _sectionLabel('Insert External Link'),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.link,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              TextField(
+                controller: _linkCtrl,
+                keyboardType: TextInputType.url,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: '',
+                  hintStyle: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: AppColors.hintText,
+                    fontSize: AppTypography.bodySize,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 12,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.journalSectionGap),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

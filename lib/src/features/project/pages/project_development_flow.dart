@@ -1,10 +1,11 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../../shared/widgets/journal_preview_image.dart';
 import '../utils/eco_points_calculator.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/journal_entry_menu.dart';
 import '../../../shared/widgets/page_refresh_state.dart'
-    show restoredJournalStage;
+    show restoredJournalStage, PageRefreshState;
 import '../services/project_activity.dart';
 import '../../../shared/widgets/journal_draft_session.dart';
 import '../../../shared/widgets/journal_entry_title.dart';
@@ -309,24 +310,37 @@ Future<void> _openNewFreeNotes(
   );
 }
 
-/// Phase dashboards return to their project even when opened from a deep link.
-void _returnToProjectOverview(
+/// Phase dashboards return to project Development, including direct links.
+void _returnToProjectDevelopment(
   BuildContext context,
   String projectId,
   ProjectsRepo repo,
   bool isOwner,
 ) {
-  Navigator.of(context).pushReplacement(
-    MaterialPageRoute(
-      builder: (_) => ProjectDashboard(
-        projectId: projectId,
-        projectName: '',
-        tags: const [],
-        projectsRepo: repo,
-        isOwner: isOwner,
-      ),
+  final navigator = Navigator.of(context);
+  var foundProject = false;
+  navigator.popUntil((route) {
+    final destination = PageRefreshState.instance.describeRoute(route);
+    foundProject =
+        destination?['kind'] == 'project' &&
+        destination?['project'] == projectId;
+    return foundProject || route.isFirst;
+  });
+  final route = MaterialPageRoute<void>(
+    builder: (_) => ProjectDashboard(
+      projectId: projectId,
+      projectName: '',
+      tags: const [],
+      projectsRepo: repo,
+      isOwner: isOwner,
+      initialSection: ProjectDashboardSection.development,
     ),
   );
+  if (foundProject) {
+    navigator.pushReplacement(route);
+  } else {
+    navigator.push(route);
+  }
 }
 
 class ProjectDevelopmentTab extends StatelessWidget {
@@ -734,7 +748,7 @@ class _ImplementationDashboardPageState
       repo: widget.projectsRepo,
       child: _PrototypeScaffold(
         title: 'Implementation',
-        onBack: () => _returnToProjectOverview(
+        onBack: () => _returnToProjectDevelopment(
           context,
           widget.projectId,
           widget.projectsRepo,
@@ -742,78 +756,80 @@ class _ImplementationDashboardPageState
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(40, 8, 40, 8),
-                children: [
-                  _PrototypeCountHeader(
-                    count: _entries.length,
-                    label: 'Entries',
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
-                    decoration: BoxDecoration(
-                      color: _devGreen.withValues(alpha: .2),
-                      border: Border.all(color: _devGreen),
-                      borderRadius: BorderRadius.circular(12),
+            : PageScrollWithFooter(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(40, 8, 40, 8),
+                  children: [
+                    _PrototypeCountHeader(
+                      count: _entries.length,
+                      label: 'Entries',
                     ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Phase 4 of 4',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: _devGreen,
-                            fontSize: AppTypography.bodySize,
-                            fontWeight: FontWeight.w500,
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
+                      decoration: BoxDecoration(
+                        color: _devGreen.withValues(alpha: .2),
+                        border: Border.all(color: _devGreen),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Phase 4 of 4',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: _devGreen,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          'Implementation',
-                          style: TextStyle(
-                            fontFamily: AppTypography.headingFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.sectionTitleSize,
-                            fontWeight: FontWeight.w600,
+                          SizedBox(height: 6),
+                          Text(
+                            'Implementation',
+                            style: TextStyle(
+                              fontFamily: AppTypography.headingFamily,
+                              color: AppColors.textPrimary,
+                              fontSize: AppTypography.sectionTitleSize,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          'Implement your solution and document progress, outcomes, observations, and lessons learned throughout this phase.',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            height: 1.15,
+                          SizedBox(height: 6),
+                          Text(
+                            'Implement your solution and document progress, outcomes, observations, and lessons learned throughout this phase.',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: AppColors.textPrimary,
+                              fontSize: AppTypography.bodySize,
+                              height: 1.15,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppMetrics.fieldGap),
-                  const Divider(color: Color(0xFFE5E5E5)),
-                  if (widget.isOwner) ...[
-                    const SizedBox(height: 8),
-                    _PrototypeOutlinedAction(
-                      label: '+ Add Journal Entry',
-                      onTap: _addEntry,
-                    ),
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    const Divider(color: Color(0xFFE5E5E5)),
+                    if (widget.isOwner) ...[
+                      const SizedBox(height: 8),
+                      _PrototypeOutlinedAction(
+                        label: '+ Add Journal Entry',
+                        onTap: _addEntry,
+                      ),
+                    ],
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    if (_entries.isEmpty) const _EmptyPhaseEntries(),
+                    for (var i = 0; i < _entries.length; i++)
+                      _ImplementationEntryCard(
+                        entry: _entries[i],
+                        ecoPoints: _ecoPointsByEntry[_entries[i].id] ?? 0,
+                        onTap: () => _openEntry(_entries[i]),
+                        onEdit: () => _openEntry(_entries[i], edit: true),
+                        onDelete: widget.isOwner
+                            ? () => _deleteEntry(_entries[i])
+                            : null,
+                      ),
                   ],
-                  const SizedBox(height: AppMetrics.fieldGap),
-                  if (_entries.isEmpty) const _EmptyPhaseEntries(),
-                  for (var i = 0; i < _entries.length; i++)
-                    _ImplementationEntryCard(
-                      entry: _entries[i],
-                      ecoPoints: _ecoPointsByEntry[_entries[i].id] ?? 0,
-                      onTap: () => _openEntry(_entries[i]),
-                      onEdit: () => _openEntry(_entries[i], edit: true),
-                      onDelete: widget.isOwner
-                          ? () => _deleteEntry(_entries[i])
-                          : null,
-                    ),
-                ],
+                ),
               ),
       ),
     );
@@ -2257,71 +2273,76 @@ class _ImplementationPreviewPageState extends State<ImplementationPreviewPage> {
       title: 'Journal Entry: Implementation',
       previewEntry: widget.entry,
       onBack: _exit,
-      body: ListView(
-        padding: const EdgeInsets.all(40),
-        children: [
-          Text(widget.entry.title, style: AppTypography.pageTitle),
-          const SizedBox(height: AppMetrics.fieldGap),
-          _PreviewPanel(
-            title: 'Overview',
-            children: [
-              _PreviewField('Summary', _summary),
-              if (_date != null)
-                _PreviewField(
-                  'Date',
-                  DateFormat('MMMM d, yyyy').format(_date!),
+      body: PageScrollWithFooter(
+        child: ListView(
+          padding: const EdgeInsets.all(40),
+          children: [
+            Text(widget.entry.title, style: AppTypography.pageTitle),
+            const SizedBox(height: AppMetrics.fieldGap),
+            _PreviewPanel(
+              title: 'Overview',
+              children: [
+                _PreviewField('Summary', _summary),
+                if (_date != null)
+                  _PreviewField(
+                    'Date',
+                    DateFormat('MMMM d, yyyy').format(_date!),
+                  ),
+                _PreviewField('Location', _location),
+                JournalInvolvedPeoplePreview(
+                  people: _maps(
+                    _implementationStageMap(
+                      widget.entry,
+                      'overview',
+                    )['involved'],
+                  ),
                 ),
-              _PreviewField('Location', _location),
-              JournalInvolvedPeoplePreview(
-                people: _maps(
-                  _implementationStageMap(widget.entry, 'overview')['involved'],
-                ),
-              ),
-              if (_evidence.isNotEmpty) ...[
-                const JournalSectionHeader(title: 'Evidence'),
-                for (final block in _evidence)
-                  _EvidencePreviewBlock(evidence: block),
+                if (_evidence.isNotEmpty) ...[
+                  const JournalSectionHeader(title: 'Evidence'),
+                  for (final block in _evidence)
+                    _EvidencePreviewBlock(evidence: block),
+                ],
               ],
-            ],
-          ),
-          _PreviewPanel(
-            title: 'Assessment',
-            children: [
-              FutureBuilder<List<ImpactEntry>?>(
-                future: _previewImpacts,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData)
-                    return const Center(child: CircularProgressIndicator());
-                  return Column(
-                    children: [
-                      for (final impact in snapshot.data!.where(
-                        (impact) =>
-                            impact.linkedJournalEntryId == widget.entry.id,
-                      ))
-                        _ImplementationImpactCard(impact: impact),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-          _LearningPreviewContent(
-            reflection: _takeaways,
-            selectedDci: _dci,
-            selectedSep: _sep,
-            selectedCcc: _ccc,
-            inquiryLensData: _lens,
-            assessment: _assessment,
-          ),
-          _PreviewPanel(
-            title: 'Reflection',
-            children: [
-              _PreviewField('What worked well?', _worked),
-              _PreviewField('What did not work?', _notWorked),
-              _PreviewField('What would you change?', _change),
-            ],
-          ),
-        ],
+            ),
+            _PreviewPanel(
+              title: 'Assessment',
+              children: [
+                FutureBuilder<List<ImpactEntry>?>(
+                  future: _previewImpacts,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData)
+                      return const Center(child: CircularProgressIndicator());
+                    return Column(
+                      children: [
+                        for (final impact in snapshot.data!.where(
+                          (impact) =>
+                              impact.linkedJournalEntryId == widget.entry.id,
+                        ))
+                          _ImplementationImpactCard(impact: impact),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+            _LearningPreviewContent(
+              reflection: _takeaways,
+              selectedDci: _dci,
+              selectedSep: _sep,
+              selectedCcc: _ccc,
+              inquiryLensData: _lens,
+              assessment: _assessment,
+            ),
+            _PreviewPanel(
+              title: 'Reflection',
+              children: [
+                _PreviewField('What worked well?', _worked),
+                _PreviewField('What did not work?', _notWorked),
+                _PreviewField('What would you change?', _change),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2575,7 +2596,7 @@ class _DiscoveryDashboardPageState extends State<DiscoveryDashboardPage> {
       isLoading: _isLoading,
       isOwner: widget.isOwner,
       badgeLabel: 'DISCOVERY',
-      onBack: () => _returnToProjectOverview(
+      onBack: () => _returnToProjectDevelopment(
         context,
         widget.projectId,
         widget.projectsRepo,
@@ -2764,7 +2785,7 @@ class _IdeatingDashboardPageState extends State<IdeatingDashboardPage> {
       isLoading: _isLoading,
       isOwner: widget.isOwner,
       badgeLabel: 'IDEATING',
-      onBack: () => _returnToProjectOverview(
+      onBack: () => _returnToProjectDevelopment(
         context,
         widget.projectId,
         widget.projectsRepo,
@@ -2955,7 +2976,7 @@ class _PrototypingDashboardPageState extends State<PrototypingDashboardPage> {
     isLoading: _isLoading,
     isOwner: widget.isOwner,
     badgeLabel: 'PROTOTYPING',
-    onBack: () => _returnToProjectOverview(
+    onBack: () => _returnToProjectDevelopment(
       context,
       widget.projectId,
       widget.projectsRepo,
@@ -3309,118 +3330,124 @@ class _CompletePrototypePreview extends StatelessWidget {
       title: 'Journal Entry: Prototyping',
       previewEntry: entry,
       onBack: () => Navigator.pop(context),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-        children: [
-          Text(entry.title, style: AppTypography.pageTitle),
-          const SizedBox(height: AppMetrics.fieldGap),
-          if (component is Map)
+      body: PageScrollWithFooter(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+          children: [
+            Text(entry.title, style: AppTypography.pageTitle),
+            const SizedBox(height: AppMetrics.fieldGap),
+            if (component is Map)
+              _PreviewPanel(
+                title: 'Component',
+                children: [
+                  _PreviewField('Name', component['name']?.toString() ?? ''),
+                  _PreviewField(
+                    'Purpose of the Component',
+                    component['description']?.toString() ?? '',
+                  ),
+                  _PreviewField(
+                    'Key Features',
+                    _previewStringList(component['features']).join('\n'),
+                  ),
+                ],
+              ),
             _PreviewPanel(
-              title: 'Component',
+              title: type == _PrototypeEntryType.building
+                  ? 'Build'
+                  : type == _PrototypeEntryType.testing
+                  ? 'Test'
+                  : type.label,
               children: [
-                _PreviewField('Name', component['name']?.toString() ?? ''),
+                for (final field in type.fields)
+                  _PreviewField(
+                    field.$2,
+                    draft.data[field.$1]?.toString() ?? '',
+                  ),
+                if (type == _PrototypeEntryType.analysis) ...[
+                  _PreviewField(
+                    'Data Source',
+                    _maps(
+                      draft.data['dataSources'],
+                    ).map((source) => source['label']).join(', '),
+                  ),
+                  _PreviewField(
+                    'Calculation Type',
+                    draft.data['calculationType']?.toString() ?? '',
+                  ),
+                  _PreviewField(
+                    'Previously recorded method',
+                    draft.data['method']?.toString() ?? '',
+                  ),
+                  _PreviewField(
+                    'Previously recorded interpretation',
+                    draft.data['interpretation']?.toString() ?? '',
+                  ),
+                ],
                 _PreviewField(
-                  'Purpose of the Component',
-                  component['description']?.toString() ?? '',
+                  'Outcomes & Rating',
+                  draft.data['outcome']?.toString() ?? '',
                 ),
                 _PreviewField(
-                  'Key Features',
-                  _previewStringList(component['features']).join('\n'),
+                  'Previously recorded results',
+                  draft.data['results']?.toString() ?? '',
                 ),
+                JournalInvolvedPeoplePreview(
+                  people: _maps(draft.data['involved']),
+                ),
+                if (_maps(draft.data['evidence']).isNotEmpty) ...[
+                  const JournalSectionHeader(title: 'Evidence'),
+                  for (final item in _maps(draft.data['evidence']))
+                    if (_EvidenceBlock.fromMap(item) case final block?)
+                      _EvidencePreviewBlock(evidence: block),
+                ],
               ],
             ),
-          _PreviewPanel(
-            title: type == _PrototypeEntryType.building
-                ? 'Build'
-                : type == _PrototypeEntryType.testing
-                ? 'Test'
-                : type.label,
-            children: [
-              for (final field in type.fields)
-                _PreviewField(field.$2, draft.data[field.$1]?.toString() ?? ''),
-              if (type == _PrototypeEntryType.analysis) ...[
-                _PreviewField(
-                  'Data Source',
-                  _maps(
-                    draft.data['dataSources'],
-                  ).map((source) => source['label']).join(', '),
-                ),
-                _PreviewField(
-                  'Calculation Type',
-                  draft.data['calculationType']?.toString() ?? '',
-                ),
-                _PreviewField(
-                  'Previously recorded method',
-                  draft.data['method']?.toString() ?? '',
-                ),
-                _PreviewField(
-                  'Previously recorded interpretation',
-                  draft.data['interpretation']?.toString() ?? '',
-                ),
-              ],
-              _PreviewField(
-                'Outcomes & Rating',
-                draft.data['outcome']?.toString() ?? '',
+            if (type == _PrototypeEntryType.building &&
+                draft.data['materialsWorkflow'] == true)
+              _PreviewPanel(
+                title: 'Materials & Cost',
+                children: [
+                  BuildMaterialsStage(
+                    showHeading: false,
+                    items: _maps(draft.data['materials']),
+                    currency:
+                        draft.data['materialsCurrency']?.toString() ?? 'USD',
+                    componentName: (draft.data['component'] as Map?)?['name']
+                        ?.toString(),
+                  ),
+                ],
               ),
-              _PreviewField(
-                'Previously recorded results',
-                draft.data['results']?.toString() ?? '',
+            _LearningPreviewContent(
+              reflection: draft.nextAction['learned']?.toString() ?? '',
+              selectedDci: _stringSet(draft.learning['dci']),
+              selectedSep: _stringSet(draft.learning['sep']),
+              selectedCcc: _stringSet(draft.learning['ccc']),
+              inquiryLensData: InquiryLensData.fromJson(
+                draft.learning['inquiryLensData'],
+                legacyLens:
+                    draft.learning['inquiryLens']?.toString() ??
+                    InquiryLensData.noneValue,
               ),
-              JournalInvolvedPeoplePreview(
-                people: _maps(draft.data['involved']),
+              assessment: AssessmentBlockData.fromJson(
+                draft.learning['assessment'],
               ),
-              if (_maps(draft.data['evidence']).isNotEmpty) ...[
-                const JournalSectionHeader(title: 'Evidence'),
-                for (final item in _maps(draft.data['evidence']))
-                  if (_EvidenceBlock.fromMap(item) case final block?)
-                    _EvidencePreviewBlock(evidence: block),
-              ],
-            ],
-          ),
-          if (type == _PrototypeEntryType.building &&
-              draft.data['materialsWorkflow'] == true)
-            _PreviewPanel(
-              title: 'Materials & Cost',
-              children: [
-                BuildMaterialsStage(
-                  showHeading: false,
-                  items: _maps(draft.data['materials']),
-                  currency:
-                      draft.data['materialsCurrency']?.toString() ?? 'USD',
-                  componentName: (draft.data['component'] as Map?)?['name']
-                      ?.toString(),
-                ),
-              ],
             ),
-          _LearningPreviewContent(
-            reflection: draft.nextAction['learned']?.toString() ?? '',
-            selectedDci: _stringSet(draft.learning['dci']),
-            selectedSep: _stringSet(draft.learning['sep']),
-            selectedCcc: _stringSet(draft.learning['ccc']),
-            inquiryLensData: InquiryLensData.fromJson(
-              draft.learning['inquiryLensData'],
-              legacyLens:
-                  draft.learning['inquiryLens']?.toString() ??
-                  InquiryLensData.noneValue,
+            _NextActionPreviewContent(
+              projectId: entry.projectId,
+              includeLearned: false,
+              learned: draft.nextAction['learned']?.toString() ?? '',
+              challenges: draft.nextAction['challenges']?.toString() ?? '',
+              nextSteps: draft.nextAction['nextSteps']?.toString() ?? '',
+              notes: draft.nextAction['notes']?.toString() ?? '',
+              linkedTimelineEvent:
+                  draft.nextAction['linkedTimelineEvent'] is Map
+                  ? Map<String, String>.from(
+                      draft.nextAction['linkedTimelineEvent'] as Map,
+                    )
+                  : null,
             ),
-            assessment: AssessmentBlockData.fromJson(
-              draft.learning['assessment'],
-            ),
-          ),
-          _NextActionPreviewContent(
-            projectId: entry.projectId,
-            includeLearned: false,
-            learned: draft.nextAction['learned']?.toString() ?? '',
-            challenges: draft.nextAction['challenges']?.toString() ?? '',
-            nextSteps: draft.nextAction['nextSteps']?.toString() ?? '',
-            notes: draft.nextAction['notes']?.toString() ?? '',
-            linkedTimelineEvent: draft.nextAction['linkedTimelineEvent'] is Map
-                ? Map<String, String>.from(
-                    draft.nextAction['linkedTimelineEvent'] as Map,
-                  )
-                : null,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -3494,286 +3521,292 @@ class _CreateBuildingComponentSheetState
           maxHeight: MediaQuery.sizeOf(context).height * .88,
           maxWidth: 444,
         ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            28,
-            24,
-            28 -
-                (ScrollConfiguration.of(context) is AppScrollBehavior &&
-                        {
-                          TargetPlatform.macOS,
-                          TargetPlatform.windows,
-                          TargetPlatform.linux,
-                        }.contains(Theme.of(context).platform)
-                    ? AppScrollbar.gutterWidth
-                    : 0),
-            28,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const SizedBox(width: 40),
-                  Expanded(
-                    child: Text(
-                      widget.component == null
-                          ? 'Create New Component'
-                          : 'Edit Component',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: AppTypography.headingFamily,
-                        fontSize: AppTypography.sectionTitleSize,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: IconButton(
-                      tooltip: 'Close component form',
-                      padding: EdgeInsets.zero,
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: _devGreen, size: 20),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-              _LabeledBox(
-                label: 'Title Component',
-                controller: _name,
-                height: 64,
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-              _RequiredInputHighlight(
-                optional: false,
-                controller: _purpose,
-                label: 'Purpose of the Component',
-                builder: (_) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              28,
+              24,
+              28 -
+                  (ScrollConfiguration.of(context) is AppScrollBehavior &&
+                          {
+                            TargetPlatform.macOS,
+                            TargetPlatform.windows,
+                            TargetPlatform.linux,
+                          }.contains(Theme.of(context).platform)
+                      ? AppScrollbar.gutterWidth
+                      : 0),
+              28,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    const Text(
-                      'Purpose of the Component',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.bodySize,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 40),
+                    Expanded(
+                      child: Text(
+                        widget.component == null
+                            ? 'Create New Component'
+                            : 'Edit Component',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.headingFamily,
+                          fontSize: AppTypography.sectionTitleSize,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      buildCounter:
-                          (
-                            _, {
-                            required currentLength,
-                            required isFocused,
-                            maxLength,
-                          }) => null,
-                      controller: _purpose,
-                      minLines: 5,
-                      maxLines: null,
-                      maxLength: 10000,
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.bodySize,
-                        height: 1.5,
-                      ),
-                      decoration: InputDecoration(
-                        counterStyle: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.helperSize,
-                        ),
-                        contentPadding: const EdgeInsets.all(14),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color:
-                                _inputError(_purpose).value &&
-                                    _purpose.text.trim().isEmpty
-                                ? Colors.red
-                                : _devGreen,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color:
-                                _inputError(_purpose).value &&
-                                    _purpose.text.trim().isEmpty
-                                ? Colors.red
-                                : _devGreen,
-                          ),
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        tooltip: 'Close component form',
+                        padding: EdgeInsets.zero,
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.close,
+                          color: _devGreen,
+                          size: 20,
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-              const Text(
-                'Key Features',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.bodySize,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: AppMetrics.fieldGap),
+                _LabeledBox(
+                  label: 'Title Component',
+                  controller: _name,
+                  height: 64,
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'What features do we hope this component will have? Add at least one, up to 10.',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              if (_featureError)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Add at least one feature.',
-                    style: AppTypography.requirement,
+                const SizedBox(height: AppMetrics.fieldGap),
+                _RequiredInputHighlight(
+                  optional: false,
+                  controller: _purpose,
+                  label: 'Purpose of the Component',
+                  builder: (_) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Purpose of the Component',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        buildCounter:
+                            (
+                              _, {
+                              required currentLength,
+                              required isFocused,
+                              maxLength,
+                            }) => null,
+                        controller: _purpose,
+                        minLines: 5,
+                        maxLines: null,
+                        maxLength: 10000,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
+                          height: 1.5,
+                        ),
+                        decoration: InputDecoration(
+                          counterStyle: const TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.helperSize,
+                          ),
+                          contentPadding: const EdgeInsets.all(14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color:
+                                  _inputError(_purpose).value &&
+                                      _purpose.text.trim().isEmpty
+                                  ? Colors.red
+                                  : _devGreen,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color:
+                                  _inputError(_purpose).value &&
+                                      _purpose.text.trim().isEmpty
+                                  ? Colors.red
+                                  : _devGreen,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              const SizedBox(height: 16),
-              if (_features.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _featureError
-                          ? const Color(0xFFFD1212)
-                          : const Color(0xFFD9D9D9),
+                const SizedBox(height: AppMetrics.fieldGap),
+                const Text(
+                  'Key Features',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.bodySize,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'What features do we hope this component will have? Add at least one, up to 10.',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                if (_featureError)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Add at least one feature.',
+                      style: AppTypography.requirement,
                     ),
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: ReorderableListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    buildDefaultDragHandles: false,
-                    itemCount: _features.length,
-                    onReorder: (oldIndex, newIndex) => setState(() {
-                      if (newIndex > oldIndex) newIndex--;
-                      final field = _features.removeAt(oldIndex);
-                      _features.insert(newIndex, field);
-                    }),
-                    itemBuilder: (context, index) => Container(
-                      key: ObjectKey(_features[index]),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
+                const SizedBox(height: 16),
+                if (_features.isNotEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: _featureError
+                            ? const Color(0xFFFD1212)
+                            : const Color(0xFFD9D9D9),
                       ),
-                      decoration: BoxDecoration(
-                        border: index == 0
-                            ? null
-                            : const Border(
-                                top: BorderSide(color: Color(0xFFD9D9D9)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ReorderableListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      buildDefaultDragHandles: false,
+                      itemCount: _features.length,
+                      onReorder: (oldIndex, newIndex) => setState(() {
+                        if (newIndex > oldIndex) newIndex--;
+                        final field = _features.removeAt(oldIndex);
+                        _features.insert(newIndex, field);
+                      }),
+                      itemBuilder: (context, index) => Container(
+                        key: ObjectKey(_features[index]),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          border: index == 0
+                              ? null
+                              : const Border(
+                                  top: BorderSide(color: Color(0xFFD9D9D9)),
+                                ),
+                        ),
+                        child: Row(
+                          children: [
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: const Icon(
+                                Icons.drag_indicator,
+                                size: 20,
+                                color: Color(0xFFCCCCCC),
                               ),
-                      ),
-                      child: Row(
-                        children: [
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: const Icon(
-                              Icons.drag_indicator,
-                              size: 20,
-                              color: Color(0xFFCCCCCC),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 22,
-                            height: 22,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _devGreen,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 22,
+                              height: 22,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _devGreen,
+                                borderRadius: BorderRadius.circular(3),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              buildCounter:
-                                  (
-                                    _, {
-                                    required currentLength,
-                                    required isFocused,
-                                    maxLength,
-                                  }) => null,
-                              controller: _features[index],
-                              onChanged: (_) {
-                                if (_featureError)
-                                  setState(
-                                    () => _featureError = !_features.any(
-                                      (field) => field.text.trim().isNotEmpty,
-                                    ),
-                                  );
-                              },
-                              textAlign: TextAlign.left,
-                              textAlignVertical: TextAlignVertical.top,
-                              minLines: 1,
-                              maxLines: null,
-                              maxLength: 100,
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                fontSize: AppTypography.bodySize,
-                              ),
-                              decoration: const InputDecoration(
-                                hintText: 'Feature',
-                                border: InputBorder.none,
-                                counterText: '',
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 12,
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                          ),
-                          IconButton(
-                            tooltip: 'Remove feature',
-                            onPressed: () => setState(
-                              () => _features.removeAt(index).dispose(),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                buildCounter:
+                                    (
+                                      _, {
+                                      required currentLength,
+                                      required isFocused,
+                                      maxLength,
+                                    }) => null,
+                                controller: _features[index],
+                                onChanged: (_) {
+                                  if (_featureError)
+                                    setState(
+                                      () => _featureError = !_features.any(
+                                        (field) => field.text.trim().isNotEmpty,
+                                      ),
+                                    );
+                                },
+                                textAlign: TextAlign.left,
+                                textAlignVertical: TextAlignVertical.top,
+                                minLines: 1,
+                                maxLines: null,
+                                maxLength: 100,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.bodySize,
+                                ),
+                                decoration: const InputDecoration(
+                                  hintText: 'Feature',
+                                  border: InputBorder.none,
+                                  counterText: '',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
                             ),
-                            icon: SvgPicture.asset(
-                              'assets/learning_module/learning_objective_trash.svg',
-                              width: 14,
-                              height: 16,
+                            IconButton(
+                              tooltip: 'Remove feature',
+                              onPressed: () => setState(
+                                () => _features.removeAt(index).dispose(),
+                              ),
+                              icon: SvgPicture.asset(
+                                'assets/learning_module/learning_objective_trash.svg',
+                                width: 14,
+                                height: 16,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
+                const SizedBox(height: 16),
+                Center(
+                  child: _PrototypeOutlinedAction(
+                    label: '+ Feature',
+                    onTap: _features.length >= 10
+                        ? null
+                        : () => setState(
+                            () => _features.add(TextEditingController()),
+                          ),
+                  ),
                 ),
-              const SizedBox(height: 16),
-              Center(
-                child: _PrototypeOutlinedAction(
-                  label: '+ Feature',
-                  onTap: _features.length >= 10
-                      ? null
-                      : () => setState(
-                          () => _features.add(TextEditingController()),
-                        ),
+                const SizedBox(height: AppMetrics.fieldGap),
+                Center(
+                  child: _SmallStageButton(
+                    label: widget.component == null ? 'Create' : 'Save',
+                    filled: true,
+                    onTap: _create,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-              Center(
-                child: _SmallStageButton(
-                  label: widget.component == null ? 'Create' : 'Save',
-                  filled: true,
-                  onTap: _create,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -4577,105 +4610,108 @@ class _PrototypingJournalEntryPageState
                   Flexible(
                     child: ScrollConfiguration(
                       behavior: const MaterialScrollBehavior(),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            for (final source in sources)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Material(
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppMetrics.cornerRadius,
+                      child: PageScrollWithFooter(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              for (final source in sources)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Material(
+                                    color: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppMetrics.cornerRadius,
+                                      ),
+                                      side: const BorderSide(
+                                        color: Color(0xFFE5E5E5),
+                                      ),
                                     ),
-                                    side: const BorderSide(
-                                      color: Color(0xFFE5E5E5),
+                                    child: CheckboxListTile(
+                                      secondary: Icon(
+                                        source.$3,
+                                        color: _devGreen,
+                                      ),
+                                      title: Text(
+                                        source.$1,
+                                        style: AppTypography.fieldLabel,
+                                      ),
+                                      subtitle: Text(
+                                        source.$2,
+                                        style: AppTypography.helper,
+                                      ),
+                                      value: selected.contains(source.$1),
+                                      onChanged: (value) => update(() {
+                                        if (value == true) {
+                                          selected.add(source.$1);
+                                        } else {
+                                          selected.remove(source.$1);
+                                        }
+                                      }),
                                     ),
                                   ),
-                                  child: CheckboxListTile(
-                                    secondary: Icon(
-                                      source.$3,
-                                      color: _devGreen,
-                                    ),
-                                    title: Text(
-                                      source.$1,
-                                      style: AppTypography.fieldLabel,
-                                    ),
-                                    subtitle: Text(
-                                      source.$2,
-                                      style: AppTypography.helper,
-                                    ),
-                                    value: selected.contains(source.$1),
-                                    onChanged: (value) => update(() {
-                                      if (value == true) {
-                                        selected.add(source.$1);
-                                      } else {
-                                        selected.remove(source.$1);
-                                      }
-                                    }),
+                                ),
+                              const SizedBox(height: 16),
+                              const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Create your own source',
+                                  style: AppTypography.fieldLabel,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                key: ValueKey(customFieldVersion),
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                decoration: InputDecoration(
+                                  labelText: 'Source name',
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 20,
                                   ),
+                                  errorText: customError
+                                      ? 'Enter a source name.'
+                                      : null,
                                 ),
+                                onChanged: (value) {
+                                  customName = value;
+                                  if (customError)
+                                    update(() => customError = false);
+                                },
                               ),
-                            const SizedBox(height: 16),
-                            const Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Create your own source',
-                                style: AppTypography.fieldLabel,
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Custom Source'),
+                                onPressed: () => update(() {
+                                  final name = customName.trim();
+                                  if (name.isEmpty) {
+                                    customError = true;
+                                    return;
+                                  }
+                                  final match = sources.where(
+                                    (source) =>
+                                        source.$1.toLowerCase() ==
+                                        name.toLowerCase(),
+                                  );
+                                  if (match.isNotEmpty) {
+                                    selected.add(match.first.$1);
+                                  } else {
+                                    sources.add((
+                                      name,
+                                      'Custom data source',
+                                      Icons.note_add_outlined,
+                                    ));
+                                    selected.add(name);
+                                  }
+                                  customName = '';
+                                  customError = false;
+                                  customFieldVersion++;
+                                }),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              key: ValueKey(customFieldVersion),
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                labelText: 'Source name',
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 20,
-                                ),
-                                errorText: customError
-                                    ? 'Enter a source name.'
-                                    : null,
-                              ),
-                              onChanged: (value) {
-                                customName = value;
-                                if (customError)
-                                  update(() => customError = false);
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add Custom Source'),
-                              onPressed: () => update(() {
-                                final name = customName.trim();
-                                if (name.isEmpty) {
-                                  customError = true;
-                                  return;
-                                }
-                                final match = sources.where(
-                                  (source) =>
-                                      source.$1.toLowerCase() ==
-                                      name.toLowerCase(),
-                                );
-                                if (match.isNotEmpty) {
-                                  selected.add(match.first.$1);
-                                } else {
-                                  sources.add((
-                                    name,
-                                    'Custom data source',
-                                    Icons.note_add_outlined,
-                                  ));
-                                  selected.add(name);
-                                }
-                                customName = '';
-                                customError = false;
-                                customFieldVersion++;
-                              }),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -5486,95 +5522,97 @@ class _PhaseDashboardScaffold extends StatelessWidget {
       child: _PrototypeScaffold(
         title: title,
         onBack: onBack,
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(40, 8, 40, 16),
-          children: [
-            _PrototypeCountHeader(count: entries.length, label: 'Entries'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
-              decoration: BoxDecoration(
-                color: _devGreen.withValues(alpha: .2),
-                border: Border.all(color: _devGreen),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Phase $phaseNumber of 4',
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: _devGreen,
-                      fontSize: AppTypography.bodySize,
-                      fontWeight: FontWeight.w500,
+        body: PageScrollWithFooter(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(40, 8, 40, 16),
+            children: [
+              _PrototypeCountHeader(count: entries.length, label: 'Entries'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
+                decoration: BoxDecoration(
+                  color: _devGreen.withValues(alpha: .2),
+                  border: Border.all(color: _devGreen),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Phase $phaseNumber of 4',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: _devGreen,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.headingFamily,
-                      color: AppColors.textPrimary,
-                      fontSize: AppTypography.sectionTitleSize,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 6),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.headingFamily,
+                        color: AppColors.textPrimary,
+                        fontSize: AppTypography.sectionTitleSize,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.textPrimary,
-                      fontSize: AppTypography.bodySize,
-                      height: 1.15,
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: AppColors.textPrimary,
+                        fontSize: AppTypography.bodySize,
+                        height: 1.15,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-            const Divider(color: Color(0xFFE5E5E5)),
-            if (isOwner) ...[
-              const SizedBox(height: 8),
-              _PrototypeOutlinedAction(
-                label: '+ Add Journal Entry',
-                onTap: onAddEntry,
-              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+              const Divider(color: Color(0xFFE5E5E5)),
+              if (isOwner) ...[
+                const SizedBox(height: 8),
+                _PrototypeOutlinedAction(
+                  label: '+ Add Journal Entry',
+                  onTap: onAddEntry,
+                ),
+              ],
+              const SizedBox(height: AppMetrics.fieldGap),
+              if (isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (entries.isEmpty)
+                const _EmptyPhaseEntries()
+              else
+                for (final entry in entries)
+                  if (phaseNumber == 1)
+                    _DiscoveryEntryCard(
+                      entry: entry,
+                      onDelete:
+                          (isOwner ||
+                              entry.authorId ==
+                                  AuthService.instance.currentUser?.id)
+                          ? () => onDeleteEntry(entry)
+                          : null,
+                      onTap: () => onOpenEntry(entry),
+                      onEdit: () => onEditEntry(entry),
+                    )
+                  else
+                    _DevelopmentEntryCard(
+                      entry: entry,
+                      badgeLabel: badgeLabel,
+                      onDelete:
+                          (isOwner ||
+                              entry.authorId ==
+                                  AuthService.instance.currentUser?.id)
+                          ? () => onDeleteEntry(entry)
+                          : null,
+                      onTap: () => onOpenEntry(entry),
+                      onEdit: () => onEditEntry(entry),
+                    ),
             ],
-            const SizedBox(height: AppMetrics.fieldGap),
-            if (isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (entries.isEmpty)
-              const _EmptyPhaseEntries()
-            else
-              for (final entry in entries)
-                if (phaseNumber == 1)
-                  _DiscoveryEntryCard(
-                    entry: entry,
-                    onDelete:
-                        (isOwner ||
-                            entry.authorId ==
-                                AuthService.instance.currentUser?.id)
-                        ? () => onDeleteEntry(entry)
-                        : null,
-                    onTap: () => onOpenEntry(entry),
-                    onEdit: () => onEditEntry(entry),
-                  )
-                else
-                  _DevelopmentEntryCard(
-                    entry: entry,
-                    badgeLabel: badgeLabel,
-                    onDelete:
-                        (isOwner ||
-                            entry.authorId ==
-                                AuthService.instance.currentUser?.id)
-                        ? () => onDeleteEntry(entry)
-                        : null,
-                    onTap: () => onOpenEntry(entry),
-                    onEdit: () => onEditEntry(entry),
-                  ),
-          ],
+          ),
         ),
       ),
     );
@@ -6710,20 +6748,22 @@ class _ObjectivesList extends StatelessWidget {
           ),
         ],
       ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: objectives.length,
-        itemBuilder: (context, index) {
-          return _ObjectiveRow(
-            key: ValueKey(objectives[index].id),
-            objective: objectives[index],
-            index: index,
-            isLast: index == objectives.length - 1,
-            canRemove: true,
-            onRemove: () => onRemove(index),
-          );
-        },
+      child: PageScrollWithFooter(
+        child: ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: objectives.length,
+          itemBuilder: (context, index) {
+            return _ObjectiveRow(
+              key: ValueKey(objectives[index].id),
+              objective: objectives[index],
+              index: index,
+              isLast: index == objectives.length - 1,
+              canRemove: true,
+              onRemove: () => onRemove(index),
+            );
+          },
+        ),
       ),
     );
   }
@@ -6815,19 +6855,21 @@ class _JournalStageLayout extends StatelessWidget {
             ],
           );
         }
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                content,
-                Padding(
-                  padding: const EdgeInsets.only(top: AppMetrics.sectionGap),
-                  child: JournalActionFooter(child: footer),
-                ),
-              ],
+        return PageScrollWithFooter(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  content,
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppMetrics.sectionGap),
+                    child: JournalActionFooter(child: footer),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -7030,9 +7072,11 @@ class _MatrixHorizontalViewport extends StatelessWidget {
             PointerDeviceKind.trackpad,
           },
         ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: child,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: child,
+          ),
         ),
       ),
       if (showHint) ...[
@@ -7847,88 +7891,91 @@ class _IdeaEditorPageState extends State<_IdeaEditorPage> {
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(24, 8, 24 - gutter, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _LabeledBox(
-                      label: 'Title',
-                      controller: _idea.title,
-                      height: 36,
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    _LabeledBox(
-                      label: 'Describe the Idea',
-                      helperText: 'What is your idea?',
-                      controller: _idea.description,
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    _LabeledBox(
-                      label: 'How would it work?',
-                      helperText: 'Explain the main components of the process.',
-                      controller: _idea.rationale,
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    _LabeledBox(
-                      label: 'What are the strengths of this idea?',
-                      controller: _idea.strengths,
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    _LabeledBox(
-                      label: 'What are the challenges of this idea?',
-                      controller: _idea.challenges,
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    const OptionalFieldLabel(
-                      'Evidence (Optional)',
-                      style: TextStyle(
-                        fontFamily: AppTypography.headingFamily,
-                        color: AppColors.primary,
-                        fontSize: AppTypography.evidenceTitleSize,
-                        fontWeight: FontWeight.w600,
+              child: PageScrollWithFooter(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(24, 8, 24 - gutter, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _LabeledBox(
+                        label: 'Title',
+                        controller: _idea.title,
+                        height: 36,
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (_idea.evidence.isEmpty)
-                      const _EmptyEvidenceState()
-                    else
-                      for (var i = 0; i < _idea.evidence.length; i++)
-                        _EvidenceSummaryCard(
-                          evidence: _idea.evidence[i],
-                          onTap: () => _editEvidence(i),
-                          onDelete: () =>
-                              setState(() => _idea.evidence.removeAt(i)),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      _LabeledBox(
+                        label: 'Describe the Idea',
+                        helperText: 'What is your idea?',
+                        controller: _idea.description,
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      _LabeledBox(
+                        label: 'How would it work?',
+                        helperText:
+                            'Explain the main components of the process.',
+                        controller: _idea.rationale,
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      _LabeledBox(
+                        label: 'What are the strengths of this idea?',
+                        controller: _idea.strengths,
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      _LabeledBox(
+                        label: 'What are the challenges of this idea?',
+                        controller: _idea.challenges,
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      const OptionalFieldLabel(
+                        'Evidence (Optional)',
+                        style: TextStyle(
+                          fontFamily: AppTypography.headingFamily,
+                          color: AppColors.primary,
+                          fontSize: AppTypography.evidenceTitleSize,
+                          fontWeight: FontWeight.w600,
                         ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: AppTapTarget(
-                        onTap: _addEvidence,
-                        child: Container(
-                          width: 202,
-                          height: 33,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: _devGreen),
-                            borderRadius: BorderRadius.circular(6),
+                      ),
+                      const SizedBox(height: 10),
+                      if (_idea.evidence.isEmpty)
+                        const _EmptyEvidenceState()
+                      else
+                        for (var i = 0; i < _idea.evidence.length; i++)
+                          _EvidenceSummaryCard(
+                            evidence: _idea.evidence[i],
+                            onTap: () => _editEvidence(i),
+                            onDelete: () =>
+                                setState(() => _idea.evidence.removeAt(i)),
                           ),
-                          child: const Text(
-                            '+ Add Evidence Block',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: AppColors.primary,
-                              fontSize: AppTypography.buttonSize,
-                              fontWeight: FontWeight.w500,
+                      const SizedBox(height: 12),
+                      Center(
+                        child: AppTapTarget(
+                          onTap: _addEvidence,
+                          child: Container(
+                            width: 202,
+                            height: 33,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: _devGreen),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '+ Add Evidence Block',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.primary,
+                                fontSize: AppTypography.buttonSize,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -8047,58 +8094,60 @@ class _SupportingContextSheetState extends State<_SupportingContextSheet> {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Center(
-                child: Container(
-                  width: 20,
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD9D9D9),
-                    borderRadius: BorderRadius.circular(2),
+          child: PageScrollWithFooter(
+            child: ListView(
+              controller: scrollController,
+              children: [
+                Center(
+                  child: Container(
+                    width: 20,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD9D9D9),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const Center(
-                child: Text(
-                  'Supporting Context',
-                  style: TextStyle(
-                    fontFamily: AppTypography.headingFamily,
-                    fontSize: AppTypography.sectionTitleSize,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: AppMetrics.labelGap),
+                const Center(
+                  child: Text(
+                    'Supporting Context',
+                    style: TextStyle(
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.sectionTitleSize,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              _TimelineSheetField(label: 'File Name', controller: _name),
-              const SizedBox(height: AppMetrics.labelGap),
-              _TimelineSheetField(
-                label: 'Reference or URL',
-                optional: true,
-                controller: _reference,
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-              Center(
-                child: _SmallStageButton(
-                  label: 'Save',
-                  filled: true,
-                  onTap: () {
-                    final name = _name.text.trim();
-                    if (name.isEmpty) return;
-                    Navigator.of(context).pop(
-                      _SupportingContextFile(
-                        name: name,
-                        path: _reference.text.trim(),
-                        publicUrl: _reference.text.trim(),
-                        contentType: _attachmentContentType(name),
-                      ),
-                    );
-                  },
+                const SizedBox(height: AppMetrics.labelGap),
+                _TimelineSheetField(label: 'File Name', controller: _name),
+                const SizedBox(height: AppMetrics.labelGap),
+                _TimelineSheetField(
+                  label: 'Reference or URL',
+                  optional: true,
+                  controller: _reference,
                 ),
-              ),
-            ],
+                const SizedBox(height: AppMetrics.fieldGap),
+                Center(
+                  child: _SmallStageButton(
+                    label: 'Save',
+                    filled: true,
+                    onTap: () {
+                      final name = _name.text.trim();
+                      if (name.isEmpty) return;
+                      Navigator.of(context).pop(
+                        _SupportingContextFile(
+                          name: name,
+                          path: _reference.text.trim(),
+                          publicUrl: _reference.text.trim(),
+                          contentType: _attachmentContentType(name),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -8416,52 +8465,54 @@ class _IdeatingEntryPreviewPageState extends State<IdeatingEntryPreviewPage> {
             constraints: BoxConstraints(
               maxWidth: JournalPageLayout.widthFor(context),
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PrototypeTopBar(
-                    title: 'Journal Entry: Ideation',
-                    previewEntry: widget.entry,
-                    onBack: () => Navigator.of(context).pop(),
-                    inset: 0,
-                    trailingLabel: 'Exit',
-                    onTrailing: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(height: AppMetrics.fieldGap),
-                  Text(widget.entry.title, style: AppTypography.pageTitle),
-                  const SizedBox(height: AppMetrics.fieldGap),
-                  for (final previewSection in _IdeatingStage.values)
-                    switch (previewSection) {
-                      _IdeatingStage.challenge => _IdeatingChallengePreview(
-                        data: _data,
-                      ),
-                      _IdeatingStage.ideas => _IdeatingIdeasPreview(
-                        data: _data,
-                      ),
-                      _IdeatingStage.decisionMatrix => _IdeatingMatrixPreview(
-                        data: _data,
-                      ),
-                      _IdeatingStage.learning => _LearningPreviewContent(
-                        reflection: _data.nextLearned,
-                        selectedDci: _data.selectedDci,
-                        selectedSep: _data.selectedSep,
-                        selectedCcc: _data.selectedCcc,
-                        inquiryLensData: _data.inquiryLensData,
-                        assessment: _data.learningAssessment,
-                      ),
-                      _IdeatingStage.nextAction => _NextActionPreviewContent(
-                        projectId: widget.entry.projectId,
-                        includeLearned: false,
-                        learned: _data.nextLearned,
-                        challenges: _data.nextChallenges,
-                        nextSteps: _data.nextSteps,
-                        notes: _data.nextNotes,
-                        linkedTimelineEvent: _data.linkedTimelineEvent,
-                      ),
-                    },
-                ],
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _PrototypeTopBar(
+                      title: 'Journal Entry: Ideation',
+                      previewEntry: widget.entry,
+                      onBack: () => Navigator.of(context).pop(),
+                      inset: 0,
+                      trailingLabel: 'Exit',
+                      onTrailing: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    Text(widget.entry.title, style: AppTypography.pageTitle),
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    for (final previewSection in _IdeatingStage.values)
+                      switch (previewSection) {
+                        _IdeatingStage.challenge => _IdeatingChallengePreview(
+                          data: _data,
+                        ),
+                        _IdeatingStage.ideas => _IdeatingIdeasPreview(
+                          data: _data,
+                        ),
+                        _IdeatingStage.decisionMatrix => _IdeatingMatrixPreview(
+                          data: _data,
+                        ),
+                        _IdeatingStage.learning => _LearningPreviewContent(
+                          reflection: _data.nextLearned,
+                          selectedDci: _data.selectedDci,
+                          selectedSep: _data.selectedSep,
+                          selectedCcc: _data.selectedCcc,
+                          inquiryLensData: _data.inquiryLensData,
+                          assessment: _data.learningAssessment,
+                        ),
+                        _IdeatingStage.nextAction => _NextActionPreviewContent(
+                          projectId: widget.entry.projectId,
+                          includeLearned: false,
+                          learned: _data.nextLearned,
+                          challenges: _data.nextChallenges,
+                          nextSteps: _data.nextSteps,
+                          notes: _data.nextNotes,
+                          linkedTimelineEvent: _data.linkedTimelineEvent,
+                        ),
+                      },
+                  ],
+                ),
               ),
             ),
           ),
@@ -8610,120 +8661,124 @@ class _ReadOnlyDecisionMatrix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const columnWidth = 72.0;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const SizedBox(
-                  width: 154,
-                  height: 58,
-                  child: _MatrixHeader('Criteria'),
-                ),
-                for (var i = 0; i < ideas.length; i++)
-                  Container(
-                    width: columnWidth,
-                    height: 58,
-                    alignment: Alignment.center,
-                    color: _ideaColor(i).withValues(alpha: .14),
-                    child: _MatrixHeader(
-                      ideas[i].title.text.trim().isEmpty
-                          ? 'Idea ${i + 1}'
-                          : ideas[i].title.text.trim(),
-                      color: _ideaColor(i),
-                    ),
-                  ),
-              ],
-            ),
-            for (final criterion in criteria.where(
-              (item) => item.name.text.trim().isNotEmpty,
-            ))
+    return PageScrollWithFooter(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE5E5E5)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
               Row(
                 children: [
-                  Container(
+                  const SizedBox(
                     width: 154,
-                    height: 62,
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: Color(0xFFE5E5E5))),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          criterion.name.text,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.helperSize,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        Text(
-                          'Weight: ${criterion.weight.text}%',
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textSecondary,
-                            fontSize: AppTypography.helperSize,
-                          ),
-                        ),
-                      ],
-                    ),
+                    height: 58,
+                    child: _MatrixHeader('Criteria'),
                   ),
                   for (var i = 0; i < ideas.length; i++)
                     Container(
                       width: columnWidth,
-                      height: 62,
+                      height: 58,
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _ideaColor(i).withValues(alpha: .05),
-                        border: const Border(
+                      color: _ideaColor(i).withValues(alpha: .14),
+                      child: _MatrixHeader(
+                        ideas[i].title.text.trim().isEmpty
+                            ? 'Idea ${i + 1}'
+                            : ideas[i].title.text.trim(),
+                        color: _ideaColor(i),
+                      ),
+                    ),
+                ],
+              ),
+              for (final criterion in criteria.where(
+                (item) => item.name.text.trim().isNotEmpty,
+              ))
+                Row(
+                  children: [
+                    Container(
+                      width: 154,
+                      height: 62,
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        border: Border(
                           top: BorderSide(color: Color(0xFFE5E5E5)),
-                          left: BorderSide(color: Color(0xFFE5E5E5)),
                         ),
                       ),
-                      child: Text(
-                        criterion.ratingFor(ideas[i].id)?.toString() ?? '--',
-                        style: TextStyle(
-                          color: _ideaColor(i),
-                          fontWeight: FontWeight.w500,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            criterion.name.text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          Text(
+                            'Weight: ${criterion.weight.text}%',
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: AppColors.textSecondary,
+                              fontSize: AppTypography.helperSize,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    for (var i = 0; i < ideas.length; i++)
+                      Container(
+                        width: columnWidth,
+                        height: 62,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _ideaColor(i).withValues(alpha: .05),
+                          border: const Border(
+                            top: BorderSide(color: Color(0xFFE5E5E5)),
+                            left: BorderSide(color: Color(0xFFE5E5E5)),
+                          ),
+                        ),
+                        child: Text(
+                          criterion.ratingFor(ideas[i].id)?.toString() ?? '--',
+                          style: TextStyle(
+                            color: _ideaColor(i),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 154,
+                    height: 44,
+                    child: _MatrixHeader('Total Score'),
+                  ),
+                  for (var i = 0; i < ideas.length; i++)
+                    SizedBox(
+                      width: columnWidth,
+                      height: 44,
+                      child: Center(
+                        child: Text(
+                          _formatIdeaScore(scores[ideas[i].id]),
+                          style: TextStyle(
+                            color: _ideaColor(i),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
                 ],
               ),
-            Row(
-              children: [
-                const SizedBox(
-                  width: 154,
-                  height: 44,
-                  child: _MatrixHeader('Total Score'),
-                ),
-                for (var i = 0; i < ideas.length; i++)
-                  SizedBox(
-                    width: columnWidth,
-                    height: 44,
-                    child: Center(
-                      child: Text(
-                        _formatIdeaScore(scores[ideas[i].id]),
-                        style: TextStyle(
-                          color: _ideaColor(i),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -9319,38 +9374,42 @@ class _PrototypeComponentsPageState extends State<_PrototypeComponentsPage> {
                   onBack: () => Navigator.of(context).pop(),
                 ),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(46, 4, 46, 8),
-                    children: [
-                      const JournalSectionHeader(title: 'Components'),
-                      const Text(
-                        'Create and develop components of your prototype.',
-                        style: AppTypography.helper,
-                      ),
-                      const SizedBox(height: AppMetrics.sectionGap),
-                      for (var i = 0; i < components.length; i++)
-                        _PrototypeComponentListCard(
-                          component: components[i],
-                          onEdit: () => _editComponent(i),
-                          index: i,
-                          onTap: () => _openComponent(components[i]),
-                          onDelete: () => _deleteComponent(i),
-                          onMoveUp: i > 0 ? () => _moveComponent(i, -1) : null,
-                          onMoveDown: i < components.length - 1
-                              ? () => _moveComponent(i, 1)
-                              : null,
+                  child: PageScrollWithFooter(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(46, 4, 46, 8),
+                      children: [
+                        const JournalSectionHeader(title: 'Components'),
+                        const Text(
+                          'Create and develop components of your prototype.',
+                          style: AppTypography.helper,
                         ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: SizedBox(
-                          width: 242,
-                          child: _PrototypeOutlinedAction(
-                            label: '+ Component',
-                            onTap: _addComponent,
+                        const SizedBox(height: AppMetrics.sectionGap),
+                        for (var i = 0; i < components.length; i++)
+                          _PrototypeComponentListCard(
+                            component: components[i],
+                            onEdit: () => _editComponent(i),
+                            index: i,
+                            onTap: () => _openComponent(components[i]),
+                            onDelete: () => _deleteComponent(i),
+                            onMoveUp: i > 0
+                                ? () => _moveComponent(i, -1)
+                                : null,
+                            onMoveDown: i < components.length - 1
+                                ? () => _moveComponent(i, 1)
+                                : null,
+                          ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: SizedBox(
+                            width: 242,
+                            child: _PrototypeOutlinedAction(
+                              label: '+ Component',
+                              onTap: _addComponent,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -9721,43 +9780,45 @@ class _PrototypeBuildLogDashboard extends StatelessWidget {
       onBack: () => Navigator.of(context).pop(),
       actionLabel: '+ New Build Log',
       onAction: onAddLog,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(44, 4, 44, 8),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                'assets/prototyping/build_wrench.svg',
-                width: 37,
-                height: 37,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Build Log',
-                style: TextStyle(
-                  fontFamily: AppTypography.headingFamily,
-                  color: AppColors.textPrimary,
-                  fontSize: AppTypography.sectionTitleSize,
-                  fontWeight: FontWeight.w600,
+      body: PageScrollWithFooter(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(44, 4, 44, 8),
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'assets/prototyping/build_wrench.svg',
+                  width: 37,
+                  height: 37,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _PrototypeCountHeader(count: logs.length, label: 'Entries'),
-          const SizedBox(height: 16),
-          const Divider(color: Color(0xFFE5E5E5)),
-          const SizedBox(height: 16),
-          for (var i = 0; i < logs.length; i++)
-            _PrototypeBuildLogFigmaCard(
-              log: logs[i],
-              onTap: () => onOpenLog(i),
-              onDelete: () => onDeleteLog(i),
-              onMoveUp: i > 0 ? () => onMoveLog(i, -1) : null,
-              onMoveDown: i < logs.length - 1 ? () => onMoveLog(i, 1) : null,
+                const SizedBox(width: 8),
+                const Text(
+                  'Build Log',
+                  style: TextStyle(
+                    fontFamily: AppTypography.headingFamily,
+                    color: AppColors.textPrimary,
+                    fontSize: AppTypography.sectionTitleSize,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-        ],
+            const SizedBox(height: 10),
+            _PrototypeCountHeader(count: logs.length, label: 'Entries'),
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFE5E5E5)),
+            const SizedBox(height: 16),
+            for (var i = 0; i < logs.length; i++)
+              _PrototypeBuildLogFigmaCard(
+                log: logs[i],
+                onTap: () => onOpenLog(i),
+                onDelete: () => onDeleteLog(i),
+                onMoveUp: i > 0 ? () => onMoveLog(i, -1) : null,
+                onMoveDown: i < logs.length - 1 ? () => onMoveLog(i, 1) : null,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -10170,58 +10231,60 @@ class _PrototypeTestLogsPageState extends State<_PrototypeTestLogsPage> {
                   onBack: () => Navigator.of(context).pop(),
                 ),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(44, 4, 44, 8),
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/prototyping/test_flask.png',
-                            width: 37,
-                            height: 37,
+                  child: PageScrollWithFooter(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(44, 4, 44, 8),
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/prototyping/test_flask.png',
+                              width: 37,
+                              height: 37,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Test Log',
+                              style: TextStyle(
+                                fontFamily: AppTypography.headingFamily,
+                                color: AppColors.textPrimary,
+                                fontSize: AppTypography.sectionTitleSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _PrototypeCountHeader(
+                          count: entries.length,
+                          label: 'Entries',
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(color: Color(0xFFE5E5E5)),
+                        const SizedBox(height: 16),
+                        for (var i = 0; i < entries.length; i++)
+                          _PrototypeTestEntryCard(
+                            entry: entries[i],
+                            onTap: () => _editTest(i),
+                            onDelete: () => _deleteTest(i),
+                            onMoveUp: i > 0 ? () => _moveTest(i, -1) : null,
+                            onMoveDown: i < entries.length - 1
+                                ? () => _moveTest(i, 1)
+                                : null,
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Test Log',
-                            style: TextStyle(
-                              fontFamily: AppTypography.headingFamily,
-                              color: AppColors.textPrimary,
-                              fontSize: AppTypography.sectionTitleSize,
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(height: 8),
+                        Center(
+                          child: SizedBox(
+                            width: 242,
+                            child: _PrototypeOutlinedAction(
+                              label: '+ Test',
+                              onTap: _addTest,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _PrototypeCountHeader(
-                        count: entries.length,
-                        label: 'Entries',
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(color: Color(0xFFE5E5E5)),
-                      const SizedBox(height: 16),
-                      for (var i = 0; i < entries.length; i++)
-                        _PrototypeTestEntryCard(
-                          entry: entries[i],
-                          onTap: () => _editTest(i),
-                          onDelete: () => _deleteTest(i),
-                          onMoveUp: i > 0 ? () => _moveTest(i, -1) : null,
-                          onMoveDown: i < entries.length - 1
-                              ? () => _moveTest(i, 1)
-                              : null,
                         ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: SizedBox(
-                          width: 242,
-                          child: _PrototypeOutlinedAction(
-                            label: '+ Test',
-                            onTap: _addTest,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Padding(
@@ -11276,18 +11339,20 @@ class _PrototypeFormScaffold extends StatelessWidget {
             constraints: BoxConstraints(
               maxWidth: JournalPageLayout.widthFor(context),
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PrototypeTopBar(
-                    title: title,
-                    onBack: onBack ?? onSave,
-                    inset: 0,
-                  ),
-                  ...children,
-                ],
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _PrototypeTopBar(
+                      title: title,
+                      onBack: onBack ?? onSave,
+                      inset: 0,
+                    ),
+                    ...children,
+                  ],
+                ),
               ),
             ),
           ),
@@ -11478,182 +11543,184 @@ class _PrototypeComponentDetailPage extends StatelessWidget {
     return _PrototypeScaffold(
       title: 'Component: ${component.name}',
       onBack: () => Navigator.of(context).pop(),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(40, 4, 40, 8),
-        children: [
-          const Text(
-            'Component Overview',
-            style: TextStyle(
-              fontFamily: AppTypography.headingFamily,
-              color: AppColors.textPrimary,
-              fontSize: AppTypography.sectionTitleSize,
-              fontWeight: FontWeight.w600,
+      body: PageScrollWithFooter(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(40, 4, 40, 8),
+          children: [
+            const Text(
+              'Component Overview',
+              style: TextStyle(
+                fontFamily: AppTypography.headingFamily,
+                color: AppColors.textPrimary,
+                fontSize: AppTypography.sectionTitleSize,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE5E5E5)),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  component.name,
-                  style: const TextStyle(
-                    fontFamily: AppTypography.headingFamily,
-                    fontSize: AppTypography.sectionTitleSize,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusFill,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    component.status,
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: statusColor,
-                      fontSize: AppTypography.helperSize,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-                if (component.description.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Divider(color: Color(0xFFE5E5E5)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Purpose of the Component',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    component.description,
+                    component.name,
                     style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.textSecondary,
-                      fontSize: AppTypography.helperSize,
-                      height: 1.3,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-                if (component.features.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Divider(color: Color(0xFFE5E5E5)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Key Features',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      fontWeight: FontWeight.w500,
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.sectionTitleSize,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  for (var i = 0; i < component.features.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _devGreen,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '${i + 1}',
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                color: Colors.white,
-                                fontSize: AppTypography.helperSize,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              component.features[i],
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                color: AppColors.textSecondary,
-                                fontSize: AppTypography.helperSize,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusFill,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      component.status,
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: statusColor,
+                        fontSize: AppTypography.helperSize,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                ],
-                const SizedBox(height: AppMetrics.labelGap),
-                const Text(
-                  'View',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.bodySize,
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-                const SizedBox(height: AppMetrics.labelGap),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _PrototypeViewAction(
-                        onTap: onBuild,
-                        label: 'Build',
-                        icon: SvgPicture.asset(
-                          'assets/prototyping/build_wrench.svg',
-                          width: 37,
-                          height: 37,
-                        ),
+                  if (component.description.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Divider(color: Color(0xFFE5E5E5)),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Purpose of the Component',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Expanded(
-                      child: _PrototypeViewAction(
-                        onTap: onTest,
-                        label: 'Test',
-                        icon: Image.asset(
-                          'assets/prototyping/test_flask.png',
-                          width: 37,
-                          height: 37,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: _PrototypeViewAction(
-                        onTap: onMaterials,
-                        label: 'Materials & Cost',
-                        icon: const _MaterialsDollarIcon(),
+                    const SizedBox(height: 6),
+                    Text(
+                      component.description,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: AppColors.textSecondary,
+                        fontSize: AppTypography.helperSize,
+                        height: 1.3,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
-                ),
-              ],
+                  if (component.features.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Divider(color: Color(0xFFE5E5E5)),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Key Features',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    for (var i = 0; i < component.features.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _devGreen,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  color: Colors.white,
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                component.features[i],
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  color: AppColors.textSecondary,
+                                  fontSize: AppTypography.helperSize,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: AppMetrics.labelGap),
+                  const Text(
+                    'View',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: AppMetrics.labelGap),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _PrototypeViewAction(
+                          onTap: onBuild,
+                          label: 'Build',
+                          icon: SvgPicture.asset(
+                            'assets/prototyping/build_wrench.svg',
+                            width: 37,
+                            height: 37,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: _PrototypeViewAction(
+                          onTap: onTest,
+                          label: 'Test',
+                          icon: Image.asset(
+                            'assets/prototyping/test_flask.png',
+                            width: 37,
+                            height: 37,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: _PrototypeViewAction(
+                          onTap: onMaterials,
+                          label: 'Materials & Cost',
+                          icon: const _MaterialsDollarIcon(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -14669,50 +14736,52 @@ class _LearningPreviewPage extends StatelessWidget {
             constraints: BoxConstraints(
               maxWidth: JournalPageLayout.widthFor(context),
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(43, 64, 43, 38),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(
-                    child: Text(
-                      'Entry: Discovery',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        color: AppColors.textPrimary,
-                        fontSize: AppTypography.bodySize,
-                        fontWeight: FontWeight.w500,
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(43, 64, 43, 38),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(
+                      child: Text(
+                        'Entry: Discovery',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.textPrimary,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 36),
-                  const _StageHeader(activeIndex: 3),
-                  const SizedBox(height: JournalPageLayout.stageGap),
-                  const JournalSectionHeader(title: 'Learning'),
-                  _LearningPreviewContent(
-                    selectedDci: selectedDci,
-                    selectedSep: selectedSep,
-                    selectedCcc: selectedCcc,
-                    inquiryLensData: inquiryLensData,
-                    assessment: assessment,
-                  ),
-                  const SizedBox(height: AppMetrics.sectionGap),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _SmallStageButton(
-                        label: 'Back',
-                        onTap: () => Navigator.of(context).pop(false),
-                      ),
-                      const SizedBox(width: 21),
-                      _SmallStageButton(
-                        label: 'Next',
-                        filled: true,
-                        onTap: () => Navigator.of(context).pop(true),
-                      ),
-                    ],
-                  ),
-                ],
+                    const SizedBox(height: 36),
+                    const _StageHeader(activeIndex: 3),
+                    const SizedBox(height: JournalPageLayout.stageGap),
+                    const JournalSectionHeader(title: 'Learning'),
+                    _LearningPreviewContent(
+                      selectedDci: selectedDci,
+                      selectedSep: selectedSep,
+                      selectedCcc: selectedCcc,
+                      inquiryLensData: inquiryLensData,
+                      assessment: assessment,
+                    ),
+                    const SizedBox(height: AppMetrics.sectionGap),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _SmallStageButton(
+                          label: 'Back',
+                          onTap: () => Navigator.of(context).pop(false),
+                        ),
+                        const SizedBox(width: 21),
+                        _SmallStageButton(
+                          label: 'Next',
+                          filled: true,
+                          onTap: () => Navigator.of(context).pop(true),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -15517,150 +15586,152 @@ class CreateJournalTimelineEventSheetState
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Center(
-                child: Container(
-                  width: 20,
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD9D9D9),
-                    borderRadius: BorderRadius.circular(2),
+          child: PageScrollWithFooter(
+            child: ListView(
+              controller: scrollController,
+              children: [
+                Center(
+                  child: Container(
+                    width: 20,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD9D9D9),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const Center(
-                child: Text(
-                  'Create Event',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: AppColors.primary,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              _TimelineSheetField(label: 'Event Name', controller: _name),
-              const SizedBox(height: AppMetrics.labelGap),
-              _TimelineSheetField(
-                label: 'Description',
-                optional: true,
-                controller: _description,
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              _TimelineSheetField(
-                label: 'Location',
-                optional: true,
-                controller: _location,
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const Text(
-                'Start',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _TimelinePickerChip(
-                    label: DateFormat('MMM d, yyyy').format(_start),
-                    onTap: () => _pickDate(start: true),
-                  ),
-                  const SizedBox(width: 10),
-                  _TimelinePickerChip(
-                    label: _timeWithAmPmLocal(_start),
-                    onTap: () => _pickTime(start: true),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const Text(
-                'End',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _TimelinePickerChip(
-                    label: DateFormat('MMM d, yyyy').format(_end),
-                    onTap: () => _pickDate(start: false),
-                  ),
-                  const SizedBox(width: 10),
-                  _TimelinePickerChip(
-                    label: _timeWithAmPmLocal(_end),
-                    onTap: () => _pickTime(start: false),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              Row(
-                children: [
-                  const Text(
-                    'All Day',
+                const SizedBox(height: AppMetrics.labelGap),
+                const Center(
+                  child: Text(
+                    'Create Event',
                     style: TextStyle(
                       fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.helperSize,
-                      fontWeight: FontWeight.w400,
+                      color: AppColors.primary,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Switch(
-                    value: _allDay,
-                    activeThumbColor: _devGreen,
-                    onChanged: (value) => setState(() => _allDay = value),
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                _TimelineSheetField(label: 'Event Name', controller: _name),
+                const SizedBox(height: AppMetrics.labelGap),
+                _TimelineSheetField(
+                  label: 'Description',
+                  optional: true,
+                  controller: _description,
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                _TimelineSheetField(
+                  label: 'Location',
+                  optional: true,
+                  controller: _location,
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                const Text(
+                  'Start',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
                   ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const Text(
-                'Assign To',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  fontWeight: FontWeight.w400,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final member in widget.members)
-                    FilterChip(
-                      label: Text(member.resolvedDisplayName),
-                      selected: _assigneeIds.contains(member.id),
-                      selectedColor: _devGreen.withValues(alpha: .2),
-                      checkmarkColor: _devGreen,
-                      onSelected: (_) {
-                        setState(() {
-                          if (!_assigneeIds.add(member.id)) {
-                            _assigneeIds.remove(member.id);
-                          }
-                        });
-                      },
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _TimelinePickerChip(
+                      label: DateFormat('MMM d, yyyy').format(_start),
+                      onTap: () => _pickDate(start: true),
                     ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const SizedBox(height: AppMetrics.sectionGap),
-              Center(
-                child: _SmallStageButton(
-                  label: 'Create',
-                  filled: true,
-                  onTap: _submit,
+                    const SizedBox(width: 10),
+                    _TimelinePickerChip(
+                      label: _timeWithAmPmLocal(_start),
+                      onTap: () => _pickTime(start: true),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: AppMetrics.labelGap),
+                const Text(
+                  'End',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _TimelinePickerChip(
+                      label: DateFormat('MMM d, yyyy').format(_end),
+                      onTap: () => _pickDate(start: false),
+                    ),
+                    const SizedBox(width: 10),
+                    _TimelinePickerChip(
+                      label: _timeWithAmPmLocal(_end),
+                      onTap: () => _pickTime(start: false),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                Row(
+                  children: [
+                    const Text(
+                      'All Day',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Switch(
+                      value: _allDay,
+                      activeThumbColor: _devGreen,
+                      onChanged: (value) => setState(() => _allDay = value),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                const Text(
+                  'Assign To',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final member in widget.members)
+                      FilterChip(
+                        label: Text(member.resolvedDisplayName),
+                        selected: _assigneeIds.contains(member.id),
+                        selectedColor: _devGreen.withValues(alpha: .2),
+                        checkmarkColor: _devGreen,
+                        onSelected: (_) {
+                          setState(() {
+                            if (!_assigneeIds.add(member.id)) {
+                              _assigneeIds.remove(member.id);
+                            }
+                          });
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                const SizedBox(height: AppMetrics.sectionGap),
+                Center(
+                  child: _SmallStageButton(
+                    label: 'Create',
+                    filled: true,
+                    onTap: _submit,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -16836,123 +16907,125 @@ class _AnalyzePreviewPage extends StatelessWidget {
             constraints: BoxConstraints(
               maxWidth: JournalPageLayout.widthFor(context),
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PrototypeTopBar(
-                    title: 'Journal Entry: Discovery',
-                    onBack: () => Navigator.of(context).pop(),
-                    inset: 0,
-                  ),
-                  const _StageHeader(activeIndex: 1),
-                  const SizedBox(height: JournalPageLayout.stageGap),
-                  const JournalSectionHeader(title: 'Root Causes'),
-                  if (rootCauses.isEmpty)
-                    const Text(
-                      'No root causes added yet.',
-                      style: TextStyle(color: Color(0x80000000)),
-                    )
-                  else
-                    for (final rootCause in rootCauses)
-                      _RootCausePreviewCard(rootCause: rootCause),
-                  const SizedBox(height: AppMetrics.fieldGap),
-                  const JournalSectionHeader(title: 'Pattern Changes'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(16, 15, 16, 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0x80000000)),
-                      borderRadius: BorderRadius.circular(12),
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _PrototypeTopBar(
+                      title: 'Journal Entry: Discovery',
+                      onBack: () => Navigator.of(context).pop(),
+                      inset: 0,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'What could change or improve?',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        if (selected.isNotEmpty)
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 34,
-                                height: 28,
-                                child: _StackedSvgIcon(
-                                  assets: selected.first.assets,
-                                ),
-                              ),
-                              const SizedBox(width: 40),
-                              Text(
-                                selected.first.label,
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  color: AppColors.textPrimary,
-                                  fontSize: AppTypography.bodySize,
-                                ),
-                              ),
-                            ],
-                          )
-                        else
+                    const _StageHeader(activeIndex: 1),
+                    const SizedBox(height: JournalPageLayout.stageGap),
+                    const JournalSectionHeader(title: 'Root Causes'),
+                    if (rootCauses.isEmpty)
+                      const Text(
+                        'No root causes added yet.',
+                        style: TextStyle(color: Color(0x80000000)),
+                      )
+                    else
+                      for (final rootCause in rootCauses)
+                        _RootCausePreviewCard(rootCause: rootCause),
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    const JournalSectionHeader(title: 'Pattern Changes'),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 15, 16, 18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0x80000000)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           const Text(
-                            'No pattern change selected.',
+                            'What could change or improve?',
                             style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: AppColors.textPrimary,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          if (selected.isNotEmpty)
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 34,
+                                  height: 28,
+                                  child: _StackedSvgIcon(
+                                    assets: selected.first.assets,
+                                  ),
+                                ),
+                                const SizedBox(width: 40),
+                                Text(
+                                  selected.first.label,
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    color: AppColors.textPrimary,
+                                    fontSize: AppTypography.bodySize,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            const Text(
+                              'No pattern change selected.',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.textSecondary,
+                                fontSize: AppTypography.helperSize,
+                              ),
+                            ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const Text(
+                            'Why was this pattern selected?',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: AppColors.textPrimary,
+                              fontSize: AppTypography.bodySize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            patternExplanation.isEmpty
+                                ? 'No explanation added yet.'
+                                : patternExplanation,
+                            style: const TextStyle(
                               fontFamily: AppTypography.bodyFamily,
                               color: AppColors.textSecondary,
                               fontSize: AppTypography.helperSize,
+                              fontWeight: FontWeight.w400,
+                              height: 1.25,
                             ),
                           ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const Text(
-                          'Why was this pattern selected?',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 70),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _SmallStageButton(
+                          label: 'Back',
+                          onTap: () => Navigator.of(context).pop(),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          patternExplanation.isEmpty
-                              ? 'No explanation added yet.'
-                              : patternExplanation,
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textSecondary,
-                            fontSize: AppTypography.helperSize,
-                            fontWeight: FontWeight.w400,
-                            height: 1.25,
-                          ),
+                        const SizedBox(width: 21),
+                        _SmallStageButton(
+                          label: 'Next',
+                          filled: true,
+                          onTap: () => Navigator.of(context).pop(true),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 70),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _SmallStageButton(
-                        label: 'Back',
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 21),
-                      _SmallStageButton(
-                        label: 'Next',
-                        filled: true,
-                        onTap: () => Navigator.of(context).pop(true),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -17243,52 +17316,54 @@ class _TableEvidencePreview extends StatelessWidget {
   final TableBlockData data;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: constraints.maxWidth),
-        child: DataTable(
-          headingRowHeight: 36,
-          dataRowMinHeight: 32,
-          dataRowMaxHeight: 44,
-          columnSpacing: 18,
-          horizontalMargin: 10,
-          columns: [
-            for (final column in data.columns)
-              DataColumn(
-                label: Text(
-                  column.name,
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.helperSize,
-                    fontWeight: FontWeight.w400,
+    builder: (context, constraints) => PageScrollWithFooter(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: DataTable(
+            headingRowHeight: 36,
+            dataRowMinHeight: 32,
+            dataRowMaxHeight: 44,
+            columnSpacing: 18,
+            horizontalMargin: 10,
+            columns: [
+              for (final column in data.columns)
+                DataColumn(
+                  label: Text(
+                    column.name,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
-              ),
-          ],
-          rows: [
-            for (final row in data.rows.where(
-              (row) => data.columns.any(
-                (column) => (row[column.id] ?? '').trim().isNotEmpty,
-              ),
-            ))
-              DataRow(
-                cells: [
-                  for (final column in data.columns)
-                    DataCell(
-                      Text(
-                        (row[column.id] ?? '').trim().isEmpty
-                            ? '—'
-                            : row[column.id]!,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.helperSize,
+            ],
+            rows: [
+              for (final row in data.rows.where(
+                (row) => data.columns.any(
+                  (column) => (row[column.id] ?? '').trim().isNotEmpty,
+                ),
+              ))
+                DataRow(
+                  cells: [
+                    for (final column in data.columns)
+                      DataCell(
+                        Text(
+                          (row[column.id] ?? '').trim().isEmpty
+                              ? '—'
+                              : row[column.id]!,
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.helperSize,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-          ],
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     ),
@@ -17453,36 +17528,40 @@ class _ImageEvidencePreviewState extends State<_ImageEvidencePreview> {
                 onTap: () => showAppDialog<void>(
                   context: context,
                   builder: (context) => Dialog(
+                    backgroundColor: Colors.transparent,
+                    surfaceTintColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    elevation: 0,
                     insetPadding: const EdgeInsets.all(24),
                     child: SizedBox(
                       width: MediaQuery.sizeOf(context).width * .85,
                       height: MediaQuery.sizeOf(context).height * .8,
-                      child: Column(
+                      child: Stack(
+                        fit: StackFit.expand,
                         children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: IconButton(
-                              tooltip: 'Close image',
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const Icon(Icons.close),
+                          InteractiveViewer(
+                            child: Center(
+                              child: ProtectedImage.network(
+                                url,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    _unavailable('Image could not be loaded.'),
+                              ),
                             ),
                           ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              child: InteractiveViewer(
-                                child: Center(
-                                  child: ProtectedImage.network(
-                                    url,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => _unavailable(
-                                      'Image could not be loaded.',
-                                    ),
-                                  ),
-                                ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              tooltip: 'Close image',
+                              style: IconButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.black54,
                               ),
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close),
                             ),
                           ),
                         ],
@@ -17716,83 +17795,86 @@ class _AffectedChoiceSheet extends StatelessWidget {
             border: Border.all(color: Colors.black),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    AppTapTarget(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: const Icon(
-                        Icons.close,
-                        color: _devGreen,
-                        size: 22,
-                      ),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Add Who is Affected',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          color: AppColors.primary,
-                          fontSize: AppTypography.buttonSize,
-                          fontWeight: FontWeight.w500,
+          child: PageScrollWithFooter(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      AppTapTarget(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Icon(
+                          Icons.close,
+                          color: _devGreen,
+                          size: 22,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 22),
-                  ],
-                ),
-                const SizedBox(height: 31),
-                const Text(
-                  'Choose an option',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: AppColors.textSecondary,
-                    fontSize: AppTypography.helperSize,
+                      const Expanded(
+                        child: Text(
+                          'Add Who is Affected',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            color: AppColors.primary,
+                            fontSize: AppTypography.buttonSize,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 22),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                _AffectedChoiceCard(
-                  icon: Icons.groups_outlined,
-                  title: 'Choose an existing Juniper Journal Community',
-                  subtitle: 'Find and add an organization that has an account.',
-                  onTap: () async {
-                    final result =
-                        await showAppModalBottomSheet<_AffectedCommunity>(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          isScrollControlled: true,
-                          builder: (_) => _ExistingCommunitiesSheet(
+                  const SizedBox(height: 31),
+                  const Text(
+                    'Choose an option',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.textSecondary,
+                      fontSize: AppTypography.helperSize,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _AffectedChoiceCard(
+                    icon: Icons.groups_outlined,
+                    title: 'Choose an existing Juniper Journal Community',
+                    subtitle:
+                        'Find and add an organization that has an account.',
+                    onTap: () async {
+                      final result =
+                          await showAppModalBottomSheet<_AffectedCommunity>(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (_) => _ExistingCommunitiesSheet(
+                              communitiesRepo: communitiesRepo,
+                            ),
+                          );
+                      if (!context.mounted || result == null) return;
+                      Navigator.of(context).pop(result);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _AffectedChoiceCard(
+                    icon: Icons.business_outlined,
+                    title: 'Add a new organization',
+                    subtitle:
+                        "Create a new organization that doesn't have an account.",
+                    onTap: () async {
+                      final result = await pushAppRoute<_AffectedCommunity>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => _AddOrganizationPage(
                             communitiesRepo: communitiesRepo,
                           ),
-                        );
-                    if (!context.mounted || result == null) return;
-                    Navigator.of(context).pop(result);
-                  },
-                ),
-                const SizedBox(height: 16),
-                _AffectedChoiceCard(
-                  icon: Icons.business_outlined,
-                  title: 'Add a new organization',
-                  subtitle:
-                      "Create a new organization that doesn't have an account.",
-                  onTap: () async {
-                    final result = await pushAppRoute<_AffectedCommunity>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => _AddOrganizationPage(
-                          communitiesRepo: communitiesRepo,
                         ),
-                      ),
-                    );
-                    if (!context.mounted || result == null) return;
-                    Navigator.of(context).pop(result);
-                  },
-                ),
-              ],
+                      );
+                      if (!context.mounted || result == null) return;
+                      Navigator.of(context).pop(result);
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -18016,21 +18098,23 @@ class _ExistingCommunitiesSheetState extends State<_ExistingCommunitiesSheet> {
                     : AppScrollbar(
                         controller: _scroll,
                         thumbVisibility: true,
-                        child: ListView.separated(
-                          controller: _scroll,
-                          padding: const EdgeInsets.only(right: 10),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: AppMetrics.labelGap),
-                          itemBuilder: (context, index) {
-                            final community = filtered[index];
-                            return _ExistingCommunityRow(
-                              community: community,
-                              onAdd: () => Navigator.of(context).pop(
-                                _AffectedCommunity.fromCommunity(community),
-                              ),
-                            );
-                          },
+                        child: PageScrollWithFooter(
+                          child: ListView.separated(
+                            controller: _scroll,
+                            padding: const EdgeInsets.only(right: 10),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: AppMetrics.labelGap),
+                            itemBuilder: (context, index) {
+                              final community = filtered[index];
+                              return _ExistingCommunityRow(
+                                community: community,
+                                onAdd: () => Navigator.of(context).pop(
+                                  _AffectedCommunity.fromCommunity(community),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
               ),
@@ -18161,95 +18245,97 @@ class _AddOrganizationPageState extends State<_AddOrganizationPage> {
             constraints: BoxConstraints(
               maxWidth: JournalPageLayout.widthFor(context),
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(44, 35, 51, 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 56,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: 0,
-                          top: 2,
-                          child: ContentAlignedBackButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ),
-                        const Center(
-                          child: Text(
-                            'Add New Organization',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: AppColors.primary,
-                              fontSize: AppTypography.buttonSize,
-                              fontWeight: FontWeight.w500,
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(44, 35, 51, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 56,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            left: 0,
+                            top: 2,
+                            child: ContentAlignedBackButton(
+                              onPressed: () => Navigator.of(context).pop(),
                             ),
                           ),
-                        ),
-                      ],
+                          const Center(
+                            child: Text(
+                              'Add New Organization',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: AppColors.primary,
+                                fontSize: AppTypography.buttonSize,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 31),
-                  _OrgField(
-                    label: 'Organization Name',
-                    controller: _name,
-                    height: 93,
-                    maxLines: 3,
-                    onChanged: () => setState(() {}),
-                  ),
-                  const SizedBox(height: AppMetrics.sectionGap),
-                  _OrgField(
-                    label: 'Location',
-                    optional: true,
-                    controller: _location,
-                    height: 36,
-                  ),
-                  const SizedBox(height: AppMetrics.sectionGap),
-                  _OrgField(
-                    label: 'Description',
-                    controller: _description,
-                    height: 93,
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: AppMetrics.sectionGap),
-                  _OrgField(
-                    label: 'Website or Socials',
-                    optional: true,
-                    controller: _website,
-                    height: 40,
-                    onChanged: () => setState(() {}),
-                  ),
-                  const SizedBox(height: 38),
-                  _WebsitePreview(
-                    url: _website.text.trim(),
-                    isValid: _hasValidWebsite,
-                  ),
-                  const SizedBox(height: AppMetrics.sectionGap),
-                  Center(
-                    child: AppTapTarget(
-                      onTap: _isSaving ? null : _add,
-                      child: Container(
-                        width: 91,
-                        height: 31,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _devGreen,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          _isSaving ? 'Adding...' : 'Add',
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: Colors.white,
-                            fontSize: AppTypography.helperSize,
+                    const SizedBox(height: 31),
+                    _OrgField(
+                      label: 'Organization Name',
+                      controller: _name,
+                      height: 93,
+                      maxLines: 3,
+                      onChanged: () => setState(() {}),
+                    ),
+                    const SizedBox(height: AppMetrics.sectionGap),
+                    _OrgField(
+                      label: 'Location',
+                      optional: true,
+                      controller: _location,
+                      height: 36,
+                    ),
+                    const SizedBox(height: AppMetrics.sectionGap),
+                    _OrgField(
+                      label: 'Description',
+                      controller: _description,
+                      height: 93,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: AppMetrics.sectionGap),
+                    _OrgField(
+                      label: 'Website or Socials',
+                      optional: true,
+                      controller: _website,
+                      height: 40,
+                      onChanged: () => setState(() {}),
+                    ),
+                    const SizedBox(height: 38),
+                    _WebsitePreview(
+                      url: _website.text.trim(),
+                      isValid: _hasValidWebsite,
+                    ),
+                    const SizedBox(height: AppMetrics.sectionGap),
+                    Center(
+                      child: AppTapTarget(
+                        onTap: _isSaving ? null : _add,
+                        child: Container(
+                          width: 91,
+                          height: 31,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _devGreen,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Text(
+                            _isSaving ? 'Adding...' : 'Add',
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: Colors.white,
+                              fontSize: AppTypography.helperSize,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -18992,40 +19078,42 @@ class JournalInvolvedPeopleField extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Flexible(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      children: [
-                        for (final person in members.where(
-                          (p) =>
-                              p.id != author &&
-                              (p.resolvedDisplayName.toLowerCase().contains(
-                                    query,
-                                  ) ||
-                                  (p.username ?? '').toLowerCase().contains(
-                                    query,
-                                  )),
-                        ))
-                          CheckboxListTile(
-                            contentPadding: EdgeInsets.zero,
-                            controlAffinity: ListTileControlAffinity.trailing,
-                            visualDensity: VisualDensity.compact,
-                            value: selected.contains(person.id),
-                            title: Text(person.resolvedDisplayName),
-                            onChanged: (v) => update(() {
-                              ModalDraftScope.changed(context);
-                              if (v == true)
-                                selected.add(person.id);
-                              else
-                                selected.remove(person.id);
-                            }),
-                          ),
-                        if (members.where((p) => p.id != author).isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('No other project members yet.'),
-                          ),
-                      ],
+                    child: PageScrollWithFooter(
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        children: [
+                          for (final person in members.where(
+                            (p) =>
+                                p.id != author &&
+                                (p.resolvedDisplayName.toLowerCase().contains(
+                                      query,
+                                    ) ||
+                                    (p.username ?? '').toLowerCase().contains(
+                                      query,
+                                    )),
+                          ))
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              controlAffinity: ListTileControlAffinity.trailing,
+                              visualDensity: VisualDensity.compact,
+                              value: selected.contains(person.id),
+                              title: Text(person.resolvedDisplayName),
+                              onChanged: (v) => update(() {
+                                ModalDraftScope.changed(context);
+                                if (v == true)
+                                  selected.add(person.id);
+                                else
+                                  selected.remove(person.id);
+                              }),
+                            ),
+                          if (members.where((p) => p.id != author).isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text('No other project members yet.'),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -19198,14 +19286,16 @@ class _DiscoveryEntryPreviewPageState extends State<DiscoveryEntryPreviewPage> {
     title: 'Journal Entry: Discovery',
     previewEntry: widget.entry,
     onBack: () => Navigator.of(context).pop(),
-    body: ListView(
-      padding: const EdgeInsets.fromLTRB(40, 8, 40, 32),
-      children: [
-        Text(widget.entry.title, style: AppTypography.pageTitle),
-        const SizedBox(height: AppMetrics.fieldGap),
-        for (final stage in widget.entry.content.whereType<Map>())
-          _stagePreview(stage),
-      ],
+    body: PageScrollWithFooter(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(40, 8, 40, 32),
+        children: [
+          Text(widget.entry.title, style: AppTypography.pageTitle),
+          const SizedBox(height: AppMetrics.fieldGap),
+          for (final stage in widget.entry.content.whereType<Map>())
+            _stagePreview(stage),
+        ],
+      ),
     ),
   );
 }

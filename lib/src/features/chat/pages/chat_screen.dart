@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../widgets/message_thread.dart';
 import '../widgets/message_like_reaction.dart';
 import '../widgets/message_gesture_surface.dart';
@@ -268,33 +269,35 @@ class _ChatScreenState extends State<ChatScreen> {
                       );
                     }
 
-                    return ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
+                    return PageScrollWithFooter(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        itemCount: threads.length,
+                        itemBuilder: (_, index) {
+                          final thread = threads[index];
+                          return InlineMessageThread(
+                            key: ValueKey('thread-${thread.parent.id}'),
+                            isSent: thread.parent.senderId == _currentUserId,
+                            parent: bubble(
+                              thread.parent,
+                              threadParent: thread.parent,
+                              threadOriginal: thread.replies.isNotEmpty,
+                            ),
+                            replies: [
+                              for (final reply in thread.replies)
+                                bubble(
+                                  reply,
+                                  threadParent: thread.parent,
+                                  inlineReply: true,
+                                ),
+                            ],
+                          );
+                        },
                       ),
-                      itemCount: threads.length,
-                      itemBuilder: (_, index) {
-                        final thread = threads[index];
-                        return InlineMessageThread(
-                          key: ValueKey('thread-${thread.parent.id}'),
-                          isSent: thread.parent.senderId == _currentUserId,
-                          parent: bubble(
-                            thread.parent,
-                            threadParent: thread.parent,
-                            threadOriginal: thread.replies.isNotEmpty,
-                          ),
-                          replies: [
-                            for (final reply in thread.replies)
-                              bubble(
-                                reply,
-                                threadParent: thread.parent,
-                                inlineReply: true,
-                              ),
-                          ],
-                        );
-                      },
                     );
                   },
                 ),

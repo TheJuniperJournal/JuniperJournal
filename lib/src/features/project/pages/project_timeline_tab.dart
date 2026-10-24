@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -315,16 +316,18 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
           top: 278,
           right: 36,
           bottom: 70,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              for (final event in events)
-                _TimelineEventRow(
-                  event: event,
-                  currentUserId: _currentUserId,
-                  onTap: () => _openEvent(event),
-                ),
-            ],
+          child: PageScrollWithFooter(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                for (final event in events)
+                  _TimelineEventRow(
+                    event: event,
+                    currentUserId: _currentUserId,
+                    onTap: () => _openEvent(event),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
@@ -694,198 +697,203 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 48,
-                child: Stack(
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 48,
+                  child: Stack(
+                    children: [
+                      const Align(
+                        alignment: Alignment.topCenter,
+                        child: SizedBox(
+                          width: 23,
+                          child: Divider(
+                            height: 1,
+                            thickness: 2,
+                            color: Color(0xFF707070),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: IconButton(
+                          tooltip: 'Close',
+                          padding: EdgeInsets.zero,
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: _CloseIcon(),
+                          ),
+                        ),
+                      ),
+                      const Center(
+                        child: Text(
+                          'Create Event',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            color: AppColors.primary,
+                            fontSize: AppTypography.buttonSize,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                _TimelineField(
+                  label: 'Event Name',
+                  controller: _nameController,
+                ),
+                const SizedBox(height: 10),
+                _TimelineField(
+                  label: 'Description',
+                  optional: true,
+                  controller: _descriptionController,
+                ),
+                const SizedBox(height: 10),
+                _TimelineField(
+                  label: 'Location',
+                  optional: true,
+                  controller: _locationController,
+                ),
+                const SizedBox(height: 10),
+                const _SheetLabel('Start'),
+                const SizedBox(height: 10),
+                Row(
                   children: [
-                    const Align(
-                      alignment: Alignment.topCenter,
-                      child: SizedBox(
-                        width: 23,
-                        child: Divider(
-                          height: 1,
-                          thickness: 2,
-                          color: Color(0xFF707070),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SheetLabel('Date'),
+                        const SizedBox(height: 6),
+                        _DateTimePill(
+                          label: _shortInputDate(_startDate),
+                          onTap: _pickStartDate,
                         ),
+                      ],
+                    ),
+                    const SizedBox(width: 9),
+                    if (!_allDay)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SheetLabel('Time'),
+                          const SizedBox(height: 6),
+                          _DateTimePill(
+                            label: _shortInputTime(_startHour, _startMinute),
+                            onTap: _pickStartTime,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const _SheetLabel('End'),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SheetLabel('Date'),
+                        const SizedBox(height: 6),
+                        _DateTimePill(
+                          label: _shortInputDate(_endDate),
+                          onTap: _pickEndDate,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    if (!_allDay)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SheetLabel('Time'),
+                          const SizedBox(height: 6),
+                          _DateTimePill(
+                            label: _shortInputTime(_endHour, _endMinute),
+                            onTap: _pickEndTime,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const _SheetLabel('All Day'),
+                    const SizedBox(width: 20),
+                    AppTapTarget(
+                      onTap: () => setState(() => _allDay = !_allDay),
+                      child: _AllDayToggle(value: _allDay),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+                const _SheetLabel('Assign To'),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    for (final member in widget.members)
+                      _AssigneeChip(
+                        member: member,
+                        selected: _assigneeIds.contains(member.id),
+                        onTap: () {
+                          setState(() {
+                            if (!_assigneeIds.add(member.id) &&
+                                _assigneeIds.length > 1) {
+                              _assigneeIds.remove(member.id);
+                            }
+                          });
+                        },
+                      ),
+                    const Text(
+                      '+  Add People',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: AppColors.primary,
+                        fontSize: AppTypography.buttonSize,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      child: IconButton(
-                        tooltip: 'Close',
-                        padding: EdgeInsets.zero,
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: _CloseIcon(),
-                        ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(height: 45),
+                Center(
+                  child: AppTapTarget(
+                    onTap: _create,
+                    child: Container(
+                      width: 91,
+                      height: 31,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: _timelineGreen,
+                        borderRadius: BorderRadius.circular(3),
                       ),
-                    ),
-                    const Center(
-                      child: Text(
-                        'Create Event',
+                      child: const Text(
+                        'Create',
                         style: TextStyle(
                           fontFamily: AppTypography.bodyFamily,
-                          color: AppColors.primary,
+                          color: Colors.white,
                           fontSize: AppTypography.buttonSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              _TimelineField(label: 'Event Name', controller: _nameController),
-              const SizedBox(height: 10),
-              _TimelineField(
-                label: 'Description',
-                optional: true,
-                controller: _descriptionController,
-              ),
-              const SizedBox(height: 10),
-              _TimelineField(
-                label: 'Location',
-                optional: true,
-                controller: _locationController,
-              ),
-              const SizedBox(height: 10),
-              const _SheetLabel('Start'),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SheetLabel('Date'),
-                      const SizedBox(height: 6),
-                      _DateTimePill(
-                        label: _shortInputDate(_startDate),
-                        onTap: _pickStartDate,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 9),
-                  if (!_allDay)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SheetLabel('Time'),
-                        const SizedBox(height: 6),
-                        _DateTimePill(
-                          label: _shortInputTime(_startHour, _startMinute),
-                          onTap: _pickStartTime,
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const _SheetLabel('End'),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SheetLabel('Date'),
-                      const SizedBox(height: 6),
-                      _DateTimePill(
-                        label: _shortInputDate(_endDate),
-                        onTap: _pickEndDate,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  if (!_allDay)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SheetLabel('Time'),
-                        const SizedBox(height: 6),
-                        _DateTimePill(
-                          label: _shortInputTime(_endHour, _endMinute),
-                          onTap: _pickEndTime,
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const _SheetLabel('All Day'),
-                  const SizedBox(width: 20),
-                  AppTapTarget(
-                    onTap: () => setState(() => _allDay = !_allDay),
-                    child: _AllDayToggle(value: _allDay),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const _SheetLabel('Assign To'),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  for (final member in widget.members)
-                    _AssigneeChip(
-                      member: member,
-                      selected: _assigneeIds.contains(member.id),
-                      onTap: () {
-                        setState(() {
-                          if (!_assigneeIds.add(member.id) &&
-                              _assigneeIds.length > 1) {
-                            _assigneeIds.remove(member.id);
-                          }
-                        });
-                      },
-                    ),
-                  const Text(
-                    '+  Add People',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.primary,
-                      fontSize: AppTypography.buttonSize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const SizedBox(height: 45),
-              Center(
-                child: AppTapTarget(
-                  onTap: _create,
-                  child: Container(
-                    width: 91,
-                    height: 31,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: _timelineGreen,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: const Text(
-                      'Create',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        color: Colors.white,
-                        fontSize: AppTypography.buttonSize,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -908,98 +916,100 @@ class _TimelineEventDetailSheet extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const SizedBox(width: 40),
-                const Expanded(
-                  child: Text(
-                    'Timeline Event',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.sectionTitle,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Close',
-                  onPressed: () => Navigator.of(context).pop(false),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Icon(Icons.event_outlined, size: 36, color: _timelineGreen),
-            const SizedBox(height: 12),
-            Text(
-              event.name,
-              textAlign: TextAlign.center,
-              style: AppTypography.sectionTitle,
-            ),
-            if (event.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                event.description,
-                textAlign: TextAlign.center,
-                style: AppTypography.body,
-              ),
-            ],
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _timelineGreen.withValues(alpha: .06),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
+      child: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 children: [
-                  _EventPreviewField(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Date',
-                    value: _longDate(event.start),
+                  const SizedBox(width: 40),
+                  const Expanded(
+                    child: Text(
+                      'Timeline Event',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.sectionTitle,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _EventPreviewField(
-                    icon: Icons.schedule,
-                    label: 'Time',
-                    value: event.allDay
-                        ? 'All Day'
-                        : '${_timeWithAmPm(event.start)} – ${_timeWithAmPm(event.end)}',
-                  ),
-                  const SizedBox(height: 16),
-                  _EventPreviewField(
-                    icon: Icons.people_outline,
-                    label: 'Assigned to',
-                    value: event.assigneeNames.isEmpty
-                        ? 'Unassigned'
-                        : event.assigneeNames.join(', '),
-                  ),
-                  const SizedBox(height: 16),
-                  _EventPreviewField(
-                    icon: Icons.location_on_outlined,
-                    label: 'Location',
-                    value: event.location.isEmpty
-                        ? 'No location'
-                        : event.location,
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
-            ),
-            if (canDelete) ...[
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Delete Event'),
+              const SizedBox(height: 20),
+              const Icon(Icons.event_outlined, size: 36, color: _timelineGreen),
+              const SizedBox(height: 12),
+              Text(
+                event.name,
+                textAlign: TextAlign.center,
+                style: AppTypography.sectionTitle,
+              ),
+              if (event.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  event.description,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body,
+                ),
+              ],
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _timelineGreen.withValues(alpha: .06),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _EventPreviewField(
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Date',
+                      value: _longDate(event.start),
+                    ),
+                    const SizedBox(height: 16),
+                    _EventPreviewField(
+                      icon: Icons.schedule,
+                      label: 'Time',
+                      value: event.allDay
+                          ? 'All Day'
+                          : '${_timeWithAmPm(event.start)} – ${_timeWithAmPm(event.end)}',
+                    ),
+                    const SizedBox(height: 16),
+                    _EventPreviewField(
+                      icon: Icons.people_outline,
+                      label: 'Assigned to',
+                      value: event.assigneeNames.isEmpty
+                          ? 'Unassigned'
+                          : event.assigneeNames.join(', '),
+                    ),
+                    const SizedBox(height: 16),
+                    _EventPreviewField(
+                      icon: Icons.location_on_outlined,
+                      label: 'Location',
+                      value: event.location.isEmpty
+                          ? 'No location'
+                          : event.location,
+                    ),
+                  ],
                 ),
               ),
+              if (canDelete) ...[
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Delete Event'),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     ),

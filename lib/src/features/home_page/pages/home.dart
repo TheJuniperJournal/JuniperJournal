@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:intl/intl.dart';
 import '../services/home_journal_feed.dart';
@@ -909,151 +910,156 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         final hasMore = visibleCount < projects.length;
         return AppRefreshIndicator(
           onRefresh: _refreshProjects,
-          child: ListView.separated(
-            key: ValueKey('home-feed-$_feedRevision'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              16,
-              8,
-              16,
-              116 + MediaQuery.of(context).padding.bottom,
-            ),
-            itemCount: visibleCount + 1 + (hasMore ? 1 : 0),
-            separatorBuilder: (_, i) =>
-                i == 0 ? const SizedBox.shrink() : const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              if (index == visibleCount + 1 && hasMore) {
-                return Center(
-                  child: OutlinedButton(
-                    key: const ValueKey('home-feed-load-more'),
-                    onPressed: () => setState(() => _visibleFeedItems += 10),
-                    child: const Text('View more entries'),
-                  ),
-                );
-              }
-              if (index == 0) {
-                return _CommunityCarousel(
-                  communities: _communities,
-                  onCommunityTap: (c) => pushAppRoute(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CommunityHomeScreen(community: c),
+          child: PageScrollWithFooter(
+            child: ListView.separated(
+              key: ValueKey('home-feed-$_feedRevision'),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                116 + MediaQuery.of(context).padding.bottom,
+              ),
+              itemCount: visibleCount + 1 + (hasMore ? 1 : 0),
+              separatorBuilder: (_, i) =>
+                  i == 0 ? const SizedBox.shrink() : const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                if (index == visibleCount + 1 && hasMore) {
+                  return Center(
+                    child: OutlinedButton(
+                      key: const ValueKey('home-feed-load-more'),
+                      onPressed: () => setState(() => _visibleFeedItems += 10),
+                      child: const Text('View more entries'),
                     ),
-                  ).then((_) => _loadCommunities()),
-                  onCreateTap: () async {
+                  );
+                }
+                if (index == 0) {
+                  return _CommunityCarousel(
+                    communities: _communities,
+                    onCommunityTap: (c) => pushAppRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CommunityHomeScreen(community: c),
+                      ),
+                    ).then((_) => _loadCommunities()),
+                    onCreateTap: () async {
+                      await pushAppRoute(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CreateCommunityScreen(),
+                        ),
+                      );
+                      if (!mounted) return;
+                      _loadCommunities();
+                    },
+                  );
+                }
+                final project = projects[index - 1];
+                final projectId = project.id;
+                final projectName = project.projectName.trim().isNotEmpty
+                    ? project.projectName.trim()
+                    : 'Untitled Project';
+                final tags = project.tags;
+                final feedEntry = _feedEntries[index - 1];
+                final imageUrl = journalFeedPreviewImage(feedEntry.content);
+                final ownerId = project.userId;
+
+                final ownerLabel = ownerId == null
+                    ? null
+                    : _ownerLabelByUserId[ownerId];
+                final ownerAvatarUrl = ownerId == null
+                    ? null
+                    : _ownerAvatarByUserId[ownerId];
+
+                final viewer = AuthService.instance.currentUser?.id;
+                final projectParticipant =
+                    viewer != null &&
+                    (project.userId == viewer ||
+                        (_collaboratorsByProjectId[projectId]?.any(
+                              (p) => p.id == viewer,
+                            ) ??
+                            false));
+                return _ProjectCard(
+                  projectId: projectId,
+                  onEdit:
+                      projectParticipant &&
+                          (feedEntry.authorId ==
+                                  AuthService.instance.currentUser?.id ||
+                              project.userId ==
+                                  AuthService.instance.currentUser?.id ||
+                              (feedEntry.participantIds.contains(
+                                    AuthService.instance.currentUser?.id,
+                                  ) &&
+                                  (_collaboratorsByProjectId[projectId]?.any(
+                                        (p) =>
+                                            p.id ==
+                                            AuthService
+                                                .instance
+                                                .currentUser
+                                                ?.id,
+                                      ) ??
+                                      false)))
+                      ? () async {
+                          await pushAppRoute(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => editableJournalEntryPage(
+                                feedEntry,
+                                project,
+                                _projectsRepo,
+                              ),
+                            ),
+                          );
+                          if (mounted) await _refreshProjects();
+                        }
+                      : null,
+                  onDelete:
+                      projectParticipant &&
+                          (feedEntry.authorId ==
+                                  AuthService.instance.currentUser?.id ||
+                              project.userId ==
+                                  AuthService.instance.currentUser?.id)
+                      ? () async {
+                          if (await confirmDeleteJournalEntry(
+                                context,
+                                _projectsRepo,
+                                feedEntry,
+                              ) &&
+                              mounted)
+                            await _refreshProjects();
+                        }
+                      : null,
+                  name: feedEntry.title,
+                  entryDate: feedEntry.createdAt ?? feedEntry.updatedAt,
+                  phase: feedEntry.progress,
+                  projectName: projectName,
+                  onProjectTap: () =>
+                      openJournalProject(context, project, _projectsRepo),
+                  ownerId: ownerId,
+                  ownerLabel: ownerLabel,
+                  ownerAvatarUrl: ownerAvatarUrl,
+                  collaborators: _collaboratorsByProjectId[projectId] ?? [],
+                  tags: tags,
+                  imageUrl: imageUrl,
+                  description: project.problemStatement,
+                  initialLikes: project.likes,
+                  initialHasLiked: _likedProjectIds.contains(projectId),
+                  onTap: () async {
                     await pushAppRoute(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const CreateCommunityScreen(),
+                        builder: (_) => JournalEntryView(
+                          entry: feedEntry,
+                          project: project,
+                          projectsRepo: _projectsRepo,
+                        ),
                       ),
                     );
-                    if (!mounted) return;
-                    _loadCommunities();
+                    if (mounted) await _refreshProjects();
                   },
                 );
-              }
-              final project = projects[index - 1];
-              final projectId = project.id;
-              final projectName = project.projectName.trim().isNotEmpty
-                  ? project.projectName.trim()
-                  : 'Untitled Project';
-              final tags = project.tags;
-              final feedEntry = _feedEntries[index - 1];
-              final imageUrl = journalFeedPreviewImage(feedEntry.content);
-              final ownerId = project.userId;
-
-              final ownerLabel = ownerId == null
-                  ? null
-                  : _ownerLabelByUserId[ownerId];
-              final ownerAvatarUrl = ownerId == null
-                  ? null
-                  : _ownerAvatarByUserId[ownerId];
-
-              final viewer = AuthService.instance.currentUser?.id;
-              final projectParticipant =
-                  viewer != null &&
-                  (project.userId == viewer ||
-                      (_collaboratorsByProjectId[projectId]?.any(
-                            (p) => p.id == viewer,
-                          ) ??
-                          false));
-              return _ProjectCard(
-                projectId: projectId,
-                onEdit:
-                    projectParticipant &&
-                        (feedEntry.authorId ==
-                                AuthService.instance.currentUser?.id ||
-                            project.userId ==
-                                AuthService.instance.currentUser?.id ||
-                            (feedEntry.participantIds.contains(
-                                  AuthService.instance.currentUser?.id,
-                                ) &&
-                                (_collaboratorsByProjectId[projectId]?.any(
-                                      (p) =>
-                                          p.id ==
-                                          AuthService.instance.currentUser?.id,
-                                    ) ??
-                                    false)))
-                    ? () async {
-                        await pushAppRoute(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => editableJournalEntryPage(
-                              feedEntry,
-                              project,
-                              _projectsRepo,
-                            ),
-                          ),
-                        );
-                        if (mounted) await _refreshProjects();
-                      }
-                    : null,
-                onDelete:
-                    projectParticipant &&
-                        (feedEntry.authorId ==
-                                AuthService.instance.currentUser?.id ||
-                            project.userId ==
-                                AuthService.instance.currentUser?.id)
-                    ? () async {
-                        if (await confirmDeleteJournalEntry(
-                              context,
-                              _projectsRepo,
-                              feedEntry,
-                            ) &&
-                            mounted)
-                          await _refreshProjects();
-                      }
-                    : null,
-                name: feedEntry.title,
-                entryDate: feedEntry.createdAt ?? feedEntry.updatedAt,
-                phase: feedEntry.progress,
-                projectName: projectName,
-                onProjectTap: () =>
-                    openJournalProject(context, project, _projectsRepo),
-                ownerId: ownerId,
-                ownerLabel: ownerLabel,
-                ownerAvatarUrl: ownerAvatarUrl,
-                collaborators: _collaboratorsByProjectId[projectId] ?? [],
-                tags: tags,
-                imageUrl: imageUrl,
-                description: project.problemStatement,
-                initialLikes: project.likes,
-                initialHasLiked: _likedProjectIds.contains(projectId),
-                onTap: () async {
-                  await pushAppRoute(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => JournalEntryView(
-                        entry: feedEntry,
-                        project: project,
-                        projectsRepo: _projectsRepo,
-                      ),
-                    ),
-                  );
-                  if (mounted) await _refreshProjects();
-                },
-              );
-            },
+              },
+            ),
           ),
         );
       },
@@ -1718,341 +1724,359 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                           ),
                         ),
                       )
-                    : ListView(
-                        controller: scrollController,
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                        children: [
-                          if (_projectNotifications.isNotEmpty) ...[
-                            const _SectionHeader(title: 'Project Updates'),
-                            for (final notification in _projectNotifications)
-                              ListTile(
-                                leading: Icon(
-                                  Icons.folder_shared_outlined,
-                                  color: notification['read_at'] == null
-                                      ? AppColors.primary
-                                      : Colors.grey,
-                                ),
-                                title: Text(
-                                  notification['message']?.toString() ??
-                                      'Project update',
-                                ),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () => runActionOnce(
-                                  this,
-                                  'open-notification',
-                                  () async {
-                                    try {
-                                      final destination =
-                                          await projectNotificationDestination(
-                                            notification,
-                                            widget.projectsRepo,
-                                          );
-                                      if (!context.mounted) return;
-                                      await widget.projectsRepo
-                                          .markProjectNotificationRead(
-                                            notification['id'].toString(),
-                                          );
-                                      if (!context.mounted) return;
-                                      final navigator = Navigator.of(context);
-                                      navigator.pop();
-                                      await pushAppRoute(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => destination,
-                                        ),
-                                      );
-                                    } on StateError catch (error) {
-                                      if (context.mounted)
-                                        showTopSnackBar(
+                    : PageScrollWithFooter(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                          children: [
+                            if (_projectNotifications.isNotEmpty) ...[
+                              const _SectionHeader(title: 'Project Updates'),
+                              for (final notification in _projectNotifications)
+                                ListTile(
+                                  leading: Icon(
+                                    Icons.folder_shared_outlined,
+                                    color: notification['read_at'] == null
+                                        ? AppColors.primary
+                                        : Colors.grey,
+                                  ),
+                                  title: Text(
+                                    notification['message']?.toString() ??
+                                        'Project update',
+                                  ),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: () => runActionOnce(
+                                    this,
+                                    'open-notification',
+                                    () async {
+                                      try {
+                                        final destination =
+                                            await projectNotificationDestination(
+                                              notification,
+                                              widget.projectsRepo,
+                                            );
+                                        if (!context.mounted) return;
+                                        await widget.projectsRepo
+                                            .markProjectNotificationRead(
+                                              notification['id'].toString(),
+                                            );
+                                        if (!context.mounted) return;
+                                        final navigator = Navigator.of(context);
+                                        navigator.pop();
+                                        await pushAppRoute(
                                           context,
-                                          error.message,
-                                          isError: true,
+                                          MaterialPageRoute(
+                                            builder: (_) => destination,
+                                          ),
                                         );
-                                    } catch (_) {
-                                      if (context.mounted)
-                                        showTopSnackBar(
-                                          context,
-                                          'Could not open this notification. Please try again.',
-                                          isError: true,
-                                        );
-                                    }
-                                    if (mounted) _loadAll(showLoading: false);
-                                  },
+                                      } on StateError catch (error) {
+                                        if (context.mounted)
+                                          showTopSnackBar(
+                                            context,
+                                            error.message,
+                                            isError: true,
+                                          );
+                                      } catch (_) {
+                                        if (context.mounted)
+                                          showTopSnackBar(
+                                            context,
+                                            'Could not open this notification. Please try again.',
+                                            isError: true,
+                                          );
+                                      }
+                                      if (mounted) _loadAll(showLoading: false);
+                                    },
+                                  ),
                                 ),
-                              ),
-                          ],
-                          if (_friendRequests.isNotEmpty) ...[
-                            const _SectionHeader(title: 'Friend Requests'),
-                            ..._friendRequests.map((request) {
-                              final isActionLoading =
-                                  _loadingByUserId[request.requesterId] == true;
-                              final displayName =
-                                  (request.displayName?.trim().isNotEmpty ==
-                                      true)
-                                  ? request.displayName!.trim()
-                                  : (request.username?.trim().isNotEmpty == true
-                                        ? '@${request.username!.trim()}'
-                                        : 'User');
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                leading: CircleAvatar(
-                                  backgroundColor: AppColors.primaryTint,
-                                  backgroundImage:
-                                      (request.avatarUrl != null &&
-                                          request.avatarUrl!.isNotEmpty)
-                                      ? NetworkImage(request.avatarUrl!)
-                                      : null,
-                                  child:
-                                      (request.avatarUrl == null ||
-                                          request.avatarUrl!.isEmpty)
-                                      ? const Icon(
-                                          Icons.person_outline,
-                                          color: AppColors.primary,
+                            ],
+                            if (_friendRequests.isNotEmpty) ...[
+                              const _SectionHeader(title: 'Friend Requests'),
+                              ..._friendRequests.map((request) {
+                                final isActionLoading =
+                                    _loadingByUserId[request.requesterId] ==
+                                    true;
+                                final displayName =
+                                    (request.displayName?.trim().isNotEmpty ==
+                                        true)
+                                    ? request.displayName!.trim()
+                                    : (request.username?.trim().isNotEmpty ==
+                                              true
+                                          ? '@${request.username!.trim()}'
+                                          : 'User');
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppColors.primaryTint,
+                                    backgroundImage:
+                                        (request.avatarUrl != null &&
+                                            request.avatarUrl!.isNotEmpty)
+                                        ? NetworkImage(request.avatarUrl!)
+                                        : null,
+                                    child:
+                                        (request.avatarUrl == null ||
+                                            request.avatarUrl!.isEmpty)
+                                        ? const Icon(
+                                            Icons.person_outline,
+                                            color: AppColors.primary,
+                                          )
+                                        : null,
+                                  ),
+                                  title: Text(
+                                    displayName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  trailing: isActionLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
                                         )
-                                      : null,
-                                ),
-                                title: Text(
-                                  displayName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                trailing: isActionLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          OutlinedButton(
-                                            onPressed: () =>
-                                                _declineFriend(request),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.red,
-                                              side: const BorderSide(
-                                                color: Colors.red,
+                                      : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            OutlinedButton(
+                                              onPressed: () =>
+                                                  _declineFriend(request),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.red,
+                                                side: const BorderSide(
+                                                  color: Colors.red,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
                                               ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                  ),
+                                              child: const Text('Decline'),
                                             ),
-                                            child: const Text('Decline'),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          FilledButton(
-                                            onPressed: () =>
-                                                _acceptFriend(request),
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor:
-                                                  AppColors.primary,
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                  ),
+                                            const SizedBox(width: 6),
+                                            FilledButton(
+                                              onPressed: () =>
+                                                  _acceptFriend(request),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.primary,
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
+                                              ),
+                                              child: const Text('Accept'),
                                             ),
-                                            child: const Text('Accept'),
+                                          ],
+                                        ),
+                                );
+                              }),
+                            ],
+                            if (_collabRequests.isNotEmpty) ...[
+                              if (_friendRequests.isNotEmpty)
+                                const SizedBox(height: 12),
+                              const _SectionHeader(title: 'Project Invites'),
+                              ..._collabRequests.map((request) {
+                                final isActionLoading =
+                                    _loadingByCollabId[request.id] == true;
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppColors.primaryTint,
+                                    backgroundImage:
+                                        (request.inviterAvatarUrl != null &&
+                                            request
+                                                .inviterAvatarUrl!
+                                                .isNotEmpty)
+                                        ? NetworkImage(
+                                            request.inviterAvatarUrl!,
+                                          )
+                                        : null,
+                                    child:
+                                        (request.inviterAvatarUrl == null ||
+                                            request.inviterAvatarUrl!.isEmpty)
+                                        ? const Icon(
+                                            Icons.person_outline,
+                                            color: AppColors.primary,
+                                          )
+                                        : null,
+                                  ),
+                                  title: Text(
+                                    '${request.resolvedInviterName} invited you to collaborate',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    request.projectName,
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.helperSize,
+                                    ),
+                                  ),
+                                  trailing: isActionLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
                                           ),
-                                        ],
-                                      ),
-                              );
-                            }),
-                          ],
-                          if (_collabRequests.isNotEmpty) ...[
-                            if (_friendRequests.isNotEmpty)
-                              const SizedBox(height: 12),
-                            const _SectionHeader(title: 'Project Invites'),
-                            ..._collabRequests.map((request) {
-                              final isActionLoading =
-                                  _loadingByCollabId[request.id] == true;
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                leading: CircleAvatar(
-                                  backgroundColor: AppColors.primaryTint,
-                                  backgroundImage:
-                                      (request.inviterAvatarUrl != null &&
-                                          request.inviterAvatarUrl!.isNotEmpty)
-                                      ? NetworkImage(request.inviterAvatarUrl!)
-                                      : null,
-                                  child:
-                                      (request.inviterAvatarUrl == null ||
-                                          request.inviterAvatarUrl!.isEmpty)
-                                      ? const Icon(
-                                          Icons.person_outline,
-                                          color: AppColors.primary,
                                         )
-                                      : null,
-                                ),
-                                title: Text(
-                                  '${request.resolvedInviterName} invited you to collaborate',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  request.projectName,
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.helperSize,
-                                  ),
-                                ),
-                                trailing: isActionLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          OutlinedButton(
-                                            onPressed: () =>
-                                                _respondCollab(request, false),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.red,
-                                              side: const BorderSide(
-                                                color: Colors.red,
+                                      : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            OutlinedButton(
+                                              onPressed: () => _respondCollab(
+                                                request,
+                                                false,
                                               ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                  ),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.red,
+                                                side: const BorderSide(
+                                                  color: Colors.red,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
+                                              ),
+                                              child: const Text('Decline'),
                                             ),
-                                            child: const Text('Decline'),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          FilledButton(
-                                            onPressed: () =>
-                                                _respondCollab(request, true),
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor:
-                                                  AppColors.primary,
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                  ),
+                                            const SizedBox(width: 6),
+                                            FilledButton(
+                                              onPressed: () =>
+                                                  _respondCollab(request, true),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.primary,
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
+                                              ),
+                                              child: const Text('Accept'),
                                             ),
-                                            child: const Text('Accept'),
+                                          ],
+                                        ),
+                                );
+                              }),
+                            ],
+                            if (_communityInvites.isNotEmpty) ...[
+                              if (_friendRequests.isNotEmpty ||
+                                  _collabRequests.isNotEmpty)
+                                const SizedBox(height: 12),
+                              const _SectionHeader(title: 'Community Invites'),
+                              ..._communityInvites.map((invite) {
+                                final isLoading =
+                                    _loadingByCommunityId[invite.id] == true;
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppColors.primaryTint,
+                                    backgroundImage:
+                                        (invite.communityImageUrl != null &&
+                                            invite
+                                                .communityImageUrl!
+                                                .isNotEmpty)
+                                        ? NetworkImage(
+                                            invite.communityImageUrl!,
+                                          )
+                                        : null,
+                                    child:
+                                        (invite.communityImageUrl == null ||
+                                            invite.communityImageUrl!.isEmpty)
+                                        ? const Icon(
+                                            Icons.group_outlined,
+                                            color: AppColors.primary,
+                                          )
+                                        : null,
+                                  ),
+                                  title: Text(
+                                    '${invite.inviterLabel} invited you to join',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    invite.communityName,
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.helperSize,
+                                    ),
+                                  ),
+                                  trailing: isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
                                           ),
-                                        ],
-                                      ),
-                              );
-                            }),
-                          ],
-                          if (_communityInvites.isNotEmpty) ...[
-                            if (_friendRequests.isNotEmpty ||
-                                _collabRequests.isNotEmpty)
-                              const SizedBox(height: 12),
-                            const _SectionHeader(title: 'Community Invites'),
-                            ..._communityInvites.map((invite) {
-                              final isLoading =
-                                  _loadingByCommunityId[invite.id] == true;
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                leading: CircleAvatar(
-                                  backgroundColor: AppColors.primaryTint,
-                                  backgroundImage:
-                                      (invite.communityImageUrl != null &&
-                                          invite.communityImageUrl!.isNotEmpty)
-                                      ? NetworkImage(invite.communityImageUrl!)
-                                      : null,
-                                  child:
-                                      (invite.communityImageUrl == null ||
-                                          invite.communityImageUrl!.isEmpty)
-                                      ? const Icon(
-                                          Icons.group_outlined,
-                                          color: AppColors.primary,
                                         )
-                                      : null,
-                                ),
-                                title: Text(
-                                  '${invite.inviterLabel} invited you to join',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  invite.communityName,
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.helperSize,
-                                  ),
-                                ),
-                                trailing: isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          OutlinedButton(
-                                            onPressed: () => _respondCommunity(
-                                              invite,
-                                              false,
-                                            ),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.red,
-                                              side: const BorderSide(
-                                                color: Colors.red,
+                                      : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            OutlinedButton(
+                                              onPressed: () =>
+                                                  _respondCommunity(
+                                                    invite,
+                                                    false,
+                                                  ),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.red,
+                                                side: const BorderSide(
+                                                  color: Colors.red,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
                                               ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                  ),
+                                              child: const Text('Decline'),
                                             ),
-                                            child: const Text('Decline'),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          FilledButton(
-                                            onPressed: () =>
-                                                _respondCommunity(invite, true),
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor:
-                                                  AppColors.primary,
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
+                                            const SizedBox(width: 6),
+                                            FilledButton(
+                                              onPressed: () =>
+                                                  _respondCommunity(
+                                                    invite,
+                                                    true,
                                                   ),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.primary,
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
+                                              ),
+                                              child: const Text('Accept'),
                                             ),
-                                            child: const Text('Accept'),
-                                          ),
-                                        ],
-                                      ),
-                              );
-                            }),
+                                          ],
+                                        ),
+                                );
+                              }),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
               ),
             ],
@@ -2214,36 +2238,38 @@ class _ProjectsMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppRefreshIndicator(
       onRefresh: onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.5,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.headingFamily,
-                      fontSize: AppTypography.sectionTitleSize,
-                      fontWeight: FontWeight.w600,
+      child: PageScrollWithFooter(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.headingFamily,
+                        fontSize: AppTypography.sectionTitleSize,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(height: 8),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2290,30 +2316,33 @@ class _CommunityCarousel extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: ListView.separated(
-                  itemCount: communities.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, index) {
-                    final community = communities[index];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 8,
-                      ),
-                      leading: CircleAvatar(
-                        backgroundColor: community.bannerColor,
-                        backgroundImage: community.imageUrl?.isNotEmpty == true
-                            ? NetworkImage(community.imageUrl!)
-                            : null,
-                        child: community.imageUrl?.isNotEmpty == true
-                            ? null
-                            : const Icon(Icons.groups, color: Colors.white),
-                      ),
-                      title: Text(community.name),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.pop(sheetContext, community),
-                    );
-                  },
+                child: PageScrollWithFooter(
+                  child: ListView.separated(
+                    itemCount: communities.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final community = communities[index];
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 8,
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: community.bannerColor,
+                          backgroundImage:
+                              community.imageUrl?.isNotEmpty == true
+                              ? NetworkImage(community.imageUrl!)
+                              : null,
+                          child: community.imageUrl?.isNotEmpty == true
+                              ? null
+                              : const Icon(Icons.groups, color: Colors.white),
+                        ),
+                        title: Text(community.name),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.pop(sheetContext, community),
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

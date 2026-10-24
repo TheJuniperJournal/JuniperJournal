@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import '../../../backend/db/models/journal_entry.dart';
@@ -246,81 +247,85 @@ class _MaterialsCostPageState extends State<MaterialsCostPage> {
                   : Stack(
                       children: [
                         Positioned.fill(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(50, 0, 51, 96),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 80),
-                                Center(
-                                  child: _TotalSpentCircle(
-                                    total: _totalCost,
-                                    currency: _allItems.isEmpty
-                                        ? 'USD'
-                                        : _allItems.first.currency,
-                                    color: _costColor,
+                          child: PageScrollWithFooter(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(50, 0, 51, 96),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 80),
+                                  Center(
+                                    child: _TotalSpentCircle(
+                                      total: _totalCost,
+                                      currency: _allItems.isEmpty
+                                          ? 'USD'
+                                          : _allItems.first.currency,
+                                      color: _costColor,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: AppMetrics.fieldGap),
-                                Center(
-                                  child: _CostPill(
-                                    label: _costLabel,
-                                    color: _costColor,
+                                  const SizedBox(height: AppMetrics.fieldGap),
+                                  Center(
+                                    child: _CostPill(
+                                      label: _costLabel,
+                                      color: _costColor,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 29),
-                                const Text(
-                                  'Itemized Budget List',
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    color: AppColors.textPrimary,
-                                    fontSize: AppTypography.bodySize,
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 29),
+                                  const Text(
+                                    'Itemized Budget List',
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      color: AppColors.textPrimary,
+                                      fontSize: AppTypography.bodySize,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Input materials and cost of items used to build this component.',
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    color: AppColors.textSecondary,
-                                    fontSize: AppTypography.helperSize,
-                                    fontWeight: FontWeight.w400,
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Input materials and cost of items used to build this component.',
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      color: AppColors.textSecondary,
+                                      fontSize: AppTypography.helperSize,
+                                      fontWeight: FontWeight.w400,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: AppMetrics.fieldGap),
-                                for (final item in _items)
-                                  _ExpenseRow(
-                                    item: item,
-                                    indicatorColor: _costLevelFor(
-                                      item.cost,
-                                    ).color,
-                                    onEdit:
-                                        widget.isOwner &&
-                                            !widget.readOnly &&
-                                            !_isEditing
-                                        ? () => _editItem(item)
-                                        : null,
-                                    onDelete:
-                                        widget.isOwner &&
-                                            !widget.readOnly &&
-                                            !_isEditing
-                                        ? () => _deleteItem(item)
-                                        : null,
-                                    onRemove: _isEditing
-                                        ? () => _deleteItem(item)
-                                        : null,
-                                    isEditing: _isEditing,
-                                    isSelected: _selectedIds.contains(item.id),
-                                    onTap: () => _isEditing
-                                        ? _toggleSelected(item.id)
-                                        : _editItem(item),
-                                  ),
-                                if (widget.isOwner && !widget.readOnly) ...[
-                                  const SizedBox(height: 11),
-                                  _AddItemRow(onTap: _addItem),
+                                  const SizedBox(height: AppMetrics.fieldGap),
+                                  for (final item in _items)
+                                    _ExpenseRow(
+                                      item: item,
+                                      indicatorColor: _costLevelFor(
+                                        item.cost,
+                                      ).color,
+                                      onEdit:
+                                          widget.isOwner &&
+                                              !widget.readOnly &&
+                                              !_isEditing
+                                          ? () => _editItem(item)
+                                          : null,
+                                      onDelete:
+                                          widget.isOwner &&
+                                              !widget.readOnly &&
+                                              !_isEditing
+                                          ? () => _deleteItem(item)
+                                          : null,
+                                      onRemove: _isEditing
+                                          ? () => _deleteItem(item)
+                                          : null,
+                                      isEditing: _isEditing,
+                                      isSelected: _selectedIds.contains(
+                                        item.id,
+                                      ),
+                                      onTap: () => _isEditing
+                                          ? _toggleSelected(item.id)
+                                          : _editItem(item),
+                                    ),
+                                  if (widget.isOwner && !widget.readOnly) ...[
+                                    const SizedBox(height: 11),
+                                    _AddItemRow(onTap: _addItem),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -738,87 +743,90 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
           color: Colors.white,
           borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _BudgetHeader(
-                title: widget.item == null ? 'Add Item' : 'Edit Item',
-                close: true,
-                inset: 0,
-                onBack: () => Navigator.of(context).pop(),
-                onSave: _save,
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              _SheetLabel('Item'),
-              const SizedBox(height: 8),
-              _SheetTextField(
-                controller: _itemController,
-                invalid: _saveAttempted && _itemController.text.trim().isEmpty,
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              _SheetLabel('Cost'),
-              const SizedBox(height: 8),
-              DecoratedBox(
-                position: DecorationPosition.foreground,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _saveAttempted && !_validCost
-                        ? _red
-                        : Colors.transparent,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BudgetHeader(
+                  title: widget.item == null ? 'Add Item' : 'Edit Item',
+                  close: true,
+                  inset: 0,
+                  onBack: () => Navigator.of(context).pop(),
+                  onSave: _save,
                 ),
-                child: _CostField(
-                  controller: _costController,
-                  currency: _currency,
-                  onCurrencyChanged: widget.currencyLocked
-                      ? null
-                      : (value) => setState(() => _currency = value),
+                const SizedBox(height: AppMetrics.labelGap),
+                _SheetLabel('Item'),
+                const SizedBox(height: 8),
+                _SheetTextField(
+                  controller: _itemController,
+                  invalid:
+                      _saveAttempted && _itemController.text.trim().isEmpty,
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                (!_saveAttempted || _validCost)
-                    ? 'Only numbers are accepted. Use 0 for a free item.'
-                    : 'Required — only numbers are accepted (e.g. 1.00 or 0).',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  color: _saveAttempted && !_validCost ? _red : _placeholder,
-                ),
-              ),
-              const SizedBox(height: 13),
-              _SheetLabel('Component', optional: true),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue:
-                    widget.components.contains(_componentController.text)
-                    ? _componentController.text
-                    : '',
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                isExpanded: true,
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('None')),
-                  for (final component in widget.components)
-                    DropdownMenuItem(
-                      value: component,
-                      child: Text(component, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: AppMetrics.labelGap),
+                _SheetLabel('Cost'),
+                const SizedBox(height: 8),
+                DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _saveAttempted && !_validCost
+                          ? _red
+                          : Colors.transparent,
                     ),
-                ],
-                onChanged: (value) => _componentController.text = value ?? '',
-              ),
-            ],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _CostField(
+                    controller: _costController,
+                    currency: _currency,
+                    onCurrencyChanged: widget.currencyLocked
+                        ? null
+                        : (value) => setState(() => _currency = value),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  (!_saveAttempted || _validCost)
+                      ? 'Only numbers are accepted. Use 0 for a free item.'
+                      : 'Required — only numbers are accepted (e.g. 1.00 or 0).',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: _saveAttempted && !_validCost ? _red : _placeholder,
+                  ),
+                ),
+                const SizedBox(height: 13),
+                _SheetLabel('Component', optional: true),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue:
+                      widget.components.contains(_componentController.text)
+                      ? _componentController.text
+                      : '',
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  isExpanded: true,
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('None')),
+                    for (final component in widget.components)
+                      DropdownMenuItem(
+                        value: component,
+                        child: Text(component, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (value) => _componentController.text = value ?? '',
+                ),
+              ],
+            ),
           ),
         ),
       ),

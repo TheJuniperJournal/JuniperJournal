@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -265,245 +266,253 @@ class _DefineProblemStatementScreenState
               ),
           ],
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Problem Statement ─────────────────────────────────────────
-              _sectionLabel('Problem Statement'),
-              const SizedBox(height: 10),
-              TextFormField(
-                minLines: 5,
-                controller: _problemController,
-                maxLines: null,
-                decoration: InputDecoration(
-                  hintText: '',
-                  hintStyle: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: AppColors.hintText,
-                    fontSize: AppTypography.helperSize,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 14,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Subject Domain & Focus ────────────────────────────────────
-              _sectionLabel('Subject Domain & Focus'),
-              const SizedBox(height: 10),
-
-              if (_subjectTags.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _subjectTags
-                      .map(
-                        (t) => _SubjectTagChip(
-                          domain: t.domain,
-                          focus: t.focus,
-                          onRemove: () => setState(() {
-                            _subjectTags.remove(t);
-                            _hasChanges = true;
-                          }),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              Container(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.18),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Domain',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.helperSize,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textSecondary,
+        body: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Problem Statement ─────────────────────────────────────────
+                _sectionLabel('Problem Statement'),
+                const SizedBox(height: 10),
+                TextFormField(
+                  minLines: 5,
+                  controller: _problemController,
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    hintText: '',
+                    hintStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      color: AppColors.hintText,
+                      fontSize: AppTypography.helperSize,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.borderLight,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    PillSelector(
-                      value: _activeDomain,
-                      placeholder: 'Select',
-                      items: _focusByDomain.keys.toList(),
-                      onChanged: (v) => setState(() {
-                        _activeDomain = v;
-                        _activeFocus = null;
-                        _hasChanges = true;
-                      }),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Icon(
-                        Icons.add,
-                        size: 18,
-                        color: AppColors.primary.withValues(alpha: 0.5),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.borderLight,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Focus',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.helperSize,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textSecondary,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.borderLight,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    PillSelector(
-                      value: _activeFocus,
-                      placeholder: _activeDomain == null
-                          ? 'Pick domain first'
-                          : 'Select',
-                      items: _activeDomain != null
-                          ? _focusByDomain[_activeDomain]!
-                          : [],
-                      onChanged: (v) => setState(() => _activeFocus = v),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: canAddTag ? _addSubjectTag : null,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          disabledBackgroundColor: Colors.grey.shade200,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // ── Subject Domain & Focus ────────────────────────────────────
+                _sectionLabel('Subject Domain & Focus'),
+                const SizedBox(height: 10),
+
+                if (_subjectTags.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _subjectTags
+                        .map(
+                          (t) => _SubjectTagChip(
+                            domain: t.domain,
+                            focus: t.focus,
+                            onRemove: () => setState(() {
+                              _subjectTags.remove(t);
+                              _hasChanges = true;
+                            }),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Domain',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.helperSize,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textSecondary,
                         ),
-                        icon: Icon(
+                      ),
+                      const SizedBox(height: 5),
+                      PillSelector(
+                        value: _activeDomain,
+                        placeholder: 'Select',
+                        items: _focusByDomain.keys.toList(),
+                        onChanged: (v) => setState(() {
+                          _activeDomain = v;
+                          _activeFocus = null;
+                          _hasChanges = true;
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Icon(
                           Icons.add,
-                          size: 16,
-                          color: canAddTag
-                              ? Colors.white
-                              : Colors.grey.shade400,
+                          size: 18,
+                          color: AppColors.primary.withValues(alpha: 0.5),
                         ),
-                        label: Text(
-                          'Add Combination',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.buttonSize,
-                            fontWeight: FontWeight.w500,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Focus',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.helperSize,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      PillSelector(
+                        value: _activeFocus,
+                        placeholder: _activeDomain == null
+                            ? 'Pick domain first'
+                            : 'Select',
+                        items: _activeDomain != null
+                            ? _focusByDomain[_activeDomain]!
+                            : [],
+                        onChanged: (v) => setState(() => _activeFocus = v),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: canAddTag ? _addSubjectTag : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            disabledBackgroundColor: Colors.grey.shade200,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          icon: Icon(
+                            Icons.add,
+                            size: 16,
                             color: canAddTag
                                 ? Colors.white
                                 : Colors.grey.shade400,
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Difficulty ────────────────────────────────────────────────
-              _sectionLabel('Difficulty'),
-              const SizedBox(height: 10),
-              PillSelector(
-                value: _selectedDifficulty,
-                placeholder: 'Select Difficulty',
-                items: const ['Easy', 'Medium', 'Hard'],
-                onChanged: (v) => setState(() {
-                  _selectedDifficulty = v;
-                  _hasChanges = true;
-                }),
-              ),
-
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Project Scale ─────────────────────────────────────────────
-              _sectionLabel('Project Scale'),
-              const SizedBox(height: 10),
-              PillSelector(
-                value: _selectedScale,
-                placeholder: 'Select Scale',
-                items: const ['Small', 'Medium', 'Large'],
-                onChanged: (v) => setState(() {
-                  _selectedScale = v;
-                  _hasChanges = true;
-                }),
-              ),
-
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Visibility ────────────────────────────────────────────────
-              _sectionLabel('Visibility'),
-              const SizedBox(height: 10),
-              if (_selectedVisibility == 'Community Only')
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTint,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.lock_outline,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Community Only',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
+                          label: Text(
+                            'Add Combination',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.buttonSize,
+                              fontWeight: FontWeight.w500,
+                              color: canAddTag
+                                  ? Colors.white
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                )
-              else
+                ),
+
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // ── Difficulty ────────────────────────────────────────────────
+                _sectionLabel('Difficulty'),
+                const SizedBox(height: 10),
                 PillSelector(
-                  value: _selectedVisibility,
-                  placeholder: 'Select Visibility',
-                  items: const ['Private', 'Friends Only', 'Public'],
+                  value: _selectedDifficulty,
+                  placeholder: 'Select Difficulty',
+                  items: const ['Easy', 'Medium', 'Hard'],
                   onChanged: (v) => setState(() {
-                    _selectedVisibility = v;
+                    _selectedDifficulty = v;
                     _hasChanges = true;
                   }),
                 ),
-            ],
+
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // ── Project Scale ─────────────────────────────────────────────
+                _sectionLabel('Project Scale'),
+                const SizedBox(height: 10),
+                PillSelector(
+                  value: _selectedScale,
+                  placeholder: 'Select Scale',
+                  items: const ['Small', 'Medium', 'Large'],
+                  onChanged: (v) => setState(() {
+                    _selectedScale = v;
+                    _hasChanges = true;
+                  }),
+                ),
+
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // ── Visibility ────────────────────────────────────────────────
+                _sectionLabel('Visibility'),
+                const SizedBox(height: 10),
+                if (_selectedVisibility == 'Community Only')
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTint,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Community Only',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  PillSelector(
+                    value: _selectedVisibility,
+                    placeholder: 'Select Visibility',
+                    items: const ['Private', 'Friends Only', 'Public'],
+                    onChanged: (v) => setState(() {
+                      _selectedVisibility = v;
+                      _hasChanges = true;
+                    }),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

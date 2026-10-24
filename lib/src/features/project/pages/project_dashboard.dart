@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
@@ -363,102 +364,105 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                   )
                 : tab == ProjectDashboardSection.collaboration
                 ? _buildCollaborationCanvas(context)
-                : SingleChildScrollView(
-                    primary: false,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.topCenter,
-                      child: SizedBox(
-                        width: _canvasWidth,
-                        child: switch (tab) {
-                          ProjectDashboardSection.collaboration =>
-                            const SizedBox.shrink(),
-                          ProjectDashboardSection.timeline => SizedBox(
-                            width: _canvasWidth,
-                            height: 852,
-                            child: Stack(
-                              children: [
-                                _buildHeader(context),
-                                _buildTabs(),
-                                ProjectTimelineTab(
-                                  key: ValueKey(
-                                    'timeline-$_settingsRevision-$_activityNavigationRevision',
-                                  ),
-                                  initialEventId:
-                                      _activityEventId ?? widget.initialEventId,
-                                  projectId: widget.projectId,
-                                  isOwner: _canEditCover,
-                                  projectsRepo: _projectsRepo,
-                                ),
-                              ],
-                            ),
-                          ),
-                          ProjectDashboardSection.development => SizedBox(
-                            width: _canvasWidth,
-                            height: 760,
-                            child: Stack(
-                              children: [
-                                _buildHeader(context),
-                                _buildTabs(),
-                                ProjectDevelopmentTab(
-                                  projectId: widget.projectId,
-                                  isOwner: _canEditCover,
-                                  summary: _developmentSummary,
-                                  onChanged: _reloadDevelopmentSummary,
-                                  projectsRepo: _projectsRepo,
-                                ),
-                              ],
-                            ),
-                          ),
-                          ProjectDashboardSection.overview => SizedBox(
-                            width: _canvasWidth,
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height: 987 + _overviewContentOffset,
-                                  child: Stack(
-                                    children: [
-                                      _buildHeader(context),
-                                      _buildTabs(),
-                                      _buildHero(),
-                                      Transform.translate(
-                                        offset: Offset(
-                                          0,
-                                          _overviewContentOffset,
-                                        ),
-                                        child: _buildDevelopmentProgress(),
-                                      ),
-                                      Transform.translate(
-                                        offset: Offset(
-                                          0,
-                                          _overviewContentOffset,
-                                        ),
-                                        child: _buildProjectBasics(),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                _buildImpactSummary(),
-                                const SizedBox(height: 40),
-                                _buildLearningObjectives(),
-                                const SizedBox(height: 16),
-                                if (_participant) const SizedBox(height: 16),
-                                if (_participant)
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: _sectionInset,
+                : PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      primary: false,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.topCenter,
+                        child: SizedBox(
+                          width: _canvasWidth,
+                          child: switch (tab) {
+                            ProjectDashboardSection.collaboration =>
+                              const SizedBox.shrink(),
+                            ProjectDashboardSection.timeline => SizedBox(
+                              width: _canvasWidth,
+                              height: 852,
+                              child: Stack(
+                                children: [
+                                  _buildHeader(context),
+                                  _buildTabs(),
+                                  ProjectTimelineTab(
+                                    key: ValueKey(
+                                      'timeline-$_settingsRevision-$_activityNavigationRevision',
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 48,
-                                      ),
-                                      child: _buildRecentActivity(),
+                                    initialEventId:
+                                        _activityEventId ??
+                                        widget.initialEventId,
+                                    projectId: widget.projectId,
+                                    isOwner: _canEditCover,
+                                    projectsRepo: _projectsRepo,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ProjectDashboardSection.development => SizedBox(
+                              width: _canvasWidth,
+                              height: 760,
+                              child: Stack(
+                                children: [
+                                  _buildHeader(context),
+                                  _buildTabs(),
+                                  ProjectDevelopmentTab(
+                                    projectId: widget.projectId,
+                                    isOwner: _canEditCover,
+                                    summary: _developmentSummary,
+                                    onChanged: _reloadDevelopmentSummary,
+                                    projectsRepo: _projectsRepo,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ProjectDashboardSection.overview => SizedBox(
+                              width: _canvasWidth,
+                              child: Column(
+                                children: [
+                                  SizedBox(
+                                    height: 987 + _overviewContentOffset,
+                                    child: Stack(
+                                      children: [
+                                        _buildHeader(context),
+                                        _buildTabs(),
+                                        _buildHero(),
+                                        Transform.translate(
+                                          offset: Offset(
+                                            0,
+                                            _overviewContentOffset,
+                                          ),
+                                          child: _buildDevelopmentProgress(),
+                                        ),
+                                        Transform.translate(
+                                          offset: Offset(
+                                            0,
+                                            _overviewContentOffset,
+                                          ),
+                                          child: _buildProjectBasics(),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                              ],
+                                  _buildImpactSummary(),
+                                  const SizedBox(height: 40),
+                                  _buildLearningObjectives(),
+                                  const SizedBox(height: 16),
+                                  if (_participant) const SizedBox(height: 16),
+                                  if (_participant)
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: _sectionInset,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 48,
+                                        ),
+                                        child: _buildRecentActivity(),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                        },
+                          },
+                        ),
                       ),
                     ),
                   ),

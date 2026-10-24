@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'workshop_gallery.dart';
 import '../../../backend/db/supabase_database.dart';
 import '../../home_page/pages/home.dart';
@@ -349,62 +350,64 @@ class _SiteInformationPageState extends State<SiteInformationPage> {
     };
     return Scaffold(
       backgroundColor: Colors.white,
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: page == 'about' ? 1280 : 940,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(28, 48, 28, 56),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      (sitePageTitles[page] ?? page).toUpperCase(),
-                      style: const TextStyle(
-                        letterSpacing: 2,
-                        fontSize: 12,
-                        color: Color(0xFF667269),
+      body: PageScrollWithFooter(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: page == 'about' ? 1280 : 940,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 48, 28, 56),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (sitePageTitles[page] ?? page).toUpperCase(),
+                        style: const TextStyle(
+                          letterSpacing: 2,
+                          fontSize: 12,
+                          color: Color(0xFF667269),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: MediaQuery.sizeOf(context).width < 600
-                            ? 32
-                            : 42,
-                        height: 1.2,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF24543C),
+                      const SizedBox(height: 18),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: MediaQuery.sizeOf(context).width < 600
+                              ? 32
+                              : 42,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF24543C),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (page == 'about')
-                      ...about()
-                    else if (page == 'support')
-                      ...support()
-                    else if (policy != null) ...[
-                      for (final text in policy)
-                        if (text.length < 65 &&
-                            !text.startsWith('Last updated') &&
-                            !text.contains('@') &&
-                            !text.endsWith('.'))
-                          heading(text)
-                        else
-                          paragraph(text),
-                      contact(),
+                      const SizedBox(height: 24),
+                      if (page == 'about')
+                        ...about()
+                      else if (page == 'support')
+                        ...support()
+                      else if (policy != null) ...[
+                        for (final text in policy)
+                          if (text.length < 65 &&
+                              !text.startsWith('Last updated') &&
+                              !text.contains('@') &&
+                              !text.endsWith('.'))
+                            heading(text)
+                          else
+                            paragraph(text),
+                        contact(),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SiteFooter(),
-        ],
+            const SiteFooter(),
+          ],
+        ),
       ),
     );
   }

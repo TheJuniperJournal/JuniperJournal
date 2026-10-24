@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -175,18 +176,20 @@ class _ConceptExplorationPreviewScreenState
         message: 'No Concept Exploration blocks have been saved yet.',
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-      itemCount: _blocks.length,
-      separatorBuilder: (_, _) => SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final block = _blocks[index];
-        return _PreviewListCard(
-          block: block,
-          number: index + 1,
-          onTap: () => setState(() => _selectedIndex = index),
-        );
-      },
+    return PageScrollWithFooter(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        itemCount: _blocks.length,
+        separatorBuilder: (_, _) => SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final block = _blocks[index];
+          return _PreviewListCard(
+            block: block,
+            number: index + 1,
+            onTap: () => setState(() => _selectedIndex = index),
+          );
+        },
+      ),
     );
   }
 
@@ -210,15 +213,17 @@ class _ConceptExplorationPreviewScreenState
         _ProgressDots(current: index, total: _blocks.length),
         SizedBox(height: 16),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            children: [
-              _PreviewDetailCard(
-                block: block,
-                inquiry: _buildInquiry(block),
-                assessment: _buildAssessment(block),
-              ),
-            ],
+          child: PageScrollWithFooter(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              children: [
+                _PreviewDetailCard(
+                  block: block,
+                  inquiry: _buildInquiry(block),
+                  assessment: _buildAssessment(block),
+                ),
+              ],
+            ),
           ),
         ),
         Padding(
@@ -2168,26 +2173,28 @@ class _ReadOnlyTable extends StatelessWidget {
             ? column['name'].toString()
             : 'Column',
     ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Table(
-        defaultColumnWidth: const FixedColumnWidth(105),
-        border: TableBorder.all(color: const Color(0xFFD8D0D0)),
-        children: [
-          TableRow(
-            decoration: const BoxDecoration(color: Color(0xFFD9D9D9)),
-            children: [for (final label in labels) _TableHeaderCell(label)],
-          ),
-          for (final row in rows)
+    return PageScrollWithFooter(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Table(
+          defaultColumnWidth: const FixedColumnWidth(105),
+          border: TableBorder.all(color: const Color(0xFFD8D0D0)),
+          children: [
             TableRow(
-              children: [
-                for (final column in normalizedColumns)
-                  _TableBodyCell(
-                    row[column['id']?.toString()]?.toString() ?? '',
-                  ),
-              ],
+              decoration: const BoxDecoration(color: Color(0xFFD9D9D9)),
+              children: [for (final label in labels) _TableHeaderCell(label)],
             ),
-        ],
+            for (final row in rows)
+              TableRow(
+                children: [
+                  for (final column in normalizedColumns)
+                    _TableBodyCell(
+                      row[column['id']?.toString()]?.toString() ?? '',
+                    ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

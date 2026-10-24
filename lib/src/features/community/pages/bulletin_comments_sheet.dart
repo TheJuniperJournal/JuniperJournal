@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
@@ -150,19 +151,21 @@ class _BulletinCommentsSheetState extends State<BulletinCommentsSheet> {
                       ),
                     ),
                   )
-                : ListView.separated(
-                    controller: _scrollCtrl,
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    itemCount: _comments.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppMetrics.labelGap),
-                    itemBuilder: (_, i) => _CommentTile(
-                      comment: _comments[i],
-                      onReply: () => _bodyCtrl.replyTo(
-                        _comments[i].id,
-                        _comments[i].authorLabel,
-                        _comments[i].body,
+                : PageScrollWithFooter(
+                    child: ListView.separated(
+                      controller: _scrollCtrl,
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      itemCount: _comments.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppMetrics.labelGap),
+                      itemBuilder: (_, i) => _CommentTile(
+                        comment: _comments[i],
+                        onReply: () => _bodyCtrl.replyTo(
+                          _comments[i].id,
+                          _comments[i].authorLabel,
+                          _comments[i].body,
+                        ),
                       ),
                     ),
                   ),

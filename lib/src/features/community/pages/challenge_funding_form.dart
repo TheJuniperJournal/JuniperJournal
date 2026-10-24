@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -110,35 +111,63 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
           style: AppTypography.pageTitle,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Budget circle indicator
-            Center(
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _budgetColor(), width: 3),
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Budget circle indicator
+              Center(
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _budgetColor(), width: 3),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _budgetLabel(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: AppTypography.sectionTitleSize,
+                          fontWeight: FontWeight.w800,
+                          color: _budgetColor(),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Budget',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.helperSize,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // Slider
+              if (!_noRestriction) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
                     Text(
-                      _budgetLabel(),
-                      textAlign: TextAlign.center,
+                      '\$0',
                       style: TextStyle(
-                        fontSize: AppTypography.sectionTitleSize,
-                        fontWeight: FontWeight.w800,
-                        color: _budgetColor(),
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.helperSize,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Budget',
+                    Text(
+                      '\$100',
                       style: TextStyle(
                         fontFamily: AppTypography.bodyFamily,
                         fontSize: AppTypography.helperSize,
@@ -147,214 +176,188 @@ class _ChallengeFundingFormState extends State<ChallengeFundingForm> {
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // Slider
-            if (!_noRestriction) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    '\$0',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.helperSize,
-                      color: AppColors.textSecondary,
-                    ),
+                RangeSlider(
+                  values: RangeValues(
+                    _budgetMin.clamp(0, _budgetMax),
+                    _budgetMax.clamp(_budgetMin, 100),
                   ),
-                  Text(
-                    '\$100',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.helperSize,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              RangeSlider(
-                values: RangeValues(
-                  _budgetMin.clamp(0, _budgetMax),
-                  _budgetMax.clamp(_budgetMin, 100),
-                ),
-                min: 0,
-                max: 100,
-                divisions: 20,
-                activeColor: AppColors.primary,
-                inactiveColor: AppColors.primaryTint,
-                onChanged: (v) => setState(() {
-                  _budgetMin = v.start;
-                  _budgetMax = v.end;
-                }),
-              ),
-              const SizedBox(height: 8),
-            ],
-
-            // No Restriction toggle
-            Row(
-              children: [
-                const Text(
-                  'No Budget Restriction',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.bodySize,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                Switch(
-                  value: _noRestriction,
-                  onChanged: (v) => setState(() => _noRestriction = v),
+                  min: 0,
+                  max: 100,
+                  divisions: 20,
                   activeColor: AppColors.primary,
+                  inactiveColor: AppColors.primaryTint,
+                  onChanged: (v) => setState(() {
+                    _budgetMin = v.start;
+                    _budgetMax = v.end;
+                  }),
                 ),
+                const SizedBox(height: 8),
               ],
-            ),
 
-            // Budget tag
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 24),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: _budgetColor(),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _budgetTag(),
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.helperSize,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
-
-            const Text(
-              'Materials',
-              style: TextStyle(
-                fontFamily: AppTypography.headingFamily,
-                fontSize: AppTypography.sectionTitleSize,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            ..._materials.asMap().entries.map((entry) {
-              return Column(
+              // No Restriction toggle
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.circle,
-                        size: 8,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          entry.value,
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.bodySize,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                      AppTapTarget(
-                        onTap: () =>
-                            setState(() => _materials.removeAt(entry.key)),
-                        child: const Icon(
-                          Icons.close,
-                          size: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(color: AppColors.divider),
-                ],
-              );
-            }),
-
-            // Add item row
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add, size: 16, color: Colors.white),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _newItemCtrl,
-                    style: const TextStyle(
+                  const Text(
+                    'No Budget Restriction',
+                    style: TextStyle(
                       fontFamily: AppTypography.bodyFamily,
                       fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
                       color: AppColors.textPrimary,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: '',
-                      hintStyle: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        color: AppColors.hintText,
-                        fontSize: AppTypography.helperSize,
-                      ),
-                      border: InputBorder.none,
-                    ),
-                    onSubmitted: (_) => _addMaterial(),
                   ),
-                ),
-                TextButton(onPressed: _addMaterial, child: const Text('Add')),
-              ],
-            ),
-            const SizedBox(height: AppMetrics.journalSectionGap),
-
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                  const Spacer(),
+                  Switch(
+                    value: _noRestriction,
+                    onChanged: (v) => setState(() => _noRestriction = v),
+                    activeColor: AppColors.primary,
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Save'),
+                ],
               ),
-            ),
-          ],
+
+              // Budget tag
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 8, bottom: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _budgetColor(),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _budgetTag(),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+
+              const Text(
+                'Materials',
+                style: TextStyle(
+                  fontFamily: AppTypography.headingFamily,
+                  fontSize: AppTypography.sectionTitleSize,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              ..._materials.asMap().entries.map((entry) {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            entry.value,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.bodySize,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        AppTapTarget(
+                          onTap: () =>
+                              setState(() => _materials.removeAt(entry.key)),
+                          child: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(color: AppColors.divider),
+                  ],
+                );
+              }),
+
+              // Add item row
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add, size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _newItemCtrl,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: '',
+                        hintStyle: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.hintText,
+                          fontSize: AppTypography.helperSize,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _addMaterial(),
+                    ),
+                  ),
+                  TextButton(onPressed: _addMaterial, child: const Text('Add')),
+                ],
+              ),
+              const SizedBox(height: AppMetrics.journalSectionGap),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

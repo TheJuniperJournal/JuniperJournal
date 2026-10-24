@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:flutter/services.dart';
@@ -768,38 +769,40 @@ class _AssessmentBlockSectionState extends State<AssessmentBlockSection> {
                     border: Border(top: BorderSide(color: Color(0xFFE6E6E6))),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    primary: false,
-                    itemCount: AssessmentType.values.length + 1,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) => index == 0
-                        ? Material(
-                            color: Colors.white,
-                            child: ListTile(
-                              key: const ValueKey('no-assessment-option'),
-                              title: const Text('—'),
-                              subtitle: const Text('No assessment'),
-                              onTap: () async {
-                                setState(() => _selectorExpanded = false);
-                                await _selectType(null);
-                              },
+                  child: PageScrollWithFooter(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      primary: false,
+                      itemCount: AssessmentType.values.length + 1,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) => index == 0
+                          ? Material(
+                              color: Colors.white,
+                              child: ListTile(
+                                key: const ValueKey('no-assessment-option'),
+                                title: const Text('—'),
+                                subtitle: const Text('No assessment'),
+                                onTap: () async {
+                                  setState(() => _selectorExpanded = false);
+                                  await _selectType(null);
+                                },
+                              ),
+                            )
+                          : SizedBox(
+                              height: 76,
+                              child: _SelectorPanelRow(
+                                type: AssessmentType.values[index - 1],
+                                selected:
+                                    _type == AssessmentType.values[index - 1],
+                                onTap: () async {
+                                  setState(() => _selectorExpanded = false);
+                                  await _selectType(
+                                    AssessmentType.values[index - 1],
+                                  );
+                                },
+                              ),
                             ),
-                          )
-                        : SizedBox(
-                            height: 76,
-                            child: _SelectorPanelRow(
-                              type: AssessmentType.values[index - 1],
-                              selected:
-                                  _type == AssessmentType.values[index - 1],
-                              onTap: () async {
-                                setState(() => _selectorExpanded = false);
-                                await _selectType(
-                                  AssessmentType.values[index - 1],
-                                );
-                              },
-                            ),
-                          ),
+                    ),
                   ),
                 ),
             ],

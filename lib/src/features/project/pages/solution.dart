@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -234,42 +235,44 @@ class _SolutionScreenState extends State<SolutionScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: const Text('Insert Table'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Table dimensions:',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: rowsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Rows',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 12,
+          content: PageScrollWithFooter(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Table dimensions:',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: rowsController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Rows',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 12,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: colsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Columns',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 12,
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: colsController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Columns',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 12,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
@@ -565,59 +568,61 @@ class _SolutionScreenState extends State<SolutionScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: const Text('Insert Math Equation'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Enter LaTeX equation:',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.bodySize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: latexController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: '',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 12,
+          content: PageScrollWithFooter(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Enter LaTeX equation:',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.bodySize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Examples:',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.helperSize,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.grey[700],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: latexController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: '',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 12,
+                      ),
+                    ),
+                    maxLines: 3,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  r'• E = mc^2'
-                  '\n'
-                  r'• \frac{a}{b}'
-                  '\n'
-                  r'• x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}'
-                  '\n'
-                  r'• \int_0^1 x^2 dx',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.helperSize,
-                    color: Colors.grey[600],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Examples:',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey[700],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    r'• E = mc^2'
+                    '\n'
+                    r'• \frac{a}{b}'
+                    '\n'
+                    r'• x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}'
+                    '\n'
+                    r'• \int_0^1 x^2 dx',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.helperSize,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -830,48 +835,50 @@ class _SolutionScreenState extends State<SolutionScreen> {
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
                   height: _isHeaderCollapsed ? 36 : null,
-                  child: SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Navigation dropdown
-                          _buildNavigationDropdown(),
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Navigation dropdown
+                            _buildNavigationDropdown(),
 
-                          // Only show tags when not collapsed
-                          if (!_isHeaderCollapsed) ...[
-                            const SizedBox(height: 12),
-                            // Project tags
-                            if (tags.isNotEmpty)
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: tags.map((tag) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDCF7E4),
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: const TextStyle(
-                                        color: AppColors.primary,
-                                        fontSize: 10,
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w600,
+                            // Only show tags when not collapsed
+                            if (!_isHeaderCollapsed) ...[
+                              const SizedBox(height: 12),
+                              // Project tags
+                              if (tags.isNotEmpty)
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: tags.map((tag) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDCF7E4),
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Text(
+                                        tag,
+                                        style: const TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 10,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),

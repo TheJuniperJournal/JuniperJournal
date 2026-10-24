@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -194,143 +195,148 @@ class _SharedVisibilityPickerState extends State<SharedVisibilityPicker> {
               ),
               const Divider(color: Color(0xFF5DB075)),
               Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (collaborative &&
-                          widget.linkedCommunities.isNotEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20, bottom: 12),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  'Collaborating Communities',
-                                  style: TextStyle(
-                                    color: Color(0xFF5DB075),
-                                    fontSize: AppTypography.pageTitleSize,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(
-                                Icons.lock_outline,
-                                color: Color(0xFF5DB075),
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Text(
-                          'These communities already have visibility to the project.',
-                          style: TextStyle(
-                            color: Color(0xFF5DB075),
-                            fontSize: AppTypography.helperSize,
-                          ),
-                        ),
-                        for (final c in widget.linkedCommunities)
-                          _community(
-                            id: c['id'].toString(),
-                            name: c['name']?.toString() ?? '',
-                            image: c['imageUrl']?.toString(),
-                            description: c['description']?.toString(),
-                            locked: true,
-                          ),
-                      ],
-                      _title('Additional Viewing Audience'),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/project_setup/visibility_shared.svg',
-                            width: 44,
-                            height: 40,
-                          ),
-                          const SizedBox(width: 18),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                child: PageScrollWithFooter(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (collaborative &&
+                            widget.linkedCommunities.isNotEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.only(top: 20, bottom: 12),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  'Friends',
-                                  style: TextStyle(
-                                    fontSize: AppTypography.pageTitleSize,
-                                    height: 1.5,
-                                    color: Color(0xFF5DB075),
-                                    fontWeight: FontWeight.w600,
+                                Flexible(
+                                  child: Text(
+                                    'Collaborating Communities',
+                                    style: TextStyle(
+                                      color: Color(0xFF5DB075),
+                                      fontSize: AppTypography.pageTitleSize,
+                                    ),
                                   ),
                                 ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Only people you’re connected with can view this project, allowing you to share your progress, ideas, and impact with a trusted network.',
-                                  style: TextStyle(
-                                    fontSize: AppTypography.helperSize,
-                                    height: 1.7,
-                                    color: Color(0xFF498B5C),
-                                  ),
+                                SizedBox(width: 8),
+                                Icon(
+                                  Icons.lock_outline,
+                                  color: Color(0xFF5DB075),
+                                  size: 20,
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 40,
-                            height: 24,
-                            child: Checkbox(
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              value: _friends,
-                              activeColor: const Color(0xFF5DB075),
-                              side: WidgetStateBorderSide.resolveWith(
-                                (_) => const BorderSide(
-                                  color: Color(0xFF5DB075),
-                                  width: 1.5,
-                                ),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              fillColor: WidgetStateProperty.all(Colors.white),
-                              checkColor: const Color(0xFF5DB075),
-                              onChanged: (v) =>
-                                  setState(() => _friends = v ?? false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      _title(
-                        collaborative
-                            ? 'Additional Viewing Communities'
-                            : 'Communities',
-                      ),
-                      if (_communities == null)
-                        _failed
-                            ? const Text('Unable to load communities.')
-                            : const Center(child: CircularProgressIndicator())
-                      else ...[
-                        if (_communities!
-                            .where(
-                              (c) =>
-                                  !collaborative || !_linkedIds.contains(c.id),
-                            )
-                            .isEmpty)
                           const Text(
-                            'No additional communities available.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        for (final c in _communities!)
-                          if (!collaborative || !_linkedIds.contains(c.id))
-                            _community(
-                              id: c.id,
-                              name: c.name,
-                              image: c.imageUrl,
-                              description: c.subjectFocus,
-                              locked: _linkedIds.contains(c.id),
+                            'These communities already have visibility to the project.',
+                            style: TextStyle(
+                              color: Color(0xFF5DB075),
+                              fontSize: AppTypography.helperSize,
                             ),
+                          ),
+                          for (final c in widget.linkedCommunities)
+                            _community(
+                              id: c['id'].toString(),
+                              name: c['name']?.toString() ?? '',
+                              image: c['imageUrl']?.toString(),
+                              description: c['description']?.toString(),
+                              locked: true,
+                            ),
+                        ],
+                        _title('Additional Viewing Audience'),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/project_setup/visibility_shared.svg',
+                              width: 44,
+                              height: 40,
+                            ),
+                            const SizedBox(width: 18),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Friends',
+                                    style: TextStyle(
+                                      fontSize: AppTypography.pageTitleSize,
+                                      height: 1.5,
+                                      color: Color(0xFF5DB075),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Only people you’re connected with can view this project, allowing you to share your progress, ideas, and impact with a trusted network.',
+                                    style: TextStyle(
+                                      fontSize: AppTypography.helperSize,
+                                      height: 1.7,
+                                      color: Color(0xFF498B5C),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 40,
+                              height: 24,
+                              child: Checkbox(
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                value: _friends,
+                                activeColor: const Color(0xFF5DB075),
+                                side: WidgetStateBorderSide.resolveWith(
+                                  (_) => const BorderSide(
+                                    color: Color(0xFF5DB075),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                fillColor: WidgetStateProperty.all(
+                                  Colors.white,
+                                ),
+                                checkColor: const Color(0xFF5DB075),
+                                onChanged: (v) =>
+                                    setState(() => _friends = v ?? false),
+                              ),
+                            ),
+                          ],
+                        ),
+                        _title(
+                          collaborative
+                              ? 'Additional Viewing Communities'
+                              : 'Communities',
+                        ),
+                        if (_communities == null)
+                          _failed
+                              ? const Text('Unable to load communities.')
+                              : const Center(child: CircularProgressIndicator())
+                        else ...[
+                          if (_communities!
+                              .where(
+                                (c) =>
+                                    !collaborative ||
+                                    !_linkedIds.contains(c.id),
+                              )
+                              .isEmpty)
+                            const Text(
+                              'No additional communities available.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          for (final c in _communities!)
+                            if (!collaborative || !_linkedIds.contains(c.id))
+                              _community(
+                                id: c.id,
+                                name: c.name,
+                                image: c.imageUrl,
+                                description: c.subjectFocus,
+                                locked: _linkedIds.contains(c.id),
+                              ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),

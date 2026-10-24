@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:flutter/material.dart';
 import '../../../shared/styling/app_typography.dart';
 
@@ -60,16 +61,18 @@ class JournalChoiceDialog extends StatelessWidget {
                 context,
               ).copyWith(scrollbars: false),
               child: LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Align(
-                      alignment: centerContent
-                          ? Alignment.center
-                          : Alignment.topCenter,
-                      child: child,
+                builder: (context, constraints) => PageScrollWithFooter(
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Align(
+                        alignment: centerContent
+                            ? Alignment.center
+                            : Alignment.topCenter,
+                        child: child,
+                      ),
                     ),
                   ),
                 ),

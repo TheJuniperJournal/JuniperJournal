@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -185,132 +186,136 @@ class _LinkBlockEditorScreenState extends State<LinkBlockEditorScreen> {
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 23, 23, 38),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _Label('Content'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _Label('Title', optional: true),
-                        const SizedBox(height: 10),
-                        _InputBox(
-                          controller: _titleController,
-                          maxLength: 100,
-                          height: 64,
-                        ),
-                        const SizedBox(height: 10),
-                        const _Label('URL'),
-                        const SizedBox(height: 10),
-                        _InputBox(
-                          controller: _urlController,
-                          maxLength: 2000,
-                          height: 34,
-                          showCounter: false,
-                          error: showUrlError,
-                        ),
-                        if (showUrlError) ...[
-                          if (_validUrl)
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton.icon(
-                                onPressed: () async {
-                                  final opened = await launchUrl(
-                                    Uri.parse(_urlController.text.trim()),
-                                    mode: LaunchMode.externalApplication,
-                                  );
-                                  if (!opened && context.mounted)
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Could not open this link.',
-                                        ),
-                                      ),
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 23, 23, 38),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _Label('Content'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _Label('Title', optional: true),
+                          const SizedBox(height: 10),
+                          _InputBox(
+                            controller: _titleController,
+                            maxLength: 100,
+                            height: 64,
+                          ),
+                          const SizedBox(height: 10),
+                          const _Label('URL'),
+                          const SizedBox(height: 10),
+                          _InputBox(
+                            controller: _urlController,
+                            maxLength: 2000,
+                            height: 34,
+                            showCounter: false,
+                            error: showUrlError,
+                          ),
+                          if (showUrlError) ...[
+                            if (_validUrl)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: TextButton.icon(
+                                  onPressed: () async {
+                                    final opened = await launchUrl(
+                                      Uri.parse(_urlController.text.trim()),
+                                      mode: LaunchMode.externalApplication,
                                     );
-                                },
-                                icon: const Icon(Icons.open_in_new, size: 18),
-                                label: const Text('Open Link'),
+                                    if (!opened && context.mounted)
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Could not open this link.',
+                                          ),
+                                        ),
+                                      );
+                                  },
+                                  icon: const Icon(Icons.open_in_new, size: 18),
+                                  label: const Text('Open Link'),
+                                ),
+                              ),
+                            const SizedBox(height: 7),
+                            const Text(
+                              'Enter a valid http or https URL.',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: _error,
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
-                          const SizedBox(height: 7),
-                          const Text(
-                            'Enter a valid http or https URL.',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              color: _error,
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
+                          ],
+                          const SizedBox(height: AppMetrics.sectionGap),
+                          _LinkPreview(
+                            title: _titleController.text.trim(),
+                            url: _urlController.text.trim(),
+                            description: _descriptionController.text.trim(),
+                            validUrl: _validUrl,
+                          ),
+                          const SizedBox(height: 36),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _SmallButton(
+                                label: 'Remove',
+                                color: const Color(0xFFE21704),
+                                fill: const Color(0x33E21704),
+                                onTap: _removeLink,
+                              ),
+                              _SmallButton(
+                                label: 'Replace',
+                                color: _green,
+                                fill: Colors.white,
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppMetrics.sectionGap),
+                          _Label('Description', optional: true),
+                          const SizedBox(height: 10),
+                          _InputBox(
+                            controller: _descriptionController,
+                            maxLength: 300,
+                            height: 56,
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+
+                          const SizedBox(height: 44),
+                          Center(
+                            child: SizedBox(
+                              width: 130,
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: _saving ? null : _save,
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: _green,
+                                  disabledBackgroundColor: const Color(
+                                    0xFFB8D8C1,
+                                  ),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  _saving
+                                      ? 'Saving...'
+                                      : (_isEditing ? 'Save' : 'Add Block'),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.buttonSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: AppMetrics.sectionGap),
-                        _LinkPreview(
-                          title: _titleController.text.trim(),
-                          url: _urlController.text.trim(),
-                          description: _descriptionController.text.trim(),
-                          validUrl: _validUrl,
-                        ),
-                        const SizedBox(height: 36),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _SmallButton(
-                              label: 'Remove',
-                              color: const Color(0xFFE21704),
-                              fill: const Color(0x33E21704),
-                              onTap: _removeLink,
-                            ),
-                            _SmallButton(
-                              label: 'Replace',
-                              color: _green,
-                              fill: Colors.white,
-                              onTap: () {},
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppMetrics.sectionGap),
-                        _Label('Description', optional: true),
-                        const SizedBox(height: 10),
-                        _InputBox(
-                          controller: _descriptionController,
-                          maxLength: 300,
-                          height: 56,
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-
-                        const SizedBox(height: 44),
-                        Center(
-                          child: SizedBox(
-                            width: 130,
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: _saving ? null : _save,
-                              style: ElevatedButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: _green,
-                                disabledBackgroundColor: const Color(
-                                  0xFFB8D8C1,
-                                ),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                _saving
-                                    ? 'Saving...'
-                                    : (_isEditing ? 'Save' : 'Add Block'),
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.buttonSize,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

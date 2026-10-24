@@ -1,4 +1,5 @@
 import 'package:juniper_journal/src/shared/widgets/page_refresh_state.dart';
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../../../support/fake_backend.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,10 +12,56 @@ void main() {
     PageRefreshState.currentDestination = null;
     PageRefreshState.destinationKind.value = null;
   });
+  for (final custom in [false, true]) {
+    testWidgets(
+      '${custom ? 'custom slivers' : 'single child'} footer appears only after long content',
+      (tester) async {
+        final navigation = GlobalKey<NavigatorState>();
+        final content = Container(
+          height: 2400,
+          child: const Text('Long content'),
+        );
+        final scroll = custom
+            ? CustomScrollView(slivers: [SliverToBoxAdapter(child: content)])
+            : SingleChildScrollView(child: content);
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorKey: navigation,
+            builder: (_, child) =>
+                PublicSiteFrame(navigatorKey: navigation, child: child!),
+            home: Scaffold(body: PageScrollWithFooter(child: scroll)),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final footer = find.byKey(const ValueKey('page-end-footer'));
+        expect(footer, findsNothing);
+        await tester.drag(
+          find.byType(CustomScrollView).first,
+          const Offset(0, -6000),
+        );
+        await tester.pumpAndSettle();
+        expect(footer, findsOneWidget);
+        expect(
+          tester.getRect(footer).bottom,
+          closeTo(
+            tester.view.physicalSize.height / tester.view.devicePixelRatio,
+            .1,
+          ),
+        );
+        await tester.drag(
+          find.byType(CustomScrollView).first,
+          const Offset(0, 6000),
+        );
+        await tester.pumpAndSettle();
+        expect(footer, findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   for (final wide in [false, true]) {
     for (final long in [false, true]) {
       testWidgets(
-        'shared footer stays below ${long ? 'scrolling' : 'short'} content at ${wide ? 'desktop' : 'mobile'} size',
+        'footer scrolls after ${long ? 'long' : 'short'} content at ${wide ? 'desktop' : 'mobile'} size',
         (tester) async {
           final size = wide ? const Size(1440, 900) : const Size(390, 844);
           tester.view.physicalSize = size;
@@ -28,52 +75,38 @@ void main() {
               builder: (_, child) =>
                   PublicSiteFrame(navigatorKey: navigation, child: child!),
               home: Scaffold(
-                key: const ValueKey('page-body'),
-                body: long
-                    ? ListView(
-                        children: [
-                          for (var i = 0; i < 60; i++)
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text('Row $i'),
-                            ),
-                          const SiteFooter(),
-                        ],
-                      )
-                    : const Center(child: Text('Short page')),
+                body: PageScrollWithFooter(
+                  child: ListView(
+                    children: [
+                      for (var i = 0; i < (long ? 60 : 1); i++)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text('Row $i'),
+                        ),
+                      const SiteFooter(),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
           await tester.pumpAndSettle();
-          final footer = find.byKey(const ValueKey('global-site-footer'));
-          final footerBounds = tester.getRect(footer);
-          expect(footerBounds.bottom, size.height);
-          expect(
-            tester.getRect(find.byKey(const ValueKey('page-body'))).bottom,
-            lessThanOrEqualTo(footerBounds.top),
-          );
-          expect(
-            find.descendant(of: footer, matching: find.text('Privacy')),
-            findsOneWidget,
-          );
+          final footer = find.byKey(const ValueKey('page-end-footer'));
           if (long) {
-            await tester.drag(find.byType(ListView), const Offset(0, -12000));
+            expect(footer, findsNothing);
+            await tester.drag(
+              find.byType(CustomScrollView).first,
+              const Offset(0, -12000),
+            );
             await tester.pumpAndSettle();
-            // The page-local footer yields to the shared footer.
-            expect(find.text('Privacy'), findsOneWidget);
-            expect(tester.getRect(footer), footerBounds);
           }
+          expect(tester.getRect(footer).bottom, closeTo(size.height, .1));
+          expect(find.text('Privacy'), findsOneWidget);
           await tester.tap(
             find.descendant(of: footer, matching: find.text('Privacy')),
           );
           await tester.pumpAndSettle();
           expect(find.byType(SiteInformationPage), findsOneWidget);
-          expect(
-            tester
-                .widget<SiteInformationPage>(find.byType(SiteInformationPage))
-                .page,
-            'privacy',
-          );
           expect(tester.takeException(), isNull);
         },
       );

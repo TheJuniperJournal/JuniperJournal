@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import '../../../shared/widgets/app_refresh_indicator.dart';
 import '../../../shared/widgets/journal_project_link.dart';
@@ -58,48 +59,52 @@ class CommunityEntriesFeedState extends State<CommunityEntriesFeed> {
       final records = snapshot.data ?? [];
       return AppRefreshIndicator(
         onRefresh: reload,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            if (snapshot.hasError)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('Could not load entries. Pull down to try again.'),
-              ),
-            if (!snapshot.hasError && records.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Text(
-                  'No journal entries yet. Completed entries from community projects will appear here.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.helper,
+        child: PageScrollWithFooter(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (snapshot.hasError)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text(
+                    'Could not load entries. Pull down to try again.',
+                  ),
                 ),
-              ),
-            for (final record in records) ...[
-              JournalLogEntryCard(
-                entry: record.entry,
-                projectLink: JournalProjectLink(
-                  projectName: record.project.projectName,
-                  onTap: () =>
-                      openJournalProject(context, record.project, _repo),
+              if (!snapshot.hasError && records.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Text(
+                    'No journal entries yet. Completed entries from community projects will appear here.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.helper,
+                  ),
                 ),
-                phaseLabel:
-                    record.entry.prototypingTypeLabel ??
-                    switch (normalizePhase(record.entry.progress)) {
-                      'discover' => 'Discovery',
-                      'ideating' => 'Ideation',
-                      'prototyping' => 'Prototyping',
-                      'implementation' => 'Implementation',
-                      _ => 'Journal',
-                    },
-                status: const SizedBox.shrink(),
-                ecoPoints: record.ecoPoints,
-                imageUrls: communityJournalImages(record.entry.content),
-                onTap: () => _open(record),
-              ),
+              for (final record in records) ...[
+                JournalLogEntryCard(
+                  entry: record.entry,
+                  projectLink: JournalProjectLink(
+                    projectName: record.project.projectName,
+                    onTap: () =>
+                        openJournalProject(context, record.project, _repo),
+                  ),
+                  phaseLabel:
+                      record.entry.prototypingTypeLabel ??
+                      switch (normalizePhase(record.entry.progress)) {
+                        'discover' => 'Discovery',
+                        'ideating' => 'Ideation',
+                        'prototyping' => 'Prototyping',
+                        'implementation' => 'Implementation',
+                        _ => 'Journal',
+                      },
+                  status: const SizedBox.shrink(),
+                  ecoPoints: record.ecoPoints,
+                  imageUrls: communityJournalImages(record.entry.content),
+                  onTap: () => _open(record),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       );
     },

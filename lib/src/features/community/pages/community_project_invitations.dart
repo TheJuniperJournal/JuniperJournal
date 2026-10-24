@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:flutter/material.dart';
 import '../../../backend/db/repositories/projects_repo.dart';
@@ -139,65 +140,69 @@ class _CommunityProjectInvitationsPageState
         final requests = snapshot.data!;
         if (requests.isEmpty)
           return const Center(child: Text('No project invitations yet.'));
-        return ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const Text(
-              'Review project requests on behalf of this community. One administrator’s decision applies to everyone.',
-              style: AppTypography.helper,
-            ),
-            if (_busy) const LinearProgressIndicator(),
-            for (final request in requests)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        request['project_name']?.toString() ?? 'Project',
-                        style: AppTypography.sectionTitle,
-                      ),
-                      Text(
-                        'By ${request['creator_name'] ?? 'Project creator'}',
-                        style: AppTypography.helper,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(request['problem_statement']?.toString() ?? ''),
-                      const SizedBox(height: 8),
-                      Text('Status: ${request['status']}'),
-                      if (request['decided_at'] != null)
+        return PageScrollWithFooter(
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const Text(
+                'Review project requests on behalf of this community. One administrator’s decision applies to everyone.',
+                style: AppTypography.helper,
+              ),
+              if (_busy) const LinearProgressIndicator(),
+              for (final request in requests)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'Reviewed by ${request['decided_by_name'] ?? 'an administrator'} · ${request['decided_at']}',
+                          request['project_name']?.toString() ?? 'Project',
+                          style: AppTypography.sectionTitle,
+                        ),
+                        Text(
+                          'By ${request['creator_name'] ?? 'Project creator'}',
                           style: AppTypography.helper,
                         ),
-                      if (request['status'] == 'pending')
-                        Wrap(
-                          spacing: 12,
-                          children: [
-                            OutlinedButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () => _decide(
-                                      request['id'].toString(),
-                                      false,
-                                    ),
-                              child: const Text('Decline'),
-                            ),
-                            FilledButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () =>
-                                        _decide(request['id'].toString(), true),
-                              child: const Text('Accept'),
-                            ),
-                          ],
-                        ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(request['problem_statement']?.toString() ?? ''),
+                        const SizedBox(height: 8),
+                        Text('Status: ${request['status']}'),
+                        if (request['decided_at'] != null)
+                          Text(
+                            'Reviewed by ${request['decided_by_name'] ?? 'an administrator'} · ${request['decided_at']}',
+                            style: AppTypography.helper,
+                          ),
+                        if (request['status'] == 'pending')
+                          Wrap(
+                            spacing: 12,
+                            children: [
+                              OutlinedButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _decide(
+                                        request['id'].toString(),
+                                        false,
+                                      ),
+                                child: const Text('Decline'),
+                              ),
+                              FilledButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _decide(
+                                        request['id'].toString(),
+                                        true,
+                                      ),
+                                child: const Text('Accept'),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         );
       },
     ),

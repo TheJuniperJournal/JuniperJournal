@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -131,11 +132,13 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
       backgroundColor: Colors.white,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _buildHero()),
-                SliverToBoxAdapter(child: _buildTasksSection()),
-              ],
+          : PageScrollWithFooter(
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(child: _buildHero()),
+                  SliverToBoxAdapter(child: _buildTasksSection()),
+                ],
+              ),
             ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -162,247 +163,249 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
             constraints: BoxConstraints(maxWidth: _screenWidth),
             child: Form(
               key: _formKey,
-              child: SingleChildScrollView(
-                child: SizedBox(
-                  width: _screenWidth,
-                  height: 935,
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: 21,
-                        top: 40,
-                        width: 23,
-                        height: 23,
-                        child: AppTapTarget(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => Navigator.of(context).pop(),
-                          child: SvgPicture.asset(
-                            'assets/learning_module/x.svg',
-                            colorFilter: const ColorFilter.mode(
-                              _green,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 33,
-                        child: Text(
-                          'Module Setup',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: AppTypography.headingFamily,
-                            color: _textPrimary,
-                            fontSize: AppTypography.sectionTitleSize,
-                            height: 1.06,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 24,
-                        top: 102,
-                        child: Text(
-                          'Anchoring\nPhenomena',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            height: 1.03,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 24,
-                        top: 137,
-                        child: Text(
-                          'Add specific description of why this answer is correct.',
-                          style: AppTypography.helper,
-                        ),
-                      ),
-                      Positioned(
-                        left: 24,
-                        top: 167,
-                        width: 85,
-                        height: 24,
-                        child: _DropdownChip(
-                          key: _inquiryTypeChipKey,
-                          text: _selectedInquiryType,
-                          onTap: _showInquiryTypeMenu,
-                        ),
-                      ),
-                      Positioned(
-                        left: 24,
-                        top: 248,
-                        width: _screenWidth - 48,
-                        height: 64,
-                        child: TextFormField(
-                          controller: _moduleNameController,
-                          textAlignVertical: TextAlignVertical.center,
-                          style: const TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: _textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            height: 1.15,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: '',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF8C8C8C),
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 14,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: _green),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: _green),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.redAccent,
+              child: PageScrollWithFooter(
+                child: SingleChildScrollView(
+                  child: SizedBox(
+                    width: _screenWidth,
+                    height: 935,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 21,
+                          top: 40,
+                          width: 23,
+                          height: 23,
+                          child: AppTapTarget(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => Navigator.of(context).pop(),
+                            child: SvgPicture.asset(
+                              'assets/learning_module/x.svg',
+                              colorFilter: const ColorFilter.mode(
+                                _green,
+                                BlendMode.srcIn,
                               ),
                             ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.redAccent,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            errorStyle: const TextStyle(height: 0.85),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Module name must be completed';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      Positioned(
-                        left: 25,
-                        top: 316,
-                        child: Text(
-                          'Difficulty',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textPrimary,
-                            fontSize: AppTypography.bodySize,
-                            height: 1,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                      Positioned(
-                        left: 24,
-                        top: 335,
-                        child: Text(
-                          'Select a difficulty.',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: _textSecondary,
-                            fontSize: AppTypography.bodySize,
-                            height: 1,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 25,
-                        top: 365,
-                        child: Row(
-                          children: [
-                            for (
-                              var index = 0;
-                              index < _difficultyOptions.length;
-                              index++
-                            ) ...[
-                              _DifficultyCard(
-                                option: _difficultyOptions[index],
-                                isSelected:
-                                    _selectedDifficulty ==
-                                    _difficultyOptions[index].storedValue,
-                                onTap: () {
-                                  setState(() {
-                                    _selectedDifficulty =
-                                        _difficultyOptions[index].storedValue;
-                                  });
-                                },
-                              ),
-                              if (index != _difficultyOptions.length - 1)
-                                SizedBox(width: 15),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        left: 23,
-                        top: 504,
-                        width: _screenWidth - 45,
-                        height: 140,
-                        child: _SubjectPanel(
-                          selectedDomain: _selectedSubjectDomain,
-                          selectedFocus: _selectedSubjectFocus,
-                          domainOptions: _focusByDomain.keys.toList(),
-                          focusOptions:
-                              _focusByDomain[_selectedSubjectDomain] ??
-                              const [],
-                          onDomainSelected: (domain) {
-                            setState(() {
-                              _selectedSubjectDomain = domain;
-                              _selectedSubjectFocus =
-                                  _focusByDomain[domain]!.first;
-                            });
-                          },
-                          onFocusSelected: (focus) {
-                            setState(() {
-                              _selectedSubjectFocus = focus;
-                            });
-                          },
-                        ),
-                      ),
-                      Positioned(
-                        left: 21,
-                        top: 684,
-                        width: _screenWidth - 48,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _green,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 33,
+                          child: Text(
+                            'Module Setup',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: AppTypography.headingFamily,
+                              color: _textPrimary,
+                              fontSize: AppTypography.sectionTitleSize,
+                              height: 1.06,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          child: const Text(
-                            'Next',
+                        ),
+                        Positioned(
+                          left: 24,
+                          top: 102,
+                          child: Text(
+                            'Anchoring\nPhenomena',
                             style: TextStyle(
                               fontFamily: AppTypography.bodyFamily,
-                              color: Colors.white,
-                              fontSize: AppTypography.buttonSize,
+                              color: AppColors.textPrimary,
+                              fontSize: AppTypography.bodySize,
+                              height: 1.03,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 24,
+                          top: 137,
+                          child: Text(
+                            'Add specific description of why this answer is correct.',
+                            style: AppTypography.helper,
+                          ),
+                        ),
+                        Positioned(
+                          left: 24,
+                          top: 167,
+                          width: 85,
+                          height: 24,
+                          child: _DropdownChip(
+                            key: _inquiryTypeChipKey,
+                            text: _selectedInquiryType,
+                            onTap: _showInquiryTypeMenu,
+                          ),
+                        ),
+                        Positioned(
+                          left: 24,
+                          top: 248,
+                          width: _screenWidth - 48,
+                          height: 64,
+                          child: TextFormField(
+                            controller: _moduleNameController,
+                            textAlignVertical: TextAlignVertical.center,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: _textPrimary,
+                              fontSize: AppTypography.bodySize,
+                              height: 1.15,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: '',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFF8C8C8C),
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 14,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: _green),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: _green),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              errorStyle: const TextStyle(height: 0.85),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Module name must be completed';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        Positioned(
+                          left: 25,
+                          top: 316,
+                          child: Text(
+                            'Difficulty',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: AppColors.textPrimary,
+                              fontSize: AppTypography.bodySize,
                               height: 1,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          left: 24,
+                          top: 335,
+                          child: Text(
+                            'Select a difficulty.',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              color: _textSecondary,
+                              fontSize: AppTypography.bodySize,
+                              height: 1,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 25,
+                          top: 365,
+                          child: Row(
+                            children: [
+                              for (
+                                var index = 0;
+                                index < _difficultyOptions.length;
+                                index++
+                              ) ...[
+                                _DifficultyCard(
+                                  option: _difficultyOptions[index],
+                                  isSelected:
+                                      _selectedDifficulty ==
+                                      _difficultyOptions[index].storedValue,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedDifficulty =
+                                          _difficultyOptions[index].storedValue;
+                                    });
+                                  },
+                                ),
+                                if (index != _difficultyOptions.length - 1)
+                                  SizedBox(width: 15),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          left: 23,
+                          top: 504,
+                          width: _screenWidth - 45,
+                          height: 140,
+                          child: _SubjectPanel(
+                            selectedDomain: _selectedSubjectDomain,
+                            selectedFocus: _selectedSubjectFocus,
+                            domainOptions: _focusByDomain.keys.toList(),
+                            focusOptions:
+                                _focusByDomain[_selectedSubjectDomain] ??
+                                const [],
+                            onDomainSelected: (domain) {
+                              setState(() {
+                                _selectedSubjectDomain = domain;
+                                _selectedSubjectFocus =
+                                    _focusByDomain[domain]!.first;
+                              });
+                            },
+                            onFocusSelected: (focus) {
+                              setState(() {
+                                _selectedSubjectFocus = focus;
+                              });
+                            },
+                          ),
+                        ),
+                        Positioned(
+                          left: 21,
+                          top: 684,
+                          width: _screenWidth - 48,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _green,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Next',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                color: Colors.white,
+                                fontSize: AppTypography.buttonSize,
+                                height: 1,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

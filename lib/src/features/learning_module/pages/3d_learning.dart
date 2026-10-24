@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -364,28 +365,30 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
                 ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    padding: const EdgeInsets.only(bottom: 12),
-                    itemCount: options.length,
-                    itemBuilder: (_, i) {
-                      final o = options[i];
-                      final selected = o == current;
-                      return ListTile(
-                        title: Text(
-                          o,
-                          style: TextStyle(
-                            color: AppColors.textPrimary.withValues(
-                              alpha: selected ? 1.0 : 0.95,
+                  child: PageScrollWithFooter(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.only(bottom: 12),
+                      itemCount: options.length,
+                      itemBuilder: (_, i) {
+                        final o = options[i];
+                        final selected = o == current;
+                        return ListTile(
+                          title: Text(
+                            o,
+                            style: TextStyle(
+                              color: AppColors.textPrimary.withValues(
+                                alpha: selected ? 1.0 : 0.95,
+                              ),
                             ),
                           ),
-                        ),
-                        trailing: selected
-                            ? const Icon(Icons.check, color: AppColors.border)
-                            : null,
-                        onTap: () => Navigator.of(ctx).pop(o),
-                      );
-                    },
+                          trailing: selected
+                              ? const Icon(Icons.check, color: AppColors.border)
+                              : null,
+                          onTap: () => Navigator.of(ctx).pop(o),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -479,297 +482,300 @@ class _ThreeDLearningState extends State<ThreeDLearning> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: ListView(
-            children: [
-              // LEARNING pill with navigation
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: 'LEARNING',
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: AppColors.primary,
-                        size: 16,
-                      ),
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: AppTypography.bodySize,
-                      ),
-                      dropdownColor: AppColors.accent.withValues(alpha: 0.5),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'TITLE',
-                          child: Text(
-                            'TITLE',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+          child: PageScrollWithFooter(
+            child: ListView(
+              children: [
+                // LEARNING pill with navigation
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: 'LEARNING',
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: AppColors.primary,
+                          size: 16,
                         ),
-                        DropdownMenuItem(
-                          value: 'ANCHORING PHENOMENON',
-                          child: Text(
-                            'ANCHORING PHENOMENON',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: AppTypography.bodySize,
                         ),
-                        DropdownMenuItem(
-                          value: 'OBJECTIVE',
-                          child: Text(
-                            'OBJECTIVE',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'LEARNING',
-                          child: Text(
-                            'LEARNING',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == 'TITLE') {
-                          Navigator.of(
-                            context,
-                          ).popUntil((route) => route.isFirst);
-                          pushAppRoute(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreateTemplateScreen(
-                                existingModule: widget.module,
+                        dropdownColor: AppColors.accent.withValues(alpha: 0.5),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'TITLE',
+                            child: Text(
+                              'TITLE',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          );
-                        } else if (value == 'ANCHORING PHENOMENON') {
-                          Navigator.of(
-                            context,
-                          ).popUntil((route) => route.isFirst);
-                          pushAppRoute(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AnchoringPhenomenon(
-                                existingModule: widget.module,
+                          ),
+                          DropdownMenuItem(
+                            value: 'ANCHORING PHENOMENON',
+                            child: Text(
+                              'ANCHORING PHENOMENON',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'OBJECTIVE',
+                            child: Text(
+                              'OBJECTIVE',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'LEARNING',
+                            child: Text(
+                              'LEARNING',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == 'TITLE') {
+                            Navigator.of(
+                              context,
+                            ).popUntil((route) => route.isFirst);
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateTemplateScreen(
+                                  existingModule: widget.module,
+                                ),
+                              ),
+                            );
+                          } else if (value == 'ANCHORING PHENOMENON') {
+                            Navigator.of(
+                              context,
+                            ).popUntil((route) => route.isFirst);
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AnchoringPhenomenon(
+                                  existingModule: widget.module,
+                                ),
+                              ),
+                            );
+                          } else if (value == 'OBJECTIVE') {
+                            Navigator.of(context).pop();
+                          }
+                          // If LEARNING is selected, stay on current page
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // -------- DCI --------
+                const _SectionHeader('Disciplinary Core Ideas (DCI)'),
+                ..._dci.asMap().entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: e.key < _autoGeneratedDciCount
+                        ? _NonEditablePill(label: e.value ?? 'Select DCI')
+                        : _RoundedChoicePill(
+                            label: e.value ?? 'Select DCI',
+                            onTap: () => _editItem(
+                              list: _dci,
+                              index: e.key,
+                              title: 'Select DCI',
+                              options: _getFilteredDciOptions(),
+                            ),
+                            onRemove: () => _removeItem(_dci, e.key),
+                          ),
+                  ),
+                ),
+                _AddCircleButton(
+                  onTap: () => _addItem(
+                    list: _dci,
+                    title: 'Select DCI',
+                    options: _getFilteredDciOptions(),
+                  ),
+                ),
+
+                // -------- SEP --------
+                const SizedBox(height: AppMetrics.fieldGap),
+                const _SectionHeader('Science and Engineering Practices (SEP)'),
+                ..._sep.asMap().entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RoundedChoicePill(
+                      label: e.value ?? 'Select SEP',
+                      onTap: () => _editItem(
+                        list: _sep,
+                        index: e.key,
+                        title: 'Select SEP',
+                        options: _sepOptions,
+                      ),
+                      onRemove: () => _removeItem(_sep, e.key),
+                    ),
+                  ),
+                ),
+                _AddCircleButton(
+                  onTap: () => _addItem(
+                    list: _sep,
+                    title: 'Select SEP',
+                    options: _sepOptions,
+                  ),
+                ),
+
+                // -------- CCC --------
+                const SizedBox(height: AppMetrics.fieldGap),
+                const _SectionHeader('Cross Cutting Concepts (CCC)'),
+                ..._ccc.asMap().entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RoundedChoicePill(
+                      label: e.value ?? 'Select CCC',
+                      onTap: () => _editItem(
+                        list: _ccc,
+                        index: e.key,
+                        title: 'Select CCC',
+                        options: _cccOptions,
+                      ),
+                      onRemove: () => _removeItem(_ccc, e.key),
+                    ),
+                  ),
+                ),
+                _AddCircleButton(
+                  onTap: () => _addItem(
+                    list: _ccc,
+                    title: 'Select CCC',
+                    options: _cccOptions,
+                  ),
+                ),
+
+                // Complete button
+                const SizedBox(height: AppMetrics.fieldGap),
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final repo = LearningModuleRepo();
+                      final moduleId = widget.module['id'].toString();
+
+                      try {
+                        // Prepare data for database updates
+                        final dciData = _dci
+                            .where((item) => item != null && item.isNotEmpty)
+                            .map((item) => item!)
+                            .toList();
+
+                        final sepData = _sep
+                            .where((item) => item != null && item.isNotEmpty)
+                            .map((item) => item!)
+                            .toList();
+
+                        final cccData = _ccc
+                            .where((item) => item != null && item.isNotEmpty)
+                            .map((item) => item!)
+                            .toList();
+
+                        // Validation: Check that SEP and CCC have at least one selection
+                        if (sepData.isEmpty) {
+                          showTopSnackBar(
+                            context,
+                            'Please select at least one Science and Engineering Practice (SEP)',
+                            isError: true,
                           );
-                        } else if (value == 'OBJECTIVE') {
-                          Navigator.of(context).pop();
+                          return;
                         }
-                        // If LEARNING is selected, stay on current page
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
 
-              // -------- DCI --------
-              const _SectionHeader('Disciplinary Core Ideas (DCI)'),
-              ..._dci.asMap().entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: e.key < _autoGeneratedDciCount
-                      ? _NonEditablePill(label: e.value ?? 'Select DCI')
-                      : _RoundedChoicePill(
-                          label: e.value ?? 'Select DCI',
-                          onTap: () => _editItem(
-                            list: _dci,
-                            index: e.key,
-                            title: 'Select DCI',
-                            options: _getFilteredDciOptions(),
-                          ),
-                          onRemove: () => _removeItem(_dci, e.key),
-                        ),
-                ),
-              ),
-              _AddCircleButton(
-                onTap: () => _addItem(
-                  list: _dci,
-                  title: 'Select DCI',
-                  options: _getFilteredDciOptions(),
-                ),
-              ),
+                        if (cccData.isEmpty) {
+                          showTopSnackBar(
+                            context,
+                            'Please select at least one Cross Cutting Concept (CCC)',
+                            isError: true,
+                          );
+                          return;
+                        }
 
-              // -------- SEP --------
-              const SizedBox(height: AppMetrics.fieldGap),
-              const _SectionHeader('Science and Engineering Practices (SEP)'),
-              ..._sep.asMap().entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _RoundedChoicePill(
-                    label: e.value ?? 'Select SEP',
-                    onTap: () => _editItem(
-                      list: _sep,
-                      index: e.key,
-                      title: 'Select SEP',
-                      options: _sepOptions,
-                    ),
-                    onRemove: () => _removeItem(_sep, e.key),
-                  ),
-                ),
-              ),
-              _AddCircleButton(
-                onTap: () => _addItem(
-                  list: _sep,
-                  title: 'Select SEP',
-                  options: _sepOptions,
-                ),
-              ),
+                        final navigator = Navigator.of(context);
 
-              // -------- CCC --------
-              const SizedBox(height: AppMetrics.fieldGap),
-              const _SectionHeader('Cross Cutting Concepts (CCC)'),
-              ..._ccc.asMap().entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _RoundedChoicePill(
-                    label: e.value ?? 'Select CCC',
-                    onTap: () => _editItem(
-                      list: _ccc,
-                      index: e.key,
-                      title: 'Select CCC',
-                      options: _cccOptions,
-                    ),
-                    onRemove: () => _removeItem(_ccc, e.key),
-                  ),
-                ),
-              ),
-              _AddCircleButton(
-                onTap: () => _addItem(
-                  list: _ccc,
-                  title: 'Select CCC',
-                  options: _cccOptions,
-                ),
-              ),
+                        // Update database with all three fields
+                        final dciSuccess = await repo.updateDCI(
+                          id: moduleId,
+                          dci: dciData,
+                        );
 
-              // Complete button
-              const SizedBox(height: AppMetrics.fieldGap),
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final repo = LearningModuleRepo();
-                    final moduleId = widget.module['id'].toString();
+                        final sepSuccess = await repo.updateSEP(
+                          id: moduleId,
+                          sep: sepData,
+                        );
 
-                    try {
-                      // Prepare data for database updates
-                      final dciData = _dci
-                          .where((item) => item != null && item.isNotEmpty)
-                          .map((item) => item!)
-                          .toList();
+                        final cccSuccess = await repo.updateCCC(
+                          id: moduleId,
+                          ccc: cccData,
+                        );
 
-                      final sepData = _sep
-                          .where((item) => item != null && item.isNotEmpty)
-                          .map((item) => item!)
-                          .toList();
-
-                      final cccData = _ccc
-                          .where((item) => item != null && item.isNotEmpty)
-                          .map((item) => item!)
-                          .toList();
-
-                      // Validation: Check that SEP and CCC have at least one selection
-                      if (sepData.isEmpty) {
+                        if (dciSuccess && sepSuccess && cccSuccess) {
+                          pushAppRoute(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConceptExplorationScreen(
+                                module: widget.module,
+                              ),
+                            ),
+                          );
+                        } else {
+                          showTopSnackBar(
+                            context,
+                            'Failed to save some data. Please try again.',
+                            isError: true,
+                          );
+                        }
+                      } catch (e) {
                         showTopSnackBar(
                           context,
-                          'Please select at least one Science and Engineering Practice (SEP)',
-                          isError: true,
-                        );
-                        return;
-                      }
-
-                      if (cccData.isEmpty) {
-                        showTopSnackBar(
-                          context,
-                          'Please select at least one Cross Cutting Concept (CCC)',
-                          isError: true,
-                        );
-                        return;
-                      }
-
-                      final navigator = Navigator.of(context);
-
-                      // Update database with all three fields
-                      final dciSuccess = await repo.updateDCI(
-                        id: moduleId,
-                        dci: dciData,
-                      );
-
-                      final sepSuccess = await repo.updateSEP(
-                        id: moduleId,
-                        sep: sepData,
-                      );
-
-                      final cccSuccess = await repo.updateCCC(
-                        id: moduleId,
-                        ccc: cccData,
-                      );
-
-                      if (dciSuccess && sepSuccess && cccSuccess) {
-                        pushAppRoute(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ConceptExplorationScreen(module: widget.module),
-                          ),
-                        );
-                      } else {
-                        showTopSnackBar(
-                          context,
-                          'Failed to save some data. Please try again.',
+                          'Error saving module data',
                           isError: true,
                         );
                       }
-                    } catch (e) {
-                      showTopSnackBar(
-                        context,
-                        'Error saving module data',
-                        isError: true,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.buttonText,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.buttonText,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    'Complete',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontWeight: FontWeight.w500,
-                      fontSize: AppTypography.buttonSize,
+                    child: const Text(
+                      'Complete',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontWeight: FontWeight.w500,
+                        fontSize: AppTypography.buttonSize,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppMetrics.sectionGap),
-            ],
+                const SizedBox(height: AppMetrics.sectionGap),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'assessment_block.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -76,176 +77,178 @@ class _CallToActionScreenState extends State<CallToAction> {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // header
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        CupertinoIcons.back,
-                        color: AppColors.buttonPrimary,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // header
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          CupertinoIcons.back,
+                          color: AppColors.buttonPrimary,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            moduleName,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.headingFamily,
-                              fontSize: AppTypography.sectionTitleSize,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.darkText,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              moduleName,
+                              style: const TextStyle(
+                                fontFamily: AppTypography.headingFamily,
+                                fontSize: AppTypography.sectionTitleSize,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.darkText,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.helperSize,
-                              color: AppColors.lightGrey,
+                            const SizedBox(height: 2),
+                            Text(
+                              formattedDate,
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.helperSize,
+                                color: AppColors.lightGrey,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // chips
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [_buildNavigationDropdown(widgetModule)],
-                ),
-                const SizedBox(height: 16),
-
-                // Single text area for call to action
-                TextFormField(
-                  minLines: 5,
-                  controller: _controller,
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    hintText: '',
-                    hintStyle: const TextStyle(color: AppColors.hintText),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 14,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: AppColors.error,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: AppColors.error,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    ],
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Call to action must be completed';
-                    }
-                    return null;
-                  },
-                ),
+                  const SizedBox(height: 16),
 
-                const SizedBox(height: 16),
+                  // chips
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [_buildNavigationDropdown(widgetModule)],
+                  ),
+                  const SizedBox(height: 16),
 
-                // complete
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      shape: RoundedRectangleBorder(
+                  // Single text area for call to action
+                  TextFormField(
+                    minLines: 5,
+                    controller: _controller,
+                    maxLines: null,
+                    decoration: InputDecoration(
+                      hintText: '',
+                      hintStyle: const TextStyle(color: AppColors.hintText),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: AppColors.error,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: AppColors.error,
+                          width: 1.5,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        try {
-                          final repo = LearningModuleRepo();
-                          final widgetModule = widget.existingModule ?? {};
-                          final moduleId = widgetModule['id']?.toString();
-
-                          if (moduleId == null || moduleId == 'null') {
-                            showTopSnackBar(
-                              context,
-                              'Module ID missing – cannot save call to action',
-                              isError: true,
-                            );
-                            return;
-                          }
-
-                          final ok = await repo.updateCallToAction(
-                            id: moduleId,
-                            callToAction: _controller.text.trim(),
-                          );
-
-                          if (ok) {
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (context) => const HomeShellScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          } else {
-                            showTopSnackBar(
-                              context,
-                              'Failed to save call to action',
-                              isError: true,
-                            );
-                          }
-                        } catch (e, st) {
-                          debugPrint('Error saving call to action: $e');
-                          debugPrint('Stack trace: $st');
-
-                          showTopSnackBar(
-                            context,
-                            'Error saving call to action: $e',
-                            isError: true,
-                          );
-                        }
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Call to action must be completed';
                       }
+                      return null;
                     },
-
-                    child: const Text('Complete'),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 16),
+
+                  // complete
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          try {
+                            final repo = LearningModuleRepo();
+                            final widgetModule = widget.existingModule ?? {};
+                            final moduleId = widgetModule['id']?.toString();
+
+                            if (moduleId == null || moduleId == 'null') {
+                              showTopSnackBar(
+                                context,
+                                'Module ID missing – cannot save call to action',
+                                isError: true,
+                              );
+                              return;
+                            }
+
+                            final ok = await repo.updateCallToAction(
+                              id: moduleId,
+                              callToAction: _controller.text.trim(),
+                            );
+
+                            if (ok) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (context) => const HomeShellScreen(),
+                                ),
+                                (route) => false,
+                              );
+                            } else {
+                              showTopSnackBar(
+                                context,
+                                'Failed to save call to action',
+                                isError: true,
+                              );
+                            }
+                          } catch (e, st) {
+                            debugPrint('Error saving call to action: $e');
+                            debugPrint('Stack trace: $st');
+
+                            showTopSnackBar(
+                              context,
+                              'Error saving call to action: $e',
+                              isError: true,
+                            );
+                          }
+                        }
+                      },
+
+                      child: const Text('Complete'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

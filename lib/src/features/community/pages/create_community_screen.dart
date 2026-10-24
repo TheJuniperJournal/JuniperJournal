@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../../../shared/widgets/creation_page_layout.dart';
 import '../../../shared/widgets/journal_section_header.dart'
     show JournalPageLayout;
@@ -191,151 +192,155 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: CreationPageFrame(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 42),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CreationPageHeader(
-                title: 'Create Community',
-                onClose: () => Navigator.of(context).pop(false),
-              ),
-              CreationImagePicker(
-                imageUrl: _imageUrl,
-                onTap: _pickImage,
-                label: 'Update community image',
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: JournalPageLayout.horizontalInset,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 42),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CreationPageHeader(
+                  title: 'Create Community',
+                  onClose: () => Navigator.of(context).pop(false),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Community Name
-                    _label('Community Name'),
-                    const SizedBox(height: AppMetrics.labelGap),
-                    TextField(
-                      key: _nameKey,
-                      textAlignVertical: TextAlignVertical.center,
-                      controller: _nameController,
-                      style: AppTypography.inputText,
-                      decoration: InputDecoration(
-                        constraints: const BoxConstraints(minHeight: 64),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: namePadding,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: nameInvalid
-                                ? AppColors.error
-                                : AppColors.primary,
+                CreationImagePicker(
+                  imageUrl: _imageUrl,
+                  onTap: _pickImage,
+                  label: 'Update community image',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: JournalPageLayout.horizontalInset,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Community Name
+                      _label('Community Name'),
+                      const SizedBox(height: AppMetrics.labelGap),
+                      TextField(
+                        key: _nameKey,
+                        textAlignVertical: TextAlignVertical.center,
+                        controller: _nameController,
+                        style: AppTypography.inputText,
+                        decoration: InputDecoration(
+                          constraints: const BoxConstraints(minHeight: 64),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: namePadding,
                           ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: nameInvalid
-                                ? AppColors.error
-                                : AppColors.primary,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: nameInvalid
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                            ),
                           ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: nameInvalid
-                                ? AppColors.error
-                                : AppColors.primary,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: nameInvalid
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: nameInvalid
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    if (nameInvalid)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Community name is required',
-                          style: AppTypography.requirement,
+                      if (nameInvalid)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                            'Community name is required',
+                            style: AppTypography.requirement,
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: AppMetrics.fieldGap),
+                      const SizedBox(height: AppMetrics.fieldGap),
 
-                    _label('Visibility'),
-                    const SizedBox(height: AppMetrics.labelGap),
-                    _optionCard(
-                      title: 'Public',
-                      description: 'Visible to everyone.',
-                      asset: 'assets/project_setup/visibility_public.svg',
-                      selected: _selectedVisibility == 'public',
-                      onTap: () =>
-                          setState(() => _selectedVisibility = 'public'),
-                    ),
-                    const SizedBox(height: 12),
-                    _optionCard(
-                      title: 'Private',
-                      description: 'Visible to community members.',
-                      asset: 'assets/project_setup/visibility_private.svg',
-                      selected: _selectedVisibility == 'private',
-                      onTap: () =>
-                          setState(() => _selectedVisibility = 'private'),
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    KeyedSubtree(key: _subjectKey, child: _label('Subject')),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Choose the main area your community belongs to.',
-                      style: AppTypography.helper,
-                    ),
-                    if (_showValidation && _activeDomain == null)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Select a subject.',
-                          style: AppTypography.requirement,
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    for (final subject in _communitySubjects) ...[
+                      _label('Visibility'),
+                      const SizedBox(height: AppMetrics.labelGap),
                       _optionCard(
-                        title: subject.$1,
-                        description: subject.$2,
-                        asset: 'assets/project_setup/subject_${subject.$3}.svg',
-                        selected: _activeDomain == subject.$1,
-                        showError: _showValidation && _activeDomain == null,
-                        onTap: () => setState(() => _activeDomain = subject.$1),
+                        title: 'Public',
+                        description: 'Visible to everyone.',
+                        asset: 'assets/project_setup/visibility_public.svg',
+                        selected: _selectedVisibility == 'public',
+                        onTap: () =>
+                            setState(() => _selectedVisibility = 'public'),
                       ),
                       const SizedBox(height: 12),
-                    ],
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    ProjectMembersSection(
-                      members: _pendingMembers,
-                      onAddPeople: _openAddMemberDialog,
-                      onRemoveMember: (person) => setState(
-                        () => _pendingMembers.removeWhere(
-                          (member) => member.id == person.id,
-                        ),
+                      _optionCard(
+                        title: 'Private',
+                        description: 'Visible to community members.',
+                        asset: 'assets/project_setup/visibility_private.svg',
+                        selected: _selectedVisibility == 'private',
+                        onTap: () =>
+                            setState(() => _selectedVisibility = 'private'),
                       ),
-                      roles: const {},
-                      showRoles: false,
-                      canManageRoles: true,
-                      onRoleChanged: (_, __) {},
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      KeyedSubtree(key: _subjectKey, child: _label('Subject')),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Choose the main area your community belongs to.',
+                        style: AppTypography.helper,
+                      ),
+                      if (_showValidation && _activeDomain == null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                            'Select a subject.',
+                            style: AppTypography.requirement,
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      for (final subject in _communitySubjects) ...[
+                        _optionCard(
+                          title: subject.$1,
+                          description: subject.$2,
+                          asset:
+                              'assets/project_setup/subject_${subject.$3}.svg',
+                          selected: _activeDomain == subject.$1,
+                          showError: _showValidation && _activeDomain == null,
+                          onTap: () =>
+                              setState(() => _activeDomain = subject.$1),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      ProjectMembersSection(
+                        members: _pendingMembers,
+                        onAddPeople: _openAddMemberDialog,
+                        onRemoveMember: (person) => setState(
+                          () => _pendingMembers.removeWhere(
+                            (member) => member.id == person.id,
+                          ),
+                        ),
+                        roles: const {},
+                        showRoles: false,
+                        canManageRoles: true,
+                        onRoleChanged: (_, __) {},
+                      ),
+                      const SizedBox(height: AppMetrics.fieldGap),
 
-                    // Create button
-                    SubmitButton(
-                      label: 'Create',
-                      isLoading: _isCreating,
-                      backgroundColor: AppColors.primary,
-                      onPressed: _handleCreate,
-                    ),
-                  ],
+                      // Create button
+                      SubmitButton(
+                        label: 'Create',
+                        isLoading: _isCreating,
+                        backgroundColor: AppColors.primary,
+                        onPressed: _handleCreate,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

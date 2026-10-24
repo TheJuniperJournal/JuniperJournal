@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import '../../../shared/widgets/filter_checkbox.dart';
 import '../../../shared/widgets/project_filter_sheet.dart';
@@ -38,59 +39,61 @@ class _CommunityProjectLibraryState extends State<CommunityProjectLibrary> {
             setState(() => _projects = _load());
             await _projects;
           },
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Wrap(
-                  spacing: 12,
-                  children: [
-                    for (final option in kProjectTypeOptions)
-                      FilterCheckboxOption(
-                        label: Text(option.label),
-                        selected: _types.contains(option.value),
-                        onSelected: (selected) => setState(() {
-                          if (selected) {
-                            _types.add(option.value);
-                          } else {
-                            _types.remove(option.value);
-                          }
-                        }),
-                      ),
-                  ],
-                ),
-              ),
-              if (projects.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: Text('No projects added yet.')),
-                ),
-              for (final project in projects)
-                ListTile(
-                  leading: const Icon(Icons.book_outlined),
-                  title: Text(project.projectName),
-                  subtitle: Text(
-                    project.problemStatement ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+          child: PageScrollWithFooter(
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Wrap(
+                    spacing: 12,
+                    children: [
+                      for (final option in kProjectTypeOptions)
+                        FilterCheckboxOption(
+                          label: Text(option.label),
+                          selected: _types.contains(option.value),
+                          onSelected: (selected) => setState(() {
+                            if (selected) {
+                              _types.add(option.value);
+                            } else {
+                              _types.remove(option.value);
+                            }
+                          }),
+                        ),
+                    ],
                   ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => pushAppRoute(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProjectDashboard(
-                        projectId: project.id,
-                        projectName: project.projectName,
-                        tags: project.tags,
-                        isOwner:
-                            project.userId ==
-                            AuthService.instance.currentUser?.id,
+                ),
+                if (projects.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: Text('No projects added yet.')),
+                  ),
+                for (final project in projects)
+                  ListTile(
+                    leading: const Icon(Icons.book_outlined),
+                    title: Text(project.projectName),
+                    subtitle: Text(
+                      project.problemStatement ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => pushAppRoute(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProjectDashboard(
+                          projectId: project.id,
+                          projectName: project.projectName,
+                          tags: project.tags,
+                          isOwner:
+                              project.userId ==
+                              AuthService.instance.currentUser?.id,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },

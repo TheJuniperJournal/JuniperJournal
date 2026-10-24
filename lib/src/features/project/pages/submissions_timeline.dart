@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -886,14 +887,20 @@ class _InteractiveTimelinePageState extends State<InteractiveTimelinePage> {
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      itemCount: sorted.length,
-                      itemBuilder: (context, index) {
-                        final item = sorted[index];
-                        final originalIndex = _timeline.indexOf(item);
-                        return _buildEventRow(item, index == 0, originalIndex);
-                      },
+                  : PageScrollWithFooter(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        itemCount: sorted.length,
+                        itemBuilder: (context, index) {
+                          final item = sorted[index];
+                          final originalIndex = _timeline.indexOf(item);
+                          return _buildEventRow(
+                            item,
+                            index == 0,
+                            originalIndex,
+                          );
+                        },
+                      ),
                     ),
             ),
 

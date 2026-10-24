@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../shared/widgets/impact_icon.dart';
@@ -303,358 +304,360 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
       ),
       body: AbsorbPointer(
         absorbing: widget.readOnly,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _label('Impact Title'),
-              const SizedBox(height: AppMetrics.labelGap),
-              TextField(
-                controller: _titleCtrl,
-                readOnly: widget.readOnly,
-                textAlign: TextAlign.left,
-                style: AppTypography.inputText,
-                decoration: const InputDecoration(
-                  hintText: 'Name this impact',
-                  constraints: BoxConstraints(minHeight: 64),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _label('Impact Title'),
+                const SizedBox(height: AppMetrics.labelGap),
+                TextField(
+                  controller: _titleCtrl,
+                  readOnly: widget.readOnly,
+                  textAlign: TextAlign.left,
+                  style: AppTypography.inputText,
+                  decoration: const InputDecoration(
+                    hintText: 'Name this impact',
+                    constraints: BoxConstraints(minHeight: 64),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppMetrics.sectionGap),
-              // ── Metric ──────────────────────────────────────────────────────
-              _label('Metric'),
-              const SizedBox(height: 4),
-              const Text(
-                'What type of impact does this represent?',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              for (final metric in _metrics)
-                _MetricCard(
-                  metric: metric,
-                  description: _metricDescriptions[metric] ?? '',
-                  selected: _metric == metric,
-                  onTap: () => _selectMetric(metric),
-                ),
-              const SizedBox(height: AppMetrics.labelGap),
-
-              // ── Pattern Type ────────────────────────────────────────────────
-              _label('Pattern Type'),
-              const SizedBox(height: 4),
-              const Text(
-                'What kind of change did you create?',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              if (_metric == null)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Text(
-                    'Select a metric to choose a pattern type.',
-                    style: AppTypography.helper,
+                const SizedBox(height: AppMetrics.sectionGap),
+                // ── Metric ──────────────────────────────────────────────────────
+                _label('Metric'),
+                const SizedBox(height: 4),
+                const Text(
+                  'What type of impact does this represent?',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-              const SizedBox(height: 8),
-              _PatternField(
-                value: _patternType,
-                options: _validPatterns,
-                enabled: _metric != null,
-                onSelected: _selectPattern,
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
+                const SizedBox(height: 10),
+                for (final metric in _metrics)
+                  _MetricCard(
+                    metric: metric,
+                    description: _metricDescriptions[metric] ?? '',
+                    selected: _metric == metric,
+                    onTap: () => _selectMetric(metric),
+                  ),
+                const SizedBox(height: AppMetrics.labelGap),
 
-              // ── Impact Scale ────────────────────────────────────────────────
-              _label('Impact Scale'),
-              const SizedBox(height: 4),
-              const Text(
-                'How big was the impact of your project?',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  color: AppColors.textSecondary,
+                // ── Pattern Type ────────────────────────────────────────────────
+                _label('Pattern Type'),
+                const SizedBox(height: 4),
+                const Text(
+                  'What kind of change did you create?',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns = constraints.maxWidth >= 560
-                      ? 5
-                      : constraints.maxWidth >= 360
-                      ? 3
-                      : 2;
-                  final width =
-                      (constraints.maxWidth - (columns - 1) * 12) / columns;
-                  return Column(
-                    children: [
-                      for (
-                        var start = 0;
-                        start < _scales.length;
-                        start += columns
-                      ) ...[
-                        if (start > 0) const SizedBox(height: 12),
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (
-                                var index = start;
-                                index < _scales.length &&
-                                    index < start + columns;
-                                index++
-                              ) ...[
-                                if (index > start) const SizedBox(width: 12),
-                                SizedBox(
-                                  width: width,
-                                  child: _ScaleCard(
-                                    scale: _scales[index],
-                                    selected: _impactScale == _scales[index],
-                                    onTap: () => setState(
-                                      () => _impactScale = _scales[index],
+                if (_metric == null)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Select a metric to choose a pattern type.',
+                      style: AppTypography.helper,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                _PatternField(
+                  value: _patternType,
+                  options: _validPatterns,
+                  enabled: _metric != null,
+                  onSelected: _selectPattern,
+                ),
+                const SizedBox(height: AppMetrics.labelGap),
+
+                // ── Impact Scale ────────────────────────────────────────────────
+                _label('Impact Scale'),
+                const SizedBox(height: 4),
+                const Text(
+                  'How big was the impact of your project?',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns = constraints.maxWidth >= 560
+                        ? 5
+                        : constraints.maxWidth >= 360
+                        ? 3
+                        : 2;
+                    final width =
+                        (constraints.maxWidth - (columns - 1) * 12) / columns;
+                    return Column(
+                      children: [
+                        for (
+                          var start = 0;
+                          start < _scales.length;
+                          start += columns
+                        ) ...[
+                          if (start > 0) const SizedBox(height: 12),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (
+                                  var index = start;
+                                  index < _scales.length &&
+                                      index < start + columns;
+                                  index++
+                                ) ...[
+                                  if (index > start) const SizedBox(width: 12),
+                                  SizedBox(
+                                    width: width,
+                                    child: _ScaleCard(
+                                      scale: _scales[index],
+                                      selected: _impactScale == _scales[index],
+                                      onTap: () => setState(
+                                        () => _impactScale = _scales[index],
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Measurement ─────────────────────────────────────────────────
-              _label('Measurement (Optional)'),
-              const SizedBox(height: 4),
-              const Text(
-                'Add a number to quantify your impact.',
-                style: AppTypography.helper,
-              ),
-              const SizedBox(height: 8),
-              // Locked until pattern is chosen (unit list drives valid units)
-              AbsorbPointer(
-                absorbing: _patternType == null,
-                child: Opacity(
-                  opacity: _patternType == null ? 0.4 : 1.0,
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _measurementCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d*'),
-                            ),
-                          ],
-                          decoration: InputDecoration(
-                            hintText: '',
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 14,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: PillSelector(
-                          value: _measurementUnit,
-                          placeholder: 'Unit',
-                          items: _validUnits,
-                          onChanged: (v) =>
-                              setState(() => _measurementUnit = v),
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Evidence Type (left) + Confidence Score (right) ─────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _label('Evidence Type'),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'How did you verify this?',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.helperSize,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        PillSelector(
-                          value: _evidenceType,
-                          placeholder: 'Select',
-                          items: _evidenceTypes,
-                          onChanged: (v) => setState(() => _evidenceType = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _label('Confidence Score'),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'How confident are you?',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.helperSize,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        PillSelector(
-                          value: _confidenceScore,
-                          placeholder: 'Select',
-                          items: _confidenceScores,
-                          onChanged: (v) =>
-                              setState(() => _confidenceScore = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-
-              // ── Link to Journal ──────────────────────────────────────────────
-              if (widget.lockedJournalEntryId == null) ...[
-                _label('Link to Journal Log'),
-                const SizedBox(height: 6),
-                if (_journalEntries.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.orange.shade200),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.orange.shade50,
-                    ),
-                    child: const Text(
-                      'No journal entries yet — create one first.',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.bodySize,
-                        color: Colors.deepOrange,
-                      ),
-                    ),
-                  )
-                else
-                  PillSelector(
-                    value: _journalEntries
-                        .where((e) => e.id == _linkedJournalEntryId)
-                        .map(
-                          (e) =>
-                              e.title.isNotEmpty ? e.title : 'Untitled Entry',
-                        )
-                        .firstOrNull,
-                    placeholder: 'None',
-                    items: _journalEntries
-                        .map(
-                          (e) =>
-                              e.title.isNotEmpty ? e.title : 'Untitled Entry',
-                        )
-                        .toList(),
-                    onChanged: (title) {
-                      final entry = _journalEntries
-                          .where(
-                            (e) =>
-                                (e.title.isNotEmpty
-                                    ? e.title
-                                    : 'Untitled Entry') ==
-                                title,
-                          )
-                          .firstOrNull;
-                      setState(() => _linkedJournalEntryId = entry?.id);
-                    },
-                  ),
                 const SizedBox(height: AppMetrics.fieldGap),
-              ],
 
-              if (!widget.readOnly)
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: _canSubmit && !_isSaving ? _submit : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      disabledBackgroundColor: AppColors.primary.withValues(
-                        alpha: 0.4,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                // ── Measurement ─────────────────────────────────────────────────
+                _label('Measurement (Optional)'),
+                const SizedBox(height: 4),
+                const Text(
+                  'Add a number to quantify your impact.',
+                  style: AppTypography.helper,
+                ),
+                const SizedBox(height: 8),
+                // Locked until pattern is chosen (unit list drives valid units)
+                AbsorbPointer(
+                  absorbing: _patternType == null,
+                  child: Opacity(
+                    opacity: _patternType == null ? 0.4 : 1.0,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: TextField(
+                            controller: _measurementCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
                             ),
-                          )
-                        : Text(
-                            _isEdit ? 'Save' : 'Add Impact',
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.buttonSize,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.5,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d*'),
+                              ),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: '',
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 14,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: PillSelector(
+                            value: _measurementUnit,
+                            placeholder: 'Unit',
+                            items: _validUnits,
+                            onChanged: (v) =>
+                                setState(() => _measurementUnit = v),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-            ],
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // ── Evidence Type (left) + Confidence Score (right) ─────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label('Evidence Type'),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'How did you verify this?',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          PillSelector(
+                            value: _evidenceType,
+                            placeholder: 'Select',
+                            items: _evidenceTypes,
+                            onChanged: (v) => setState(() => _evidenceType = v),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label('Confidence Score'),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'How confident are you?',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.helperSize,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          PillSelector(
+                            value: _confidenceScore,
+                            placeholder: 'Select',
+                            items: _confidenceScores,
+                            onChanged: (v) =>
+                                setState(() => _confidenceScore = v),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppMetrics.fieldGap),
+
+                // ── Link to Journal ──────────────────────────────────────────────
+                if (widget.lockedJournalEntryId == null) ...[
+                  _label('Link to Journal Log'),
+                  const SizedBox(height: 6),
+                  if (_journalEntries.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.orange.shade200),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.orange.shade50,
+                      ),
+                      child: const Text(
+                        'No journal entries yet — create one first.',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.bodySize,
+                          color: Colors.deepOrange,
+                        ),
+                      ),
+                    )
+                  else
+                    PillSelector(
+                      value: _journalEntries
+                          .where((e) => e.id == _linkedJournalEntryId)
+                          .map(
+                            (e) =>
+                                e.title.isNotEmpty ? e.title : 'Untitled Entry',
+                          )
+                          .firstOrNull,
+                      placeholder: 'None',
+                      items: _journalEntries
+                          .map(
+                            (e) =>
+                                e.title.isNotEmpty ? e.title : 'Untitled Entry',
+                          )
+                          .toList(),
+                      onChanged: (title) {
+                        final entry = _journalEntries
+                            .where(
+                              (e) =>
+                                  (e.title.isNotEmpty
+                                      ? e.title
+                                      : 'Untitled Entry') ==
+                                  title,
+                            )
+                            .firstOrNull;
+                        setState(() => _linkedJournalEntryId = entry?.id);
+                      },
+                    ),
+                  const SizedBox(height: AppMetrics.fieldGap),
+                ],
+
+                if (!widget.readOnly)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: _canSubmit && !_isSaving ? _submit : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        disabledBackgroundColor: AppColors.primary.withValues(
+                          alpha: 0.4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _isEdit ? 'Save' : 'Add Impact',
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: AppTypography.buttonSize,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -864,53 +867,55 @@ class _PatternField extends StatelessWidget {
       showDragHandle: true,
       enableDrag: true,
       builder: (sheetContext) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Pattern Type',
-                      style: AppTypography.sectionTitle,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Pattern Type',
+                        style: AppTypography.sectionTitle,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close pattern chooser',
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Choose how your project creates change.',
-                style: AppTypography.helper,
-              ),
-              const SizedBox(height: 16),
-              for (final option in options)
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  minLeadingWidth: 32,
-                  leading: SvgPicture.asset(
-                    _patternIcon(option),
-                    width: 26,
-                    height: 26,
-                  ),
-                  title: Text(option, style: AppTypography.fieldLabel),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      _patternExplanation(option),
-                      style: AppTypography.helper,
+                    IconButton(
+                      tooltip: 'Close pattern chooser',
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close),
                     ),
-                  ),
-                  onTap: () => Navigator.of(sheetContext).pop(option),
+                  ],
                 ),
-            ],
+                const SizedBox(height: 8),
+                const Text(
+                  'Choose how your project creates change.',
+                  style: AppTypography.helper,
+                ),
+                const SizedBox(height: 16),
+                for (final option in options)
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    minLeadingWidth: 32,
+                    leading: SvgPicture.asset(
+                      _patternIcon(option),
+                      width: 26,
+                      height: 26,
+                    ),
+                    title: Text(option, style: AppTypography.fieldLabel),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _patternExplanation(option),
+                        style: AppTypography.helper,
+                      ),
+                    ),
+                    onTap: () => Navigator.of(sheetContext).pop(option),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

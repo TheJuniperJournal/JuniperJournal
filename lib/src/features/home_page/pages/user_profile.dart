@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'home.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/persistent_desktop_shell.dart';
@@ -371,105 +372,107 @@ class UserProfilePageState extends State<UserProfilePage> {
         else
           SizedBox(
             height: MediaQuery.sizeOf(context).height.clamp(400.0, 800.0) * .42,
-            child: ListView.builder(
-              primary: false,
-              itemCount: matching.length,
-              itemBuilder: (context, index) {
-                final friend = matching[index];
-                final avatarUrl = friend.avatarUrl;
-                return Container(
-                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.borderLight),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      AppTapTarget(
-                        onTap: () =>
-                            openUserProfile(_navigationContext, friend.id),
-                        child: CircleAvatar(
-                          radius: 22,
-                          backgroundColor: AppColors.avatarBackground,
-                          backgroundImage:
-                              (avatarUrl != null && avatarUrl.isNotEmpty)
-                              ? NetworkImage(avatarUrl)
-                              : null,
-                          child: (avatarUrl == null || avatarUrl.isEmpty)
-                              ? const Icon(
-                                  Icons.person,
-                                  color: AppColors.avatarIcon,
-                                  size: 22,
-                                )
-                              : null,
+            child: PageScrollWithFooter(
+              child: ListView.builder(
+                primary: false,
+                itemCount: matching.length,
+                itemBuilder: (context, index) {
+                  final friend = matching[index];
+                  final avatarUrl = friend.avatarUrl;
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.borderLight),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => pushAppRoute(
-                            _navigationContext,
-                            MaterialPageRoute(
-                              builder: (_) => PublicUserProfilePage(
-                                userId: friend.id,
-                                profile: friend,
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        AppTapTarget(
+                          onTap: () =>
+                              openUserProfile(_navigationContext, friend.id),
+                          child: CircleAvatar(
+                            radius: 22,
+                            backgroundColor: AppColors.avatarBackground,
+                            backgroundImage:
+                                (avatarUrl != null && avatarUrl.isNotEmpty)
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                            child: (avatarUrl == null || avatarUrl.isEmpty)
+                                ? const Icon(
+                                    Icons.person,
+                                    color: AppColors.avatarIcon,
+                                    size: 22,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => pushAppRoute(
+                              _navigationContext,
+                              MaterialPageRoute(
+                                builder: (_) => PublicUserProfilePage(
+                                  userId: friend.id,
+                                  profile: friend,
+                                ),
                               ),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                friend.resolvedDisplayName,
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.bodySize,
-                                  fontWeight: FontWeight.w500,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  friend.resolvedDisplayName,
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.bodySize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '${(_friendPoints[friend.id] ?? 0).toStringAsFixed(0)} EcoPoints',
-                                style: TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.bodySize,
-                                  color: Colors.grey.shade500,
+                                Text(
+                                  '${(_friendPoints[friend.id] ?? 0).toStringAsFixed(0)} EcoPoints',
+                                  style: TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.bodySize,
+                                    color: Colors.grey.shade500,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      if (_editingFriends)
-                        IconButton.outlined(
-                          tooltip: 'Remove friend',
-                          icon: Icon(
-                            Icons.delete_outline,
-                            color: Colors.grey.shade400,
-                            size: 20,
+                        if (_editingFriends)
+                          IconButton.outlined(
+                            tooltip: 'Remove friend',
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: Colors.grey.shade400,
+                              size: 20,
+                            ),
+                            onPressed: () => _deleteFriend(friend),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
                           ),
-                          onPressed: () => _deleteFriend(friend),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
       ],
@@ -725,49 +728,51 @@ class UserProfilePageState extends State<UserProfilePage> {
               ),
             ),
             clipBehavior: Clip.hardEdge,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 110),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 88), // clears avatar
-                  Center(
-                    child: Text(
-                      _displayName,
-                      style: const TextStyle(
-                        fontFamily: AppTypography.headingFamily,
-                        fontSize: AppTypography.sectionTitleSize,
-                        fontWeight: FontWeight.w600,
+            child: PageScrollWithFooter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 110),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 88), // clears avatar
+                    Center(
+                      child: Text(
+                        _displayName,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.headingFamily,
+                          fontSize: AppTypography.sectionTitleSize,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: Text(
-                      _email.isNotEmpty ? _email : 'Member',
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.helperSize,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textSecondary,
+                    const SizedBox(height: 4),
+                    Center(
+                      child: Text(
+                        _email.isNotEmpty ? _email : 'Member',
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          fontSize: AppTypography.helperSize,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppMetrics.fieldGap),
-                  _buildStatsCard(),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildProfileTabs(),
-                  ),
-                  const SizedBox(height: 20),
-                  AppContentTransition(
-                    index: _showFriends,
-                    child: _showFriends
-                        ? _buildFriendsContent()
-                        : _buildProgressContent(),
-                  ),
-                ],
+                    const SizedBox(height: AppMetrics.fieldGap),
+                    _buildStatsCard(),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildProfileTabs(),
+                    ),
+                    const SizedBox(height: 20),
+                    AppContentTransition(
+                      index: _showFriends,
+                      child: _showFriends
+                          ? _buildFriendsContent()
+                          : _buildProgressContent(),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

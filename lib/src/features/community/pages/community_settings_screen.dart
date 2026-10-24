@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'community_project_invitations.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -207,204 +208,210 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
         title: const Text('Community Settings', style: AppTypography.pageTitle),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CommunityProjectInvitationsButton(communityId: widget.community.id),
-            const SizedBox(height: 16),
-            // ── Image ──────────────────────────────────────────────────────
-            Center(
-              child: AppTapTarget(
-                onTap: _pickImage,
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 44,
-                      backgroundColor: _selectedColorHex != null
-                          ? widget.community
-                                .copyWith(bannerColorHex: _selectedColorHex)
-                                .bannerColor
-                          : widget.community.bannerColor,
-                      backgroundImage:
-                          (_imageUrl != null && _imageUrl!.isNotEmpty)
-                          ? NetworkImage(_imageUrl!)
-                          : null,
-                      child: (_imageUrl == null || _imageUrl!.isEmpty)
-                          ? const Icon(
-                              Icons.group,
-                              size: 32,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.edit,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CommunityProjectInvitationsButton(
+                communityId: widget.community.id,
               ),
-            ),
-            const SizedBox(height: 6),
-            const Center(
-              child: Text(
-                'Tap to update image',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.textSecondary,
-                  fontSize: AppTypography.helperSize,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // ── Banner Color ────────────────────────────────────────────────
-            _sectionLabel('Banner Color'),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _bannerColors.map((entry) {
-                final (label, hex) = entry;
-                final color = Color(
-                  int.parse('FF${hex.replaceFirst('#', '')}', radix: 16),
-                );
-                final isSelected =
-                    (_selectedColorHex ?? '#1E4620').toUpperCase() ==
-                    hex.toUpperCase();
-                return AppTapTarget(
-                  onTap: () => setState(() => _selectedColorHex = hex),
-                  child: Tooltip(
-                    message: label,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected ? Colors.white : Colors.transparent,
-                          width: 3,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: color.withValues(alpha: 0.6),
-                                  blurRadius: 6,
-                                  spreadRadius: 1,
-                                ),
-                              ]
+              const SizedBox(height: 16),
+              // ── Image ──────────────────────────────────────────────────────
+              Center(
+                child: AppTapTarget(
+                  onTap: _pickImage,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 44,
+                        backgroundColor: _selectedColorHex != null
+                            ? widget.community
+                                  .copyWith(bannerColorHex: _selectedColorHex)
+                                  .bannerColor
+                            : widget.community.bannerColor,
+                        backgroundImage:
+                            (_imageUrl != null && _imageUrl!.isNotEmpty)
+                            ? NetworkImage(_imageUrl!)
+                            : null,
+                        child: (_imageUrl == null || _imageUrl!.isEmpty)
+                            ? const Icon(
+                                Icons.group,
+                                size: 32,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
-                      child: isSelected
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 18,
-                            )
-                          : null,
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Center(
+                child: Text(
+                  'Tap to update image',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: AppColors.textSecondary,
+                    fontSize: AppTypography.helperSize,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // ── Banner Color ────────────────────────────────────────────────
+              _sectionLabel('Banner Color'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: _bannerColors.map((entry) {
+                  final (label, hex) = entry;
+                  final color = Color(
+                    int.parse('FF${hex.replaceFirst('#', '')}', radix: 16),
+                  );
+                  final isSelected =
+                      (_selectedColorHex ?? '#1E4620').toUpperCase() ==
+                      hex.toUpperCase();
+                  return AppTapTarget(
+                    onTap: () => setState(() => _selectedColorHex = hex),
+                    child: Tooltip(
+                      message: label,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.6),
+                                    blurRadius: 6,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              )
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // ── Name ────────────────────────────────────────────────────────
+              _sectionLabel('Community Name'),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _nameController,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                ),
+                decoration: InputDecoration(
+                  constraints: const BoxConstraints(minHeight: 64),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // ── Visibility ──────────────────────────────────────────────────
+              _sectionLabel('Visibility'),
+              const SizedBox(height: 10),
+              PillSelector(
+                value: _selectedVisibility,
+                placeholder: 'Select',
+                items: const ['Public', 'Private'],
+                onChanged: (v) => setState(() => _selectedVisibility = v),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              _sectionLabel('Subject'),
+              const SizedBox(height: 10),
+              PillSelector(
+                value: _activeDomain,
+                placeholder: 'Select a subject',
+                items: _subjects,
+                onChanged: (value) => setState(() => _activeDomain = value),
+              ),
+              const SizedBox(height: AppMetrics.sectionGap),
+
+              const SizedBox(height: 48),
+              SubmitButton(
+                label: 'Save Settings',
+                isLoading: _isSaving,
+                backgroundColor: AppColors.primary,
+                onPressed: _saveSettings,
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isSaving ? null : _handleDelete,
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  label: const Text(
+                    'Delete Community',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // ── Name ────────────────────────────────────────────────────────
-            _sectionLabel('Community Name'),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _nameController,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-              ),
-              decoration: InputDecoration(
-                constraints: const BoxConstraints(minHeight: 64),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary),
                 ),
               ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // ── Visibility ──────────────────────────────────────────────────
-            _sectionLabel('Visibility'),
-            const SizedBox(height: 10),
-            PillSelector(
-              value: _selectedVisibility,
-              placeholder: 'Select',
-              items: const ['Public', 'Private'],
-              onChanged: (v) => setState(() => _selectedVisibility = v),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            _sectionLabel('Subject'),
-            const SizedBox(height: 10),
-            PillSelector(
-              value: _activeDomain,
-              placeholder: 'Select a subject',
-              items: _subjects,
-              onChanged: (value) => setState(() => _activeDomain = value),
-            ),
-            const SizedBox(height: AppMetrics.sectionGap),
-
-            const SizedBox(height: 48),
-            SubmitButton(
-              label: 'Save Settings',
-              isLoading: _isSaving,
-              backgroundColor: AppColors.primary,
-              onPressed: _saveSettings,
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _isSaving ? null : _handleDelete,
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                label: const Text(
-                  'Delete Community',
-                  style: TextStyle(color: Colors.red),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -551,50 +558,54 @@ class CommunityMemberSearchDialogState
             else
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 240),
-                child: ListView(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  children: _results
-                      .map(
-                        (u) => ListTile(
-                          leading: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: AppColors.primary.withValues(
-                              alpha: 0.12,
+                child: PageScrollWithFooter(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    children: _results
+                        .map(
+                          (u) => ListTile(
+                            leading: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.12,
+                              ),
+                              backgroundImage:
+                                  (u.avatarUrl != null &&
+                                      u.avatarUrl!.isNotEmpty)
+                                  ? NetworkImage(u.avatarUrl!)
+                                  : null,
+                              child:
+                                  (u.avatarUrl == null || u.avatarUrl!.isEmpty)
+                                  ? const Icon(
+                                      Icons.person_outline,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    )
+                                  : null,
                             ),
-                            backgroundImage:
-                                (u.avatarUrl != null && u.avatarUrl!.isNotEmpty)
-                                ? NetworkImage(u.avatarUrl!)
-                                : null,
-                            child: (u.avatarUrl == null || u.avatarUrl!.isEmpty)
-                                ? const Icon(
-                                    Icons.person_outline,
-                                    size: 16,
-                                    color: AppColors.primary,
+                            title: Text(
+                              u.resolvedDisplayName,
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontWeight: FontWeight.w500,
+                                fontSize: AppTypography.bodySize,
+                              ),
+                            ),
+                            subtitle: u.username != null
+                                ? Text(
+                                    '@${u.username!}',
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.helperSize,
+                                    ),
                                   )
                                 : null,
+                            onTap: () => Navigator.pop(context, u),
                           ),
-                          title: Text(
-                            u.resolvedDisplayName,
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontWeight: FontWeight.w500,
-                              fontSize: AppTypography.bodySize,
-                            ),
-                          ),
-                          subtitle: u.username != null
-                              ? Text(
-                                  '@${u.username!}',
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.helperSize,
-                                  ),
-                                )
-                              : null,
-                          onTap: () => Navigator.pop(context, u),
-                        ),
-                      )
-                      .toList(),
+                        )
+                        .toList(),
+                  ),
                 ),
               ),
           ],

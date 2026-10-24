@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/optional_field_label.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -146,215 +147,219 @@ class _BulletinPostFormState extends State<BulletinPostForm> {
           style: AppTypography.pageTitle,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Post Title ────────────────────────────────────────────────
-            const Text(
-              'Post Title',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _titleCtrl,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                constraints: const BoxConstraints(minHeight: 64),
-                hintText: '',
-                hintStyle: const TextStyle(
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Post Title ────────────────────────────────────────────────
+              const Text(
+                'Post Title',
+                style: TextStyle(
                   fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.hintText,
                   fontSize: AppTypography.bodySize,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.border,
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.border,
-                    width: 1,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
                 ),
               ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _titleCtrl,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  constraints: const BoxConstraints(minHeight: 64),
+                  hintText: '',
+                  hintStyle: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: AppColors.hintText,
+                    fontSize: AppTypography.bodySize,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.border,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.border,
+                      width: 1,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
 
-            // ── Post Category ─────────────────────────────────────────────
-            const Text(
-              'Post Category',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _CategoryPill(
-              value: _category,
-              isOpen: _categoryOpen,
-              onTap: () => setState(() => _categoryOpen = !_categoryOpen),
-            ),
-            if (_categoryOpen) ...[
-              const SizedBox(height: 4),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border, width: 1),
+              // ── Post Category ─────────────────────────────────────────────
+              const Text(
+                'Post Category',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
                 ),
-                child: Column(
-                  children: _kCategories
-                      .map(
-                        (cat) => InkWell(
-                          onTap: () => setState(() {
-                            _category = cat;
-                            _categoryOpen = false;
-                          }),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: AppTypography.bodySize,
-                                color: cat == _category
-                                    ? AppColors.primary
-                                    : AppColors.primary.withValues(alpha: 0.75),
-                                fontWeight: cat == _category
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
+              ),
+              const SizedBox(height: 10),
+              _CategoryPill(
+                value: _category,
+                isOpen: _categoryOpen,
+                onTap: () => setState(() => _categoryOpen = !_categoryOpen),
+              ),
+              if (_categoryOpen) ...[
+                const SizedBox(height: 4),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: Column(
+                    children: _kCategories
+                        .map(
+                          (cat) => InkWell(
+                            onTap: () => setState(() {
+                              _category = cat;
+                              _categoryOpen = false;
+                            }),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                cat,
+                                style: TextStyle(
+                                  fontSize: AppTypography.bodySize,
+                                  color: cat == _category
+                                      ? AppColors.primary
+                                      : AppColors.primary.withValues(
+                                          alpha: 0.75,
+                                        ),
+                                  fontWeight: cat == _category
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      )
-                      .toList(),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // ── Body ──────────────────────────────────────────────────────
+              const Text(
+                'Your Question or Idea',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _bodyCtrl,
+                minLines: 5,
+                maxLines: null,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  color: AppColors.textPrimary,
+                  height: 1.5,
+                ),
+                decoration: InputDecoration(
+                  hintText: '',
+                  hintStyle: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: AppColors.hintText,
+                    fontSize: AppTypography.bodySize,
+                  ),
+                  alignLabelWithHint: true,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppMetrics.fieldGap),
+
+              // ── Photos ────────────────────────────────────────────────────
+              const OptionalFieldLabel(
+                'Photos (Optional)',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFamily,
+                  fontSize: AppTypography.bodySize,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildPhotoGrid(),
+              const SizedBox(height: AppMetrics.sectionGap),
+
+              // ── Post button ───────────────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isPosting ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.bodyFamily,
+                      fontSize: AppTypography.buttonSize,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: _isPosting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(_isEditing ? 'Save Changes' : 'Post'),
                 ),
               ),
             ],
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // ── Body ──────────────────────────────────────────────────────
-            const Text(
-              'Your Question or Idea',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _bodyCtrl,
-              minLines: 5,
-              maxLines: null,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                color: AppColors.textPrimary,
-                height: 1.5,
-              ),
-              decoration: InputDecoration(
-                hintText: '',
-                hintStyle: const TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.hintText,
-                  fontSize: AppTypography.bodySize,
-                ),
-                alignLabelWithHint: true,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderLight,
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderLight,
-                    width: 1,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 16,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-
-            // ── Photos ────────────────────────────────────────────────────
-            const OptionalFieldLabel(
-              'Photos (Optional)',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.bodySize,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _buildPhotoGrid(),
-            const SizedBox(height: AppMetrics.sectionGap),
-
-            // ── Post button ───────────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isPosting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.buttonSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                child: _isPosting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(_isEditing ? 'Save Changes' : 'Post'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

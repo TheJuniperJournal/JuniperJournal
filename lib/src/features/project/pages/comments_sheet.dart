@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
@@ -231,23 +232,25 @@ class _CommentsSheetState extends State<CommentsSheet> {
                           ),
                         ),
                       )
-                    : ListView.builder(
-                        controller: scrollController,
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                        itemCount: _comments!.length,
-                        itemBuilder: (_, i) {
-                          final comment = _comments![i];
-                          return _CommentTile(
-                            comment: comment,
-                            onReply: () => _textController.replyTo(
-                              comment.id,
-                              comment.resolvedAuthorName,
-                              comment.content,
-                            ),
-                            isOwn: comment.userId == _currentUserId,
-                            onDelete: () => _deleteComment(comment),
-                          );
-                        },
+                    : PageScrollWithFooter(
+                        child: ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          itemCount: _comments!.length,
+                          itemBuilder: (_, i) {
+                            final comment = _comments![i];
+                            return _CommentTile(
+                              comment: comment,
+                              onReply: () => _textController.replyTo(
+                                comment.id,
+                                comment.resolvedAuthorName,
+                                comment.content,
+                              ),
+                              isOwn: comment.userId == _currentUserId,
+                              onDelete: () => _deleteComment(comment),
+                            );
+                          },
+                        ),
                       ),
               ),
               const Divider(height: 1),

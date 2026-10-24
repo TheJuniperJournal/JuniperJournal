@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/desktop_modal_layer.dart';
@@ -235,83 +236,87 @@ class _JournalAddToSheetState extends State<JournalAddToSheet> {
                           padding: EdgeInsets.all(32),
                           child: Center(child: CircularProgressIndicator()),
                         )
-                      : ListView(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.only(bottom: 8),
-                          children: [
-                            if (_filtered.isNotEmpty)
+                      : PageScrollWithFooter(
+                          child: ListView(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.only(bottom: 8),
+                            children: [
+                              if (_filtered.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    8,
+                                  ),
+                                  child: Text(
+                                    'Recent Projects',
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.bodySize,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                              ..._filtered.map(
+                                (p) => _ProjectRow(
+                                  project: p,
+                                  isLoading: _isCreating,
+                                  onTap: () => _addToProject(p),
+                                ),
+                              ),
+                              if (_filtered.isEmpty && !_isLoading)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  child: Text(
+                                    'No projects found.',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ),
+
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                   16,
-                                  0,
+                                  24,
                                   16,
-                                  8,
+                                  20,
                                 ),
-                                child: Text(
-                                  'Recent Projects',
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.bodySize,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ),
-                            ..._filtered.map(
-                              (p) => _ProjectRow(
-                                project: p,
-                                isLoading: _isCreating,
-                                onTap: () => _addToProject(p),
-                              ),
-                            ),
-                            if (_filtered.isEmpty && !_isLoading)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                child: Text(
-                                  'No projects found.',
-                                  style: TextStyle(color: Colors.grey.shade500),
-                                ),
-                              ),
-
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                24,
-                                16,
-                                20,
-                              ),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: _isCreating
-                                      ? null
-                                      : _createProject,
-                                  icon: const Icon(Icons.add, size: 20),
-                                  label: const Text('Create Project'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.primary,
-                                    minimumSize: const Size.fromHeight(52),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    side: BorderSide(
-                                      color: AppColors.primary.withValues(
-                                        alpha: .5,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isCreating
+                                        ? null
+                                        : _createProject,
+                                    icon: const Icon(Icons.add, size: 20),
+                                    label: const Text('Create Project'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                      minimumSize: const Size.fromHeight(52),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 14,
                                       ),
+                                      side: BorderSide(
+                                        color: AppColors.primary.withValues(
+                                          alpha: .5,
+                                        ),
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      textStyle: AppTypography.button,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    textStyle: AppTypography.button,
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                 ),
               ),

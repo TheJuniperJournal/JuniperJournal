@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:flutter/material.dart';
 import '../../../backend/auth/auth_service.dart';
 import '../../../backend/security/input_validator.dart';
@@ -83,101 +84,105 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
     body: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.all(24),
-          children: [
-            if (_done) ...[
-              Text(
-                widget.updatePassword
-                    ? 'Your password has been updated. Log in with your new password.'
-                    : 'If an account exists for this email, you’ll receive a password recovery link. Check your inbox and spam folder.',
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const JuniperAuthScreen()),
-                  (_) => false,
+        child: PageScrollWithFooter(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(24),
+            children: [
+              if (_done) ...[
+                Text(
+                  widget.updatePassword
+                      ? 'Your password has been updated. Log in with your new password.'
+                      : 'If an account exists for this email, you’ll receive a password recovery link. Check your inbox and spam folder.',
                 ),
-                child: const Text('Back to Log In'),
-              ),
-            ] else
-              Form(
-                key: _form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      widget.updatePassword
-                          ? 'Choose a new password for your account.'
-                          : 'Enter your account email to receive a password recovery link.',
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => const JuniperAuthScreen(),
                     ),
-                    const SizedBox(height: 20),
-                    if (!widget.updatePassword)
-                      TextFormField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(labelText: 'Email'),
-                        validator: (value) =>
-                            InputValidator.email(value?.trim() ?? ''),
-                      ),
-                    if (widget.updatePassword) ...[
-                      TextFormField(
-                        controller: _password,
-                        obscureText: true,
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration: const InputDecoration(
-                          labelText: 'New Password',
-                        ),
-                        validator: (value) =>
-                            InputValidator.password(value ?? ''),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _confirmation,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Confirm Password',
-                        ),
-                        validator: (value) => value == _password.text
-                            ? null
-                            : 'Passwords do not match.',
-                      ),
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
+                    (_) => false,
+                  ),
+                  child: const Text('Back to Log In'),
+                ),
+              ] else
+                Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       Text(
-                        _error!,
-                        style: const TextStyle(color: AppColors.error),
+                        widget.updatePassword
+                            ? 'Choose a new password for your account.'
+                            : 'Enter your account email to receive a password recovery link.',
                       ),
-                      if (widget.updatePassword)
-                        TextButton(
-                          onPressed: () =>
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const PasswordRecoveryScreen(),
-                                ),
-                              ),
-                          child: const Text('Request a New Recovery Email'),
+                      const SizedBox(height: 20),
+                      if (!widget.updatePassword)
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          decoration: const InputDecoration(labelText: 'Email'),
+                          validator: (value) =>
+                              InputValidator.email(value?.trim() ?? ''),
                         ),
-                    ],
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: Text(
-                        _busy
-                            ? 'Please wait…'
-                            : widget.updatePassword
-                            ? 'Update Password'
-                            : 'Send Recovery Email',
+                      if (widget.updatePassword) ...[
+                        TextFormField(
+                          controller: _password,
+                          obscureText: true,
+                          autofillHints: const [AutofillHints.newPassword],
+                          decoration: const InputDecoration(
+                            labelText: 'New Password',
+                          ),
+                          validator: (value) =>
+                              InputValidator.password(value ?? ''),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _confirmation,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirm Password',
+                          ),
+                          validator: (value) => value == _password.text
+                              ? null
+                              : 'Passwords do not match.',
+                        ),
+                      ],
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                        if (widget.updatePassword)
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const PasswordRecoveryScreen(),
+                                  ),
+                                ),
+                            child: const Text('Request a New Recovery Email'),
+                          ),
+                      ],
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: _busy ? null : _submit,
+                        child: Text(
+                          _busy
+                              ? 'Please wait…'
+                              : widget.updatePassword
+                              ? 'Update Password'
+                              : 'Send Recovery Email',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     ),

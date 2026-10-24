@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../home_page/pages/public_user_profile.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
@@ -721,281 +722,283 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       backgroundColor: AppColors.white,
       body: CreationPageFrame(
         desktopMaxWidth: 720,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 42),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CreationPageHeader(
-                  onClose: () => Navigator.of(context).pop(false),
-                  closeLabel: widget.existingProject == null
-                      ? 'Close create project'
-                      : 'Close project settings',
-                  title: widget.existingProject == null
-                      ? 'Create Project'
-                      : 'Project Settings',
-                ),
-                CreationImagePicker(
-                  label: 'Update project image',
-                  iconOnlyTap: true,
-                  imageUrl: _projectImageUrl,
-                  imageBytes: _projectImagePreview,
-                  isUploading: _isUploadingImage,
-                  onTap: _showImageSourceSheet,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: JournalPageLayout.horizontalInset,
+        child: PageScrollWithFooter(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 42),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CreationPageHeader(
+                    onClose: () => Navigator.of(context).pop(false),
+                    closeLabel: widget.existingProject == null
+                        ? 'Close create project'
+                        : 'Close project settings',
+                    title: widget.existingProject == null
+                        ? 'Create Project'
+                        : 'Project Settings',
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SectionTitle('Project Name'),
-                      const SizedBox(height: AppMetrics.labelGap),
-                      _validatedField(
-                        'name',
-                        _ProjectSetupTextField(
-                          showError:
-                              _showSetupValidation &&
-                              _setupErrors.containsKey('name'),
-                          controller: _nameController,
-                          height: 64,
+                  CreationImagePicker(
+                    label: 'Update project image',
+                    iconOnlyTap: true,
+                    imageUrl: _projectImageUrl,
+                    imageBytes: _projectImagePreview,
+                    isUploading: _isUploadingImage,
+                    onTap: _showImageSourceSheet,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: JournalPageLayout.horizontalInset,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SectionTitle('Project Name'),
+                        const SizedBox(height: AppMetrics.labelGap),
+                        _validatedField(
+                          'name',
+                          _ProjectSetupTextField(
+                            showError:
+                                _showSetupValidation &&
+                                _setupErrors.containsKey('name'),
+                            controller: _nameController,
+                            height: 64,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      _validatedField(
-                        'type',
-                        ProjectTypeSelector(
-                          value: _projectType,
-                          showError:
-                              _showSetupValidation && _projectType == null,
-                          onChanged: (value) {
-                            if (value == 'solo' &&
-                                _pendingMembers.any(
-                                  (m) => m.id != _projectOwner?.id,
-                                )) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Remove other members before changing to Solo.',
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        _validatedField(
+                          'type',
+                          ProjectTypeSelector(
+                            value: _projectType,
+                            showError:
+                                _showSetupValidation && _projectType == null,
+                            onChanged: (value) {
+                              if (value == 'solo' &&
+                                  _pendingMembers.any(
+                                    (m) => m.id != _projectOwner?.id,
+                                  )) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Remove other members before changing to Solo.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() => _projectType = value);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        if (widget.existingProject == null &&
+                            _projectType == 'collaborative') ...[
+                          if (_loadingMembers)
+                            const LinearProgressIndicator()
+                          else
+                            _validatedField(
+                              'members',
+                              ProjectMembersSection(
+                                members: _pendingMembers,
+                                showError:
+                                    _showSetupValidation && _needsCollaborator,
+                                owner: _projectOwner,
+                                roles: _memberRoles,
+                                canManageRoles: _canManageRoles,
+                                onRoleChanged: (id, role) =>
+                                    setState(() => _memberRoles[id] = role),
+                                onAddPeople: _openAddMemberDialog,
+                                onRemoveMember: (person) => setState(
+                                  () => _pendingMembers.removeWhere(
+                                    (member) => member.id == person.id,
                                   ),
                                 ),
-                              );
-                              return;
-                            }
-                            setState(() => _projectType = value);
-                          },
+                              ),
+                            ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                        ],
+                        if (widget.existingProject == null)
+                          ProjectCommunitiesSection(
+                            links: _communityLinks,
+                            onAdd: _openCommunities,
+                            onRemove: (id) => setState(
+                              () => _communityLinks.removeWhere(
+                                (link) => link['id'] == id,
+                              ),
+                            ),
+                            onCollaborator: (id) => setState(() {
+                              for (final link in _communityLinks) {
+                                if (link['id'] == id) {
+                                  link['role'] = 'collaborator';
+                                }
+                              }
+                            }),
+                            onHome: (id) => setState(() {
+                              for (final link in _communityLinks) {
+                                link['role'] = link['id'] == id
+                                    ? 'home'
+                                    : 'collaborator';
+                              }
+                            }),
+                          ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        const _SectionTitle('Problem Statement'),
+                        const SizedBox(height: AppMetrics.helperGap),
+                        const _SectionHint(
+                          'What is the problem you are trying to solve?',
                         ),
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      if (widget.existingProject == null &&
-                          _projectType == 'collaborative') ...[
-                        if (_loadingMembers)
-                          const LinearProgressIndicator()
-                        else
-                          _validatedField(
-                            'members',
-                            ProjectMembersSection(
-                              members: _pendingMembers,
-                              showError:
-                                  _showSetupValidation && _needsCollaborator,
-                              owner: _projectOwner,
-                              roles: _memberRoles,
-                              canManageRoles: _canManageRoles,
-                              onRoleChanged: (id, role) =>
-                                  setState(() => _memberRoles[id] = role),
-                              onAddPeople: _openAddMemberDialog,
-                              onRemoveMember: (person) => setState(
-                                () => _pendingMembers.removeWhere(
-                                  (member) => member.id == person.id,
+                        const SizedBox(height: 12),
+                        _validatedField(
+                          'problem',
+                          _ProjectSetupTextField(
+                            showError:
+                                _showSetupValidation &&
+                                _setupErrors.containsKey('problem'),
+                            controller: _problemController,
+                            height: AppMetrics.longResponseHeight,
+                            expands: true,
+                          ),
+                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        const _SectionTitle('Subject'),
+                        const SizedBox(height: AppMetrics.helperGap),
+                        const _SectionHint(
+                          'Choose the main area your project belongs to.',
+                        ),
+                        const SizedBox(height: 12),
+                        _validatedField(
+                          'subject',
+                          Column(
+                            children: [
+                              for (final option in _subjectOptions) ...[
+                                _SubjectCard(
+                                  option: option,
+                                  showError:
+                                      _showSetupValidation &&
+                                      _selectedSubject == null,
+                                  selected: _selectedSubject == option.value,
+                                  onTap: () => _selectSubject(option.value),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const _SectionTitle('Difficulty'),
+                        const SizedBox(height: AppMetrics.helperGap),
+                        const _SectionHint('How difficult is your project?'),
+                        const SizedBox(height: 12),
+                        _validatedField(
+                          'difficulty',
+                          _ThreeCardSelector(
+                            options: _difficultyOptions,
+                            showError:
+                                _showSetupValidation &&
+                                _selectedDifficulty == null,
+                            selectedValue: _selectedDifficulty,
+                            lockedValue: widget.lockedDifficulty,
+                            onSelected: (value) =>
+                                setState(() => _selectedDifficulty = value),
+                          ),
+                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        const _SectionTitle('Scale'),
+                        const SizedBox(height: AppMetrics.helperGap),
+                        const _SectionHint('How large is the project?'),
+                        const SizedBox(height: 12),
+                        _validatedField(
+                          'scale',
+                          _ThreeCardSelector(
+                            options: _scaleOptions,
+                            showError:
+                                _showSetupValidation && _selectedScale == null,
+                            selectedValue: _selectedScale,
+                            lockedValue: widget.lockedScale,
+                            onSelected: (value) =>
+                                setState(() => _selectedScale = value),
+                          ),
+                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        const _SectionTitle('Visibility'),
+                        const SizedBox(height: AppMetrics.helperGap),
+                        const _SectionHint(
+                          'Choose who can see and interact with your project.',
+                        ),
+                        const SizedBox(height: 12),
+                        _validatedField(
+                          'visibility',
+                          Column(
+                            children: [
+                              for (final option in _visibilityOptions) ...[
+                                _VisibilityCard(
+                                  option: option,
+                                  showError:
+                                      _showSetupValidation &&
+                                      _selectedVisibility == null,
+                                  selected: _selectedVisibility == option.value,
+                                  locked:
+                                      widget.challengeId != null &&
+                                      option.value != 'Friends',
+                                  onTap:
+                                      widget.challengeId != null &&
+                                          option.value != 'Friends'
+                                      ? null
+                                      : () => _chooseVisibility(option.value),
+                                ),
+                                const SizedBox(height: AppMetrics.labelGap),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _validatedField(
+                          'objectives',
+                          _LearningObjectivesSection(
+                            rows: _objectiveRows,
+                            showValidation: _showObjectiveValidation,
+                            onAdd: _addObjective,
+                            onDelete: _removeObjective,
+                            onChanged: () => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        const SizedBox(height: AppMetrics.labelGap),
+                        SubmitButton(
+                          label: widget.existingProject == null
+                              ? 'Create'
+                              : 'Save Changes',
+                          isLoading: _isCreating,
+                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.primary,
+                          onPressed: _handleCreate,
+                        ),
+                        if (widget.onDelete != null) ...[
+                          const SizedBox(height: AppMetrics.labelGap),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              onPressed: _isCreating
+                                  ? null
+                                  : () => widget.onDelete!(context),
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Delete Project'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                             ),
                           ),
-                        const SizedBox(height: AppMetrics.fieldGap),
+                        ],
                       ],
-                      if (widget.existingProject == null)
-                        ProjectCommunitiesSection(
-                          links: _communityLinks,
-                          onAdd: _openCommunities,
-                          onRemove: (id) => setState(
-                            () => _communityLinks.removeWhere(
-                              (link) => link['id'] == id,
-                            ),
-                          ),
-                          onCollaborator: (id) => setState(() {
-                            for (final link in _communityLinks) {
-                              if (link['id'] == id) {
-                                link['role'] = 'collaborator';
-                              }
-                            }
-                          }),
-                          onHome: (id) => setState(() {
-                            for (final link in _communityLinks) {
-                              link['role'] = link['id'] == id
-                                  ? 'home'
-                                  : 'collaborator';
-                            }
-                          }),
-                        ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      const _SectionTitle('Problem Statement'),
-                      const SizedBox(height: AppMetrics.helperGap),
-                      const _SectionHint(
-                        'What is the problem you are trying to solve?',
-                      ),
-                      const SizedBox(height: 12),
-                      _validatedField(
-                        'problem',
-                        _ProjectSetupTextField(
-                          showError:
-                              _showSetupValidation &&
-                              _setupErrors.containsKey('problem'),
-                          controller: _problemController,
-                          height: AppMetrics.longResponseHeight,
-                          expands: true,
-                        ),
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      const _SectionTitle('Subject'),
-                      const SizedBox(height: AppMetrics.helperGap),
-                      const _SectionHint(
-                        'Choose the main area your project belongs to.',
-                      ),
-                      const SizedBox(height: 12),
-                      _validatedField(
-                        'subject',
-                        Column(
-                          children: [
-                            for (final option in _subjectOptions) ...[
-                              _SubjectCard(
-                                option: option,
-                                showError:
-                                    _showSetupValidation &&
-                                    _selectedSubject == null,
-                                selected: _selectedSubject == option.value,
-                                onTap: () => _selectSubject(option.value),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const _SectionTitle('Difficulty'),
-                      const SizedBox(height: AppMetrics.helperGap),
-                      const _SectionHint('How difficult is your project?'),
-                      const SizedBox(height: 12),
-                      _validatedField(
-                        'difficulty',
-                        _ThreeCardSelector(
-                          options: _difficultyOptions,
-                          showError:
-                              _showSetupValidation &&
-                              _selectedDifficulty == null,
-                          selectedValue: _selectedDifficulty,
-                          lockedValue: widget.lockedDifficulty,
-                          onSelected: (value) =>
-                              setState(() => _selectedDifficulty = value),
-                        ),
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      const _SectionTitle('Scale'),
-                      const SizedBox(height: AppMetrics.helperGap),
-                      const _SectionHint('How large is the project?'),
-                      const SizedBox(height: 12),
-                      _validatedField(
-                        'scale',
-                        _ThreeCardSelector(
-                          options: _scaleOptions,
-                          showError:
-                              _showSetupValidation && _selectedScale == null,
-                          selectedValue: _selectedScale,
-                          lockedValue: widget.lockedScale,
-                          onSelected: (value) =>
-                              setState(() => _selectedScale = value),
-                        ),
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      const _SectionTitle('Visibility'),
-                      const SizedBox(height: AppMetrics.helperGap),
-                      const _SectionHint(
-                        'Choose who can see and interact with your project.',
-                      ),
-                      const SizedBox(height: 12),
-                      _validatedField(
-                        'visibility',
-                        Column(
-                          children: [
-                            for (final option in _visibilityOptions) ...[
-                              _VisibilityCard(
-                                option: option,
-                                showError:
-                                    _showSetupValidation &&
-                                    _selectedVisibility == null,
-                                selected: _selectedVisibility == option.value,
-                                locked:
-                                    widget.challengeId != null &&
-                                    option.value != 'Friends',
-                                onTap:
-                                    widget.challengeId != null &&
-                                        option.value != 'Friends'
-                                    ? null
-                                    : () => _chooseVisibility(option.value),
-                              ),
-                              const SizedBox(height: AppMetrics.labelGap),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _validatedField(
-                        'objectives',
-                        _LearningObjectivesSection(
-                          rows: _objectiveRows,
-                          showValidation: _showObjectiveValidation,
-                          onAdd: _addObjective,
-                          onDelete: _removeObjective,
-                          onChanged: () => setState(() {}),
-                        ),
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      const SizedBox(height: AppMetrics.labelGap),
-                      SubmitButton(
-                        label: widget.existingProject == null
-                            ? 'Create'
-                            : 'Save Changes',
-                        isLoading: _isCreating,
-                        foregroundColor: Colors.white,
-                        backgroundColor: AppColors.primary,
-                        onPressed: _handleCreate,
-                      ),
-                      if (widget.onDelete != null) ...[
-                        const SizedBox(height: AppMetrics.labelGap),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: OutlinedButton.icon(
-                            onPressed: _isCreating
-                                ? null
-                                : () => widget.onDelete!(context),
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Delete Project'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -2316,10 +2319,12 @@ class _AddMemberDialogState extends State<ProjectMemberPicker> {
       else
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 160),
-          child: ListView(
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            children: [for (final person in people) _inviteeRow(person)],
+          child: PageScrollWithFooter(
+            child: ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              children: [for (final person in people) _inviteeRow(person)],
+            ),
           ),
         ),
     ],
@@ -2484,175 +2489,185 @@ class _AddMemberDialogState extends State<ProjectMemberPicker> {
           child: Column(
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          AppTapTarget(
-                            onTap: () => Navigator.pop(context),
-                            child: SvgPicture.asset(
-                              'assets/learning_module/x.svg',
-                              width: 18,
-                              height: 18,
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.primary,
-                                BlendMode.srcIn,
+                child: PageScrollWithFooter(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            AppTapTarget(
+                              onTap: () => Navigator.pop(context),
+                              child: SvgPicture.asset(
+                                'assets/learning_module/x.svg',
+                                width: 18,
+                                height: 18,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.primary,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                            const Expanded(
+                              child: Text(
+                                'Add Member',
+                                textAlign: TextAlign.center,
+                                style: AppTypography.pageTitle,
+                              ),
+                            ),
+                            const SizedBox(width: 18),
+                          ],
+                        ),
+                        const SizedBox(height: AppMetrics.fieldGap),
+                        const Text(
+                          'Search',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _searchController,
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.bodySize,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '',
+                            hintStyle: TextStyle(color: Colors.grey.shade400),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
                               ),
                             ),
                           ),
-                          const Expanded(
-                            child: Text(
-                              'Add Member',
-                              textAlign: TextAlign.center,
-                              style: AppTypography.pageTitle,
-                            ),
-                          ),
-                          const SizedBox(width: 18),
-                        ],
-                      ),
-                      const SizedBox(height: AppMetrics.fieldGap),
-                      const Text(
-                        'Search',
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _searchController,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.bodySize,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '',
-                          hintStyle: TextStyle(color: Colors.grey.shade400),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_isSearching)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        )
-                      else if (_searchResults.isNotEmpty)
-                        Material(
-                          color: const Color(0xFFF3F2F2),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            constraints: const BoxConstraints(maxHeight: 160),
-                            margin: const EdgeInsets.only(top: 4),
-                            child: ListView(
-                              shrinkWrap: true,
-                              padding: EdgeInsets.zero,
-                              children: _searchResults
-                                  .map((user) => _inviteeRow(user))
-                                  .toList(),
-                            ),
-                          ),
-                        ),
-                      if (_searchController.text.trim().isEmpty) ...[
-                        if (_hasCommunitySource)
-                          if (_loadingCommunityPeople)
-                            const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          else if (_communityPeopleFailed)
-                            TextButton(
-                              onPressed: _loadCommunityMembers,
-                              child: const Text(
-                                'Retry loading community members',
+                        if (_isSearching)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
-                            )
-                          else
-                            _peopleSource(
-                              'Community members',
-                              _available(_communityPeople),
                             ),
-                        if (_friends.isNotEmpty || _hasCommunitySource)
-                          _peopleSource(
-                            'Friends',
-                            _available(
-                              _friends.where(
-                                (friend) => !_communityPeople.any(
-                                  (person) => person.id == friend.id,
+                          )
+                        else if (_searchResults.isNotEmpty)
+                          Material(
+                            color: const Color(0xFFF3F2F2),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              constraints: const BoxConstraints(maxHeight: 160),
+                              margin: const EdgeInsets.only(top: 4),
+                              child: PageScrollWithFooter(
+                                child: ListView(
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.zero,
+                                  children: _searchResults
+                                      .map((user) => _inviteeRow(user))
+                                      .toList(),
                                 ),
                               ),
                             ),
                           ),
+                        if (_searchController.text.trim().isEmpty) ...[
+                          if (_hasCommunitySource)
+                            if (_loadingCommunityPeople)
+                              const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            else if (_communityPeopleFailed)
+                              TextButton(
+                                onPressed: _loadCommunityMembers,
+                                child: const Text(
+                                  'Retry loading community members',
+                                ),
+                              )
+                            else
+                              _peopleSource(
+                                'Community members',
+                                _available(_communityPeople),
+                              ),
+                          if (_friends.isNotEmpty || _hasCommunitySource)
+                            _peopleSource(
+                              'Friends',
+                              _available(
+                                _friends.where(
+                                  (friend) => !_communityPeople.any(
+                                    (person) => person.id == friend.id,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                        const SizedBox(height: 16),
+                        if (_members.isNotEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'Selected people',
+                              style: AppTypography.fieldLabel,
+                            ),
+                          ),
+                        if (_members.isNotEmpty)
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 160),
+                            child: PageScrollWithFooter(
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                itemCount: _members.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 18),
+                                itemBuilder: (context, index) {
+                                  final member = _members[index];
+                                  return _MemberRow(
+                                    profile: member,
+                                    label: 'Project Member',
+                                    onRemove: () => _removeMember(member),
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'Search for people to add to this project.',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ),
+                        const SizedBox(height: AppMetrics.sectionGap),
                       ],
-                      const SizedBox(height: 16),
-                      if (_members.isNotEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            'Selected people',
-                            style: AppTypography.fieldLabel,
-                          ),
-                        ),
-                      if (_members.isNotEmpty)
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 160),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            itemCount: _members.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 18),
-                            itemBuilder: (context, index) {
-                              final member = _members[index];
-                              return _MemberRow(
-                                profile: member,
-                                label: 'Project Member',
-                                onRemove: () => _removeMember(member),
-                              );
-                            },
-                          ),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'Search for people to add to this project.',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ),
-                      const SizedBox(height: AppMetrics.sectionGap),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -3130,67 +3145,69 @@ class _ProjectCommunityPickerState extends State<ProjectCommunityPicker> {
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      children: [
-                        for (final community in _communities.where(
-                          (item) => item.name.toLowerCase().contains(_query),
-                        ))
-                          CheckboxListTile(
-                            secondary: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: AppColors.primaryTint,
-                              child: ClipOval(
-                                child:
-                                    community.imageUrl?.trim().isNotEmpty ==
-                                        true
-                                    ? ProtectedImage.network(
-                                        community.imageUrl!,
-                                        width: 40,
-                                        height: 40,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(
-                                              Icons.groups_outlined,
-                                              color: AppColors.primary,
-                                            ),
-                                      )
-                                    : const Icon(
-                                        Icons.groups_outlined,
-                                        color: AppColors.primary,
-                                      ),
+                  : PageScrollWithFooter(
+                      child: ListView(
+                        children: [
+                          for (final community in _communities.where(
+                            (item) => item.name.toLowerCase().contains(_query),
+                          ))
+                            CheckboxListTile(
+                              secondary: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: AppColors.primaryTint,
+                                child: ClipOval(
+                                  child:
+                                      community.imageUrl?.trim().isNotEmpty ==
+                                          true
+                                      ? ProtectedImage.network(
+                                          community.imageUrl!,
+                                          width: 40,
+                                          height: 40,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(
+                                                Icons.groups_outlined,
+                                                color: AppColors.primary,
+                                              ),
+                                        )
+                                      : const Icon(
+                                          Icons.groups_outlined,
+                                          color: AppColors.primary,
+                                        ),
+                                ),
                               ),
-                            ),
-                            value: _selected.any(
-                              (link) => link['id'] == community.id,
-                            ),
-                            title: Text(
-                              community.name,
-                              style: const TextStyle(
-                                fontFamily: AppTypography.bodyFamily,
-                                fontSize: AppTypography.bodySize,
+                              value: _selected.any(
+                                (link) => link['id'] == community.id,
                               ),
+                              title: Text(
+                                community.name,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFamily,
+                                  fontSize: AppTypography.bodySize,
+                                ),
+                              ),
+                              activeColor: _projectSetupGreen,
+                              onChanged: (selected) => setState(() {
+                                ModalDraftScope.changed(context);
+                                if (selected == true) {
+                                  _selected.add({
+                                    'id': community.id,
+                                    'name': community.name,
+                                    'imageUrl': community.imageUrl,
+                                    'description': community.subjectFocus,
+                                    'role': _selected.isEmpty
+                                        ? 'home'
+                                        : 'collaborator',
+                                  });
+                                } else {
+                                  _selected.removeWhere(
+                                    (link) => link['id'] == community.id,
+                                  );
+                                }
+                              }),
                             ),
-                            activeColor: _projectSetupGreen,
-                            onChanged: (selected) => setState(() {
-                              ModalDraftScope.changed(context);
-                              if (selected == true) {
-                                _selected.add({
-                                  'id': community.id,
-                                  'name': community.name,
-                                  'imageUrl': community.imageUrl,
-                                  'description': community.subjectFocus,
-                                  'role': _selected.isEmpty
-                                      ? 'home'
-                                      : 'collaborator',
-                                });
-                              } else {
-                                _selected.removeWhere(
-                                  (link) => link['id'] == community.id,
-                                );
-                              }
-                            }),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
             ),
             const SizedBox(height: 12),

@@ -162,7 +162,7 @@ void main() {
     'implementation',
   ]) {
     testWidgets(
-      '$phase dashboard Back opens project overview from a direct link',
+      '$phase dashboard Back opens project Development from a direct link',
       (tester) async {
         SharedPreferences.setMockInitialValues({});
         tester.view.physicalSize = const Size(1440, 1000);
@@ -197,7 +197,12 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('content-back-chevron')));
         await tester.pumpAndSettle();
         expect(find.byType(ProjectDashboard), findsOneWidget);
-        expect(find.text('Impact Summary'), findsOneWidget);
+        expect(
+          tester
+              .widget<ProjectDashboard>(find.byType(ProjectDashboard))
+              .initialSection,
+          ProjectDashboardSection.development,
+        );
         expect(tester.takeException(), isNull);
       },
     );

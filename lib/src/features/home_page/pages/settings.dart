@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../../../shared/widgets/persistent_desktop_shell.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import '../../../shared/widgets/profile_photo_actions.dart';
@@ -252,216 +253,223 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-                  children: [
-                    Center(
-                      child: Column(
-                        children: [
-                          InkWell(
-                            onTap: _changingPhoto ? null : _changePhoto,
-                            customBorder: const CircleBorder(),
-                            child: CircleAvatar(
-                              radius: 48,
-                              backgroundImage: _avatarUrl?.isNotEmpty == true
-                                  ? NetworkImage(_avatarUrl!)
-                                  : null,
-                              child: _avatarUrl?.isNotEmpty == true
-                                  ? null
-                                  : const Icon(Icons.person_outline, size: 40),
+                PageScrollWithFooter(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+                    children: [
+                      Center(
+                        child: Column(
+                          children: [
+                            InkWell(
+                              onTap: _changingPhoto ? null : _changePhoto,
+                              customBorder: const CircleBorder(),
+                              child: CircleAvatar(
+                                radius: 48,
+                                backgroundImage: _avatarUrl?.isNotEmpty == true
+                                    ? NetworkImage(_avatarUrl!)
+                                    : null,
+                                child: _avatarUrl?.isNotEmpty == true
+                                    ? null
+                                    : const Icon(
+                                        Icons.person_outline,
+                                        size: 40,
+                                      ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _changingPhoto ? null : _changePhoto,
+                              child: const Text('Change profile photo'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _sectionHeader('Profile'),
+                      _card([
+                        ListTile(
+                          title: const Text(
+                            'Email',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black38,
                             ),
                           ),
-                          TextButton(
-                            onPressed: _changingPhoto ? null : _changePhoto,
-                            child: const Text('Change profile photo'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _sectionHeader('Profile'),
-                    _card([
-                      ListTile(
-                        title: const Text(
-                          'Email',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black38,
+                          trailing: Text(
+                            _email,
+                            style: const TextStyle(color: Colors.black38),
                           ),
                         ),
-                        trailing: Text(
-                          _email,
-                          style: const TextStyle(color: Colors.black38),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        title: const Text(
-                          'Username',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black38,
+                        const Divider(height: 1),
+                        ListTile(
+                          title: const Text(
+                            'Username',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black38,
+                            ),
+                          ),
+                          trailing: Text(
+                            _username.isNotEmpty ? '@$_username' : '',
+                            style: const TextStyle(color: Colors.black38),
                           ),
                         ),
-                        trailing: Text(
-                          _username.isNotEmpty ? '@$_username' : '',
-                          style: const TextStyle(color: Colors.black38),
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _displayNameController,
+                                  textCapitalization: TextCapitalization.words,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Display Name',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              FilledButton(
+                                onPressed: _isSaving ? null : _saveDisplayName,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                ),
+                                child: const Text('Save'),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const Divider(height: 1),
+                      ]),
+                      const SizedBox(height: AppMetrics.fieldGap),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                        child: Row(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _displayNameController,
-                                textCapitalization: TextCapitalization.words,
-                                decoration: const InputDecoration(
-                                  labelText: 'Display Name',
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
+                            TextField(
+                              controller: _bioController,
+                              minLines: 3,
+                              maxLines: 5,
+                              maxLength: 500,
+                              decoration: const InputDecoration(
+                                labelText: 'Bio',
+                                hintText:
+                                    'Tell people about yourself and your interests.',
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: FilledButton(
+                                onPressed: _savingBio ? null : _saveBio,
+                                child: Text(
+                                  _savingBio ? 'Saving…' : 'Save bio',
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            FilledButton(
-                              onPressed: _isSaving ? null : _saveDisplayName,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                              ),
-                              child: const Text('Save'),
-                            ),
                           ],
                         ),
                       ),
-                    ]),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextField(
-                            controller: _bioController,
-                            minLines: 3,
-                            maxLines: 5,
-                            maxLength: 500,
-                            decoration: const InputDecoration(
-                              labelText: 'Bio',
-                              hintText:
-                                  'Tell people about yourself and your interests.',
-                            ),
+                      _sectionHeader('Privacy'),
+                      _card([
+                        const ListTile(
+                          title: Text(
+                            'Profile visibility',
+                            style: AppTypography.fieldLabel,
                           ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: FilledButton(
-                              onPressed: _savingBio ? null : _saveBio,
-                              child: Text(_savingBio ? 'Saving…' : 'Save bio'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _sectionHeader('Privacy'),
-                    _card([
-                      const ListTile(
-                        title: Text(
-                          'Profile visibility',
-                          style: AppTypography.fieldLabel,
                         ),
-                      ),
-                      RadioGroup<bool>(
-                        groupValue: _isPublicProfile,
-                        onChanged: (value) {
-                          if (!_savingVisibility && value != null)
-                            _toggleVisibility(value);
-                        },
-                        child: Column(
-                          children: [
-                            RadioListTile<bool>(
-                              value: true,
+                        RadioGroup<bool>(
+                          groupValue: _isPublicProfile,
+                          onChanged: (value) {
+                            if (!_savingVisibility && value != null)
+                              _toggleVisibility(value);
+                          },
+                          child: Column(
+                            children: [
+                              RadioListTile<bool>(
+                                value: true,
 
-                              title: const Text(
-                                'Public',
-                                style: AppTypography.fieldLabel,
+                                title: const Text(
+                                  'Public',
+                                  style: AppTypography.fieldLabel,
+                                ),
+                                subtitle: const Text(
+                                  'Anyone in Juniper can find and view your profile.',
+                                  style: AppTypography.helper,
+                                ),
+                                enabled: !_savingVisibility,
                               ),
-                              subtitle: const Text(
-                                'Anyone in Juniper can find and view your profile.',
-                                style: AppTypography.helper,
-                              ),
-                              enabled: !_savingVisibility,
-                            ),
-                            RadioListTile<bool>(
-                              value: false,
+                              RadioListTile<bool>(
+                                value: false,
 
-                              title: const Text(
-                                'Private',
-                                style: AppTypography.fieldLabel,
+                                title: const Text(
+                                  'Private',
+                                  style: AppTypography.fieldLabel,
+                                ),
+                                subtitle: const Text(
+                                  'Only friends can view your profile. Hidden from people search. Your name and photo remain visible in shared projects and chats.',
+                                  style: AppTypography.helper,
+                                ),
+                                enabled: !_savingVisibility,
                               ),
-                              subtitle: const Text(
-                                'Only friends can view your profile. Hidden from people search. Your name and photo remain visible in shared projects and chats.',
-                                style: AppTypography.helper,
-                              ),
-                              enabled: !_savingVisibility,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (_savingVisibility)
-                        const LinearProgressIndicator(minHeight: 2),
-                    ]),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    _sectionHeader('Account'),
-                    _card([
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: const Text('Change Password'),
-                        subtitle: const Text('Update your password'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => pushAppRoute(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ChangePasswordScreen(),
+                            ],
                           ),
                         ),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.logout,
-                          color: Colors.black54,
+                        if (_savingVisibility)
+                          const LinearProgressIndicator(minHeight: 2),
+                      ]),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      _sectionHeader('Account'),
+                      _card([
+                        ListTile(
+                          leading: const Icon(Icons.lock_outline),
+                          title: const Text('Change Password'),
+                          subtitle: const Text('Update your password'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => pushAppRoute(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ChangePasswordScreen(),
+                            ),
+                          ),
                         ),
-                        title: const Text('Sign Out'),
-                        onTap: _signOut,
-                      ),
-                    ]),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    _sectionHeader('Danger Zone'),
-                    _card([
-                      ListTile(
-                        leading: const Icon(
-                          Icons.delete_forever,
-                          color: AppColors.error,
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.logout,
+                            color: Colors.black54,
+                          ),
+                          title: const Text('Sign Out'),
+                          onTap: _signOut,
                         ),
-                        title: const Text(
-                          'Delete Account',
-                          style: TextStyle(
+                      ]),
+                      const SizedBox(height: AppMetrics.fieldGap),
+                      _sectionHeader('Danger Zone'),
+                      _card([
+                        ListTile(
+                          leading: const Icon(
+                            Icons.delete_forever,
                             color: AppColors.error,
-                            fontWeight: FontWeight.w600,
                           ),
+                          title: const Text(
+                            'Delete Account',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Permanently remove your account and all data',
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.error,
+                          ),
+                          onTap: _isSaving ? null : _deleteAccount,
                         ),
-                        subtitle: const Text(
-                          'Permanently remove your account and all data',
-                        ),
-                        trailing: const Icon(
-                          Icons.chevron_right,
-                          color: AppColors.error,
-                        ),
-                        onTap: _isSaving ? null : _deleteAccount,
-                      ),
-                    ]),
-                  ],
+                      ]),
+                    ],
+                  ),
                 ),
                 if (_isSaving)
                   const Positioned.fill(

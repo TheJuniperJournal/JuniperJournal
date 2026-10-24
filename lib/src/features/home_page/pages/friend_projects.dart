@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
@@ -115,56 +116,58 @@ class _FriendProjectsPageState extends State<FriendProjectsPage> {
                   ),
                 ),
               )
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                itemCount: _projects.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final project = _projects[index];
-                  final projectName = project.projectName.isNotEmpty
-                      ? project.projectName
-                      : 'Untitled Project';
-                  final projectId = project.id;
-                  final tags = project.tags;
+            : PageScrollWithFooter(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  itemCount: _projects.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final project = _projects[index];
+                    final projectName = project.projectName.isNotEmpty
+                        ? project.projectName
+                        : 'Untitled Project';
+                    final projectId = project.id;
+                    final tags = project.tags;
 
-                  return ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    tileColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: AppColors.primaryTint,
-                      child: const Icon(
-                        Icons.folder_outlined,
-                        color: AppColors.primary,
+                    return ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    title: Text(
-                      projectName,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: tags.isEmpty
-                        ? const Text('No tags')
-                        : Text(tags.join(' • ')),
-                    onTap: () {
-                      pushAppRoute(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProjectDashboard(
-                            projectId: projectId,
-                            projectName: projectName,
-                            tags: tags,
-                            isOwner: false,
-                          ),
+                      tileColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primaryTint,
+                        child: const Icon(
+                          Icons.folder_outlined,
+                          color: AppColors.primary,
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                      title: Text(
+                        projectName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: tags.isEmpty
+                          ? const Text('No tags')
+                          : Text(tags.join(' • ')),
+                      onTap: () {
+                        pushAppRoute(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProjectDashboard(
+                              projectId: projectId,
+                              projectName: projectName,
+                              tags: tags,
+                              isOwner: false,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
@@ -319,91 +320,93 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
               children: [
                 _Header(onBack: () => Navigator.of(context).pop()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 18, 38),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _FieldLabel(label: 'Content'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _FieldLabel(label: 'Title', optional: true),
-                        const SizedBox(height: 11),
-                        _TextFieldBox(
-                          controller: _titleController,
-                          maxLength: 100,
-                          height: 64,
-                          singleLine: true,
-                        ),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _ImagesSection(
-                          images: _images,
-                          controllers: _imageControllers,
-                          uploadingIndexes: _uploadingIndexes,
-                          onAddImage: _addImage,
-                          onRemove: _removeImage,
-                          onUpload: _showUploadSheet,
-                        ),
-                        if (_showContentError &&
-                            (!_hasImageContent ||
-                                _uploadingIndexes.isNotEmpty)) ...[
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Upload at least one image and finish any pending uploads.',
-                            style: AppTypography.requirement,
+                  child: PageScrollWithFooter(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 18, 38),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _FieldLabel(label: 'Content'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _FieldLabel(label: 'Title', optional: true),
+                          const SizedBox(height: 11),
+                          _TextFieldBox(
+                            controller: _titleController,
+                            maxLength: 100,
+                            height: 64,
+                            singleLine: true,
                           ),
-                        ],
-                        if (_uploadError != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            _uploadError!,
-                            style: const TextStyle(
-                              color: Color(0xFFD12E2E),
-                              fontSize: AppTypography.helperSize,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _ImagesSection(
+                            images: _images,
+                            controllers: _imageControllers,
+                            uploadingIndexes: _uploadingIndexes,
+                            onAddImage: _addImage,
+                            onRemove: _removeImage,
+                            onUpload: _showUploadSheet,
+                          ),
+                          if (_showContentError &&
+                              (!_hasImageContent ||
+                                  _uploadingIndexes.isNotEmpty)) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Upload at least one image and finish any pending uploads.',
+                              style: AppTypography.requirement,
                             ),
+                          ],
+                          if (_uploadError != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _uploadError!,
+                              style: const TextStyle(
+                                color: Color(0xFFD12E2E),
+                                fontSize: AppTypography.helperSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _FieldLabel(
+                            label: 'Image collection description',
+                            optional: true,
                           ),
-                        ],
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _FieldLabel(
-                          label: 'Image collection description',
-                          optional: true,
-                        ),
-                        const SizedBox(height: 11),
-                        _TextFieldBox(
-                          controller: _captionController,
-                          maxLength: 300,
-                          height: 56,
-                          maxLines: 2,
-                          hintText: '',
-                        ),
+                          const SizedBox(height: 11),
+                          _TextFieldBox(
+                            controller: _captionController,
+                            maxLength: 300,
+                            height: 56,
+                            maxLines: 2,
+                            hintText: '',
+                          ),
 
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        Center(
-                          child: SizedBox(
-                            width: 130,
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: _saveBlock,
-                              style: ElevatedButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: _green,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(9),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          Center(
+                            child: SizedBox(
+                              width: 130,
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: _saveBlock,
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: _green,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                _isEditing ? 'Save' : 'Add Block',
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFamily,
-                                  fontSize: AppTypography.buttonSize,
-                                  fontWeight: FontWeight.w500,
+                                child: Text(
+                                  _isEditing ? 'Save' : 'Add Block',
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.buttonSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

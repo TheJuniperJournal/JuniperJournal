@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:flutter/material.dart';
@@ -75,81 +76,83 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
-          children: [
-            _buildPasswordField(
-              controller: _currentCtrl,
-              label: 'Current Password',
-              obscure: _obscureCurrent,
-              onToggle: () =>
-                  setState(() => _obscureCurrent = !_obscureCurrent),
-              validator: (v) =>
-                  (v ?? '').isEmpty ? 'Enter your current password' : null,
-            ),
-            const SizedBox(height: 16),
-            _buildPasswordField(
-              controller: _newCtrl,
-              label: 'New Password',
-              obscure: _obscureNew,
-              onToggle: () => setState(() => _obscureNew = !_obscureNew),
-              validator: (v) {
-                final value = v ?? '';
-                if (value.isEmpty) return 'Enter a new password';
-                if (value.length < 8)
-                  return 'Password must be at least 8 characters';
-                if (value.contains(RegExp(r'\s')))
-                  return 'Password cannot contain spaces';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildPasswordField(
-              controller: _confirmCtrl,
-              label: 'Confirm Password',
-              obscure: _obscureConfirm,
-              onToggle: () =>
-                  setState(() => _obscureConfirm = !_obscureConfirm),
-              validator: (v) {
-                if ((v ?? '').isEmpty) return 'Confirm your new password';
-                if (v != _newCtrl.text) return 'Passwords do not match';
-                return null;
-              },
-            ),
-            const SizedBox(height: AppMetrics.sectionGap),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: FilledButton(
-                onPressed: _isLoading ? null : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+        child: PageScrollWithFooter(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
+            children: [
+              _buildPasswordField(
+                controller: _currentCtrl,
+                label: 'Current Password',
+                obscure: _obscureCurrent,
+                onToggle: () =>
+                    setState(() => _obscureCurrent = !_obscureCurrent),
+                validator: (v) =>
+                    (v ?? '').isEmpty ? 'Enter your current password' : null,
+              ),
+              const SizedBox(height: 16),
+              _buildPasswordField(
+                controller: _newCtrl,
+                label: 'New Password',
+                obscure: _obscureNew,
+                onToggle: () => setState(() => _obscureNew = !_obscureNew),
+                validator: (v) {
+                  final value = v ?? '';
+                  if (value.isEmpty) return 'Enter a new password';
+                  if (value.length < 8)
+                    return 'Password must be at least 8 characters';
+                  if (value.contains(RegExp(r'\s')))
+                    return 'Password cannot contain spaces';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildPasswordField(
+                controller: _confirmCtrl,
+                label: 'Confirm Password',
+                obscure: _obscureConfirm,
+                onToggle: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
+                validator: (v) {
+                  if ((v ?? '').isEmpty) return 'Confirm your new password';
+                  if (v != _newCtrl.text) return 'Passwords do not match';
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppMetrics.sectionGap),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: _isLoading ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Update Password',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.buttonSize,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      )
-                    : const Text(
-                        'Update Password',
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFamily,
-                          fontSize: AppTypography.buttonSize,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

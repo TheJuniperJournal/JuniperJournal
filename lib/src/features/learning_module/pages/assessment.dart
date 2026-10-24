@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -188,35 +189,37 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildTag('ASSESSMENT'),
-                _buildTag(
-                  'ANALYZE: ENVIRONMENTAL SUSTAINABILITY',
-                  filled: true,
-                ),
-                _circleAdd(onTap: () => _addQuestion()),
-              ],
-            ),
-            const SizedBox(height: AppMetrics.fieldGap),
-            for (int i = 0; i < _questions.length; i++) ...[
-              QuestionCard(
-                index: i,
-                model: _questions[i],
-                onAddBelow: () =>
-                    _addQuestionLike(i), // duplicates current format
-                onRemove: () => _removeQuestion(i),
+      body: PageScrollWithFooter(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildTag('ASSESSMENT'),
+                  _buildTag(
+                    'ANALYZE: ENVIRONMENTAL SUSTAINABILITY',
+                    filled: true,
+                  ),
+                  _circleAdd(onTap: () => _addQuestion()),
+                ],
               ),
-              if (i != _questions.length - 1) const SizedBox(height: 16),
+              const SizedBox(height: AppMetrics.fieldGap),
+              for (int i = 0; i < _questions.length; i++) ...[
+                QuestionCard(
+                  index: i,
+                  model: _questions[i],
+                  onAddBelow: () =>
+                      _addQuestionLike(i), // duplicates current format
+                  onRemove: () => _removeQuestion(i),
+                ),
+                if (i != _questions.length - 1) const SizedBox(height: 16),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1074,25 +1077,27 @@ class _TypePickerSheet extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.only(bottom: 16),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (ctx, i) {
-                  final it = items[i];
-                  final isSel = it == selected;
-                  return Material(
-                    color: isSel ? const Color(0xFFDCE9DF) : Colors.white,
-                    child: ListTile(
-                      leading: Icon(
-                        questionTypeIcon(it),
-                        color: Colors.black87,
+              child: PageScrollWithFooter(
+                child: ListView.separated(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (ctx, i) {
+                    final it = items[i];
+                    final isSel = it == selected;
+                    return Material(
+                      color: isSel ? const Color(0xFFDCE9DF) : Colors.white,
+                      child: ListTile(
+                        leading: Icon(
+                          questionTypeIcon(it),
+                          color: Colors.black87,
+                        ),
+                        title: Text(questionTypeLabel(it)),
+                        onTap: () => Navigator.pop(ctx, it),
                       ),
-                      title: Text(questionTypeLabel(it)),
-                      onTap: () => Navigator.pop(ctx, it),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ],
