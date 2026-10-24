@@ -227,16 +227,9 @@ class MyApp extends StatelessWidget {
                           initialPage: initialPage,
                           parentPage:
                               restored ||
-                                  const {
-                                    'journal',
-                                    'journal-view',
-                                    'project',
-                                    'phase',
-                                    'community',
-                                    'community-profile',
-                                    'profile',
-                                  }.contains(
-                                    PageUrl.decode(_launchLocation)?['kind'],
+                                  destinationNeedsAppParent(
+                                    PageUrl.decode(_launchLocation)?['kind']
+                                        as String?,
                                   )
                               ? const _SessionGate(restoreJournal: false)
                               : null,

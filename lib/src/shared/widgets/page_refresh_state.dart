@@ -1,3 +1,4 @@
+import 'restored_navigation.dart';
 import '../../features/site/pages/site_information_page.dart';
 import '../../features/home_page/pages/landing.dart';
 import '../../features/home_page/pages/public_community.dart';
@@ -91,8 +92,15 @@ class PageRefreshState extends NavigatorObserver {
   Map<String, dynamic>? describeRoute(Route<dynamic>? route) {
     if (route == null) return null;
     if (_pages.containsKey(route)) return _pages[route];
-    if (route is! MaterialPageRoute || navigator == null) return null;
-    final page = route.builder(navigator!.context);
+    if (navigator == null) return null;
+    final Widget page;
+    if (route is RestoredDetailRoute) {
+      page = route.page;
+    } else if (route is MaterialPageRoute) {
+      page = route.builder(navigator!.context);
+    } else {
+      return null;
+    }
     final data = switch (page) {
       PublicExploreScreen _ => {'kind': 'explore'},
       SiteInformationPage p => {'kind': p.page},

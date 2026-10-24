@@ -1,3 +1,4 @@
+import 'restored_navigation.dart';
 import '../../features/site/pages/site_information_page.dart';
 import 'package:flutter/material.dart';
 import '../../backend/db/repositories/projects_repo.dart';
@@ -91,9 +92,12 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
       ),
     );
     nav.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => page!),
+      MaterialPageRoute(
+        builder: (_) => widget.parentPage ?? widget.initialPage,
+      ),
       (_) => false,
     );
+    nav.push(restoredDetailRoute(page));
     _history.write(location, replace: true);
     _opening = false;
   }
@@ -127,7 +131,13 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
     onGenerateInitialRoutes: (_, __) => [
       if (widget.parentPage != null)
         MaterialPageRoute<void>(builder: (_) => widget.parentPage!),
-      _route(const RouteSettings(name: '/')),
+      if (widget.parentPage != null)
+        restoredDetailRoute(
+          widget.initialPage,
+          settings: const RouteSettings(name: '/'),
+        )
+      else
+        _route(const RouteSettings(name: '/')),
     ],
   );
   @override

@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/widgets/adaptive_app_shell.dart';
+import 'package:juniper_journal/src/shared/widgets/persistent_desktop_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_navigation.dart';
@@ -5,6 +7,41 @@ import 'package:juniper_journal/src/shared/widgets/journal_publication.dart';
 import 'package:juniper_journal/src/shared/widgets/web_navigation_host.dart';
 
 void main() {
+  testWidgets('cold chat links build the parent shell before any navigation', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (_, child) => PersistentDesktopShell(child: child!),
+        home: WebNavigationHost(
+          initialLocation: '/page',
+          navigatorKey: navigator,
+          parentPage: AdaptiveAppShell(
+            selectedIndex: 0,
+            onSelect: (_) {},
+            onCreate: () {},
+            desktopSidebar: const Text('Profile sidebar'),
+            mobileNavigation: const SizedBox(),
+            body: const Scaffold(body: Text('Home destination')),
+          ),
+          initialPage: const Scaffold(body: Text('Direct chat')),
+          observers: const [],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Direct chat'), findsOneWidget);
+    expect(find.text('Explore'), findsOneWidget);
+    expect(find.text('Profile sidebar'), findsOneWidget);
+    navigator.currentState!.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Home destination'), findsOneWidget);
+    expect(find.text('Profile sidebar'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   for (final complete in [false, true]) {
     testWidgets(
       'restored journal ${complete ? "completion" : "back"} retains Home',

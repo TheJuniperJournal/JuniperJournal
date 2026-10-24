@@ -3,6 +3,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/shared/widgets/restored_navigation.dart';
 
 void main() {
+  test('all application details and forms restore the shared parent', () {
+    for (final kind in [
+      'chat',
+      'chats',
+      'project',
+      'phase',
+      'journal',
+      'journal-view',
+      'create',
+      'settings',
+      'project-settings',
+      'materials',
+      'impact',
+      'activity',
+      'community',
+      'community-profile',
+      'community-settings',
+      'profile',
+    ]) {
+      expect(destinationNeedsAppParent(kind), isTrue, reason: kind);
+    }
+    for (final kind in [
+      null,
+      'home',
+      'explore',
+      'login',
+      'signup',
+      'about',
+      'privacy',
+    ]) {
+      expect(destinationNeedsAppParent(kind), isFalse, reason: kind);
+    }
+  });
   testWidgets(
     'closing a restored form returns to Home and preserves the root',
     (tester) async {
