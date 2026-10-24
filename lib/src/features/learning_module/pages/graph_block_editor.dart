@@ -674,19 +674,13 @@ class _ChartPreview extends StatelessWidget {
           SizedBox(
             height: MediaQuery.sizeOf(context).width >= 1000 ? 380 : 315,
             width: double.infinity,
-            child: Tooltip(
-              message: rows
-                  .where((row) => row.x.isNotEmpty && row.y.isNotEmpty)
-                  .map((row) => '${row.x}: ${row.y}')
-                  .join('\n'),
-              child: CustomPaint(
-                painter: _GraphPainter(
-                  rows: rows,
-                  type: graphType,
-                  title: title.isEmpty ? 'Blank' : title,
-                  xLabel: xAxisLabel.isEmpty ? 'Blank' : xAxisLabel,
-                  yLabel: yAxisLabel.isEmpty ? 'Blank' : yAxisLabel,
-                ),
+            child: CustomPaint(
+              painter: _GraphPainter(
+                rows: rows,
+                type: graphType,
+                title: title.isEmpty ? 'Blank' : title,
+                xLabel: xAxisLabel.isEmpty ? 'Blank' : xAxisLabel,
+                yLabel: yAxisLabel.isEmpty ? 'Blank' : yAxisLabel,
               ),
             ),
           ),
