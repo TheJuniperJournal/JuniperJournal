@@ -61,14 +61,42 @@ class _InlineMessageThreadState extends State<InlineMessageThread> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (widget.replies.isNotEmpty)
+        const Padding(
+          padding: EdgeInsets.only(top: 16, bottom: 6),
+          child: Row(
+            children: [
+              Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Original message',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
       widget.parent,
       if (widget.replies.isNotEmpty) ...[
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(
             onPressed: () => setState(() => _expanded = !_expanded),
-            child: Text(
-              '${widget.replies.length} ${widget.replies.length == 1 ? 'Reply' : 'Replies'}',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${widget.replies.length} ${widget.replies.length == 1 ? 'Reply' : 'Replies'}',
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                ),
+              ],
             ),
           ),
         ),
@@ -98,9 +126,9 @@ class _ReplyConnectorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.borderLight.withValues(alpha: .7)
+      ..color = AppColors.primary.withValues(alpha: .42)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
+      ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     final bottom = size.height - 6;
     final bend = bottom < 24 ? bottom : 24.0;

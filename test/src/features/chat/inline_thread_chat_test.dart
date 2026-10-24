@@ -55,7 +55,7 @@ void main() {
   });
   tearDownAll(() => SupabaseDatabase.instance.client.dispose());
   testWidgets(
-    'main chat stays chronological and replies open a focused thread',
+    'replies stay visibly grouped inline and use the single chat composer',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -70,42 +70,27 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Original message'), findsOneWidget);
       expect(
-        tester.getTopLeft(find.text('Unrelated later message')).dy,
-        lessThan(tester.getTopLeft(find.text('The reply')).dy),
+        tester.getTopLeft(find.text('The reply')).dy,
+        lessThan(tester.getTopLeft(find.text('Unrelated later message')).dy),
       );
-      await tester.tap(find.text('1 Reply').first);
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(TextField), findsOneWidget);
+      await tester.tap(find.text('1 Reply'));
       await tester.pumpAndSettle();
-      final dialog = find.byType(Dialog);
-      expect(dialog, findsOneWidget);
-      expect(
-        find.descendant(
-          of: dialog,
-          matching: find.text('Unrelated later message'),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: dialog, matching: find.text('The reply')),
-        findsOneWidget,
-      );
-      await tester.enterText(
-        find.descendant(of: dialog, matching: find.byType(TextField)),
-        'New thread reply',
-      );
-      // Composer's send action is the upward arrow.
-      await tester.tap(
-        find.descendant(
-          of: dialog,
-          matching: find.byIcon(Icons.arrow_upward_rounded),
-        ),
-      );
+      expect(find.text('The reply'), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      await tester.tap(find.text('1 Reply'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('The reply'));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Replying to Ricky'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'New thread reply');
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
       await tester.pumpAndSettle();
       expect(ConversationContent.parse(repo.sent!).reply?['id'], '1');
-      await tester.tap(find.byTooltip('Close thread'));
-      await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsNothing);
-      expect(find.text('Unrelated later message'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
