@@ -5,9 +5,12 @@ import 'package:juniper_journal/src/backend/security/input_validator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UsersRepo {
+  UsersRepo({SupabaseClient? client}) : _providedClient = client;
+  final SupabaseClient? _providedClient;
   static const profilesTable = 'profiles';
 
-  SupabaseClient get _client => SupabaseDatabase.instance.client;
+  SupabaseClient get _client =>
+      _providedClient ?? SupabaseDatabase.instance.client;
 
   Map<String, dynamic> _profileSeedDataFromUser(User user) {
     final metadata = user.userMetadata ?? const <String, dynamic>{};
@@ -149,10 +152,10 @@ class UsersRepo {
   Future<List<UserProfile>> getProfilesByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
     try {
-      final rows = await _client
-          .from(profilesTable)
-          .select('*')
-          .inFilter('id', ids);
+      final rows = await _client.rpc(
+        'user_profile_cards',
+        params: {'p_ids': ids},
+      );
       return List<Map<String, dynamic>>.from(
         rows,
       ).map(UserProfile.fromMap).toList();
@@ -167,24 +170,11 @@ class UsersRepo {
     if (queryErr != null) return null;
 
     try {
-      final currentUserId = _client.auth.currentUser?.id;
-      var request = _client
-          .from(profilesTable)
-          .select('*')
-          .eq('is_public_profile', true);
-
-      if (currentUserId != null) {
-        request = request.neq('id', currentUserId);
-      }
-
-      final trimmed = query.trim();
-      if (trimmed.isNotEmpty) {
-        request = request.or(
-          'display_name.ilike.%$trimmed%,username.ilike.%$trimmed%',
-        );
-      }
-
-      final rows = await request.limit(30);
+      // Search includes private accounts, but returns directory identity only.
+      final rows = await _client.rpc(
+        'search_user_directory',
+        params: {'p_query': query.trim()},
+      );
       return List<Map<String, dynamic>>.from(
         rows,
       ).map(UserProfile.fromMap).toList();
@@ -197,31 +187,6 @@ class UsersRepo {
   Future<List<UserProfile>?> searchProjectInvitees({
     required String query,
   }) async {
-    final queryErr = InputValidator.searchQuery(query);
-    if (queryErr != null) return null;
-
-    try {
-      final currentUserId = _client.auth.currentUser?.id;
-      var request = _client.from(profilesTable).select('*');
-
-      if (currentUserId != null) {
-        request = request.neq('id', currentUserId);
-      }
-
-      final trimmed = query.trim();
-      if (trimmed.isNotEmpty) {
-        request = request.or(
-          'display_name.ilike.%$trimmed%,username.ilike.%$trimmed%',
-        );
-      }
-
-      final rows = await request.limit(30);
-      return List<Map<String, dynamic>>.from(
-        rows,
-      ).map(UserProfile.fromMap).toList();
-    } catch (e, st) {
-      debugPrint('searchProjectInvitees error: $e\n$st');
-      return null;
-    }
+    return searchPublicUsers(query: query);
   }
 }
