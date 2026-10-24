@@ -1,5 +1,5 @@
 import '../widgets/message_thread.dart';
-import '../widgets/message_emoji_reactions.dart';
+import '../widgets/message_like_reaction.dart';
 import '../widgets/message_gesture_surface.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
@@ -92,15 +92,26 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() => _sending = true);
 
-    final success = await _chatRepo.sendMessage(widget.conversationId, payload);
-
-    if (!mounted) return;
-    if (success) _inputController.clear();
-    if (!success) {
-      _inputController.text = text;
-      showTopSnackBar(context, 'Failed to send. Try again.', isError: true);
+    try {
+      final success = await _chatRepo
+          .sendMessage(widget.conversationId, payload)
+          .timeout(const Duration(seconds: 20));
+      if (!mounted) return;
+      // Preserve any next message the user typed while this request was running.
+      if (success && _inputController.payload == payload)
+        _inputController.clear();
+      if (!success)
+        showTopSnackBar(context, 'Failed to send. Try again.', isError: true);
+    } catch (_) {
+      if (mounted)
+        showTopSnackBar(
+          context,
+          'Could not confirm sending. Check the conversation before retrying.',
+          isError: true,
+        );
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
-    setState(() => _sending = false);
   }
 
   Future<void> _renameGroup() async {
@@ -350,79 +361,70 @@ class _MessageBubble extends StatelessWidget {
                     ? MainAxisAlignment.end
                     : MainAxisAlignment.start,
                 children: [
-                  MessageEmojiReactions(
-                    key: ValueKey('emojis-${message.id}'),
+                  MessageLikeReaction(
+                    key: ValueKey('likes-${message.id}'),
                     targetId: message.id,
-                    builder: (context, openEmojis, toggleLike, emojiCounts) =>
-                        Column(
-                          crossAxisAlignment: isSent
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            MessageGestureSurface(
-                              onReply: onReply,
-                              onLike: toggleLike,
-                              onReactions: openEmojis,
-                              child: Container(
-                                constraints: BoxConstraints(
-                                  maxWidth:
-                                      (MediaQuery.of(context).size.width * .72)
-                                          .clamp(
-                                            0.0,
-                                            available.maxWidth.clamp(
-                                              0.0,
-                                              500.0,
-                                            ),
-                                          ),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: threadOriginal
-                                      ? Colors.white
-                                      : isSent
-                                      ? AppColors.primary
-                                      : AppColors.surfaceInput,
-                                  border: threadOriginal
-                                      ? Border.all(
-                                          color: AppColors.borderLight,
-                                          width: 1.5,
-                                        )
-                                      : null,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(18),
-                                    topRight: const Radius.circular(18),
-                                    bottomLeft: Radius.circular(
-                                      isSent ? 18 : 4,
-                                    ),
-                                    bottomRight: Radius.circular(
-                                      isSent ? 4 : 18,
-                                    ),
-                                  ),
-                                ),
-                                child: ConversationBody(
-                                  message.content,
-                                  showReply: !inlineReply,
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: threadOriginal
-                                        ? AppTypography.helperSize
-                                        : AppTypography.bodySize,
-                                    color: threadOriginal
-                                        ? AppColors.textSecondary
-                                        : isSent
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    height: 1.3,
-                                  ),
-                                ),
+                    builder: (context, toggleLike, likeCount) => Column(
+                      crossAxisAlignment: isSent
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      children: [
+                        MessageGestureSurface(
+                          onReply: onReply,
+                          onLike: toggleLike,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth:
+                                  (MediaQuery.of(context).size.width * .72)
+                                      .clamp(
+                                        0.0,
+                                        available.maxWidth.clamp(0.0, 500.0),
+                                      ),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: threadOriginal
+                                  ? Colors.white
+                                  : isSent
+                                  ? AppColors.primary
+                                  : AppColors.surfaceInput,
+                              border: threadOriginal
+                                  ? Border.all(
+                                      color: AppColors.borderLight,
+                                      width: 1.5,
+                                    )
+                                  : null,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(18),
+                                topRight: const Radius.circular(18),
+                                bottomLeft: Radius.circular(isSent ? 18 : 4),
+                                bottomRight: Radius.circular(isSent ? 4 : 18),
                               ),
                             ),
-                            emojiCounts,
-                          ],
+                            child: ConversationBody(
+                              message.content,
+                              showReply: !inlineReply,
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFamily,
+                                fontSize: threadOriginal
+                                    ? AppTypography.helperSize
+                                    : AppTypography.bodySize,
+                                color: threadOriginal
+                                    ? AppColors.textSecondary
+                                    : isSent
+                                    ? Colors.white
+                                    : Colors.black87,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
                         ),
+                        likeCount,
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -488,7 +490,7 @@ class _InputBar extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   focusNode: controller.focusNode,
-                  enabled: !sending,
+                  enabled: true,
                   textCapitalization: TextCapitalization.sentences,
                   textInputAction: TextInputAction.send,
                   minLines: 1,
@@ -498,6 +500,8 @@ class _InputBar extends StatelessWidget {
                     hintStyle: const TextStyle(color: Colors.black38),
                     filled: true,
                     fillColor: Colors.white,
+                    hoverColor: Colors.transparent,
+                    focusColor: Colors.transparent,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 9,
                       vertical: 10,

@@ -2,32 +2,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../../backend/db/supabase_database.dart';
 
-const messageReactionEmojis = [
-  '🌼',
-  '❤️',
-  '👍',
-  '😂',
-  '🎉',
-  '😮',
-  '😢',
-  '🙏',
-  '🌱',
-];
-
-class MessageEmojiReactions extends StatefulWidget {
-  const MessageEmojiReactions({
+class MessageLikeReaction extends StatefulWidget {
+  const MessageLikeReaction({
     super.key,
     required this.targetId,
     required this.builder,
   });
   final String targetId;
-  final Widget Function(BuildContext, VoidCallback, VoidCallback, Widget)
-  builder;
+  final Widget Function(BuildContext, VoidCallback, Widget) builder;
   @override
-  State<MessageEmojiReactions> createState() => _MessageEmojiReactionsState();
+  State<MessageLikeReaction> createState() => _MessageLikeReactionState();
 }
 
-class _MessageEmojiReactionsState extends State<MessageEmojiReactions> {
+class _MessageLikeReactionState extends State<MessageLikeReaction> {
   final _counts = <String, int>{};
   final _selected = <String>{};
   bool _busy = false;
@@ -64,7 +51,8 @@ class _MessageEmojiReactionsState extends State<MessageEmojiReactions> {
       final rows = await client
           .from('message_emoji_reactions')
           .select('emoji,user_id')
-          .eq('target_id', widget.targetId);
+          .eq('target_id', widget.targetId)
+          .eq('emoji', '🌼');
       if (!mounted) return;
       setState(() {
         _counts.clear();
@@ -105,59 +93,37 @@ class _MessageEmojiReactionsState extends State<MessageEmojiReactions> {
     }
   }
 
-  Future<void> _open() async {
-    final box = context.findRenderObject() as RenderBox;
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final point = box.localToGlobal(Offset.zero, ancestor: overlay);
-    final emoji = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        point & box.size,
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        for (final emoji in messageReactionEmojis)
-          PopupMenuItem(
-            value: emoji,
-            child: Text(
-              '${emoji == '🌼' ? '🌼 Like' : emoji}${_selected.contains(emoji) ? '  ✓' : ''}',
-              style: const TextStyle(fontSize: 22),
-            ),
-          ),
-      ],
-    );
-    if (emoji != null && mounted) await _toggle(emoji);
-  }
-
   @override
   Widget build(BuildContext context) => widget.builder(
     context,
-    _open,
     () => _toggle('🌼'),
-    ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width * .72,
-      ),
-      child: Wrap(
-        spacing: 4,
-        children: [
-          for (final emoji in messageReactionEmojis)
-            if ((_counts[emoji] ?? 0) > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: ActionChip(
-                  label: Text('$emoji ${_counts[emoji]}'),
-                  tooltip: _selected.contains(emoji)
-                      ? 'Remove $emoji reaction'
-                      : 'React $emoji',
-                  backgroundColor: _selected.contains(emoji)
-                      ? const Color(0xFFE6F2E9)
-                      : null,
-                  onPressed: _busy ? null : () => _toggle(emoji),
-                ),
+    (_counts['🌼'] ?? 0) == 0
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
+            child: Semantics(
+              label: '${_counts['🌼']} likes',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _selected.contains('🌼')
+                        ? Icons.local_florist
+                        : Icons.local_florist_outlined,
+                    size: 16,
+                    color: const Color(0xFF5DB075),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_counts['🌼']}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF757575),
+                    ),
+                  ),
+                ],
               ),
-        ],
-      ),
-    ),
+            ),
+          ),
   );
 }

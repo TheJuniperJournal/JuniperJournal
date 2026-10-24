@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:juniper_journal/src/backend/db/supabase_database.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,8 @@ class _Chats extends ChatRepo {
     ),
   ];
   String? sent;
+  Completer<bool>? pending;
+  bool fail = false;
   @override
   Future<void> markAsRead(String id) async {}
   @override
@@ -42,7 +45,8 @@ class _Chats extends ChatRepo {
   @override
   Future<bool> sendMessage(String id, String content) async {
     sent = content;
-    return true;
+    if (fail) throw StateError('Network failure');
+    return pending == null ? true : await pending!.future;
   }
 }
 
@@ -91,6 +95,44 @@ void main() {
       await tester.pumpAndSettle();
       expect(ConversationContent.parse(repo.sent!).reply?['id'], '1');
       expect(find.byType(Dialog), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'composer stays white and editable during sending and after failure',
+    (tester) async {
+      final repo = _Chats()..pending = Completer<bool>();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChatScreen(
+            conversationId: 'c',
+            otherUserName: 'Ricky',
+            chatRepo: repo,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Sending first');
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+      await tester.pump();
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
+      final decoration = tester
+          .widget<TextField>(find.byType(TextField))
+          .decoration!;
+      expect(decoration.fillColor, Colors.white);
+      expect(decoration.hoverColor, Colors.transparent);
+      await tester.enterText(find.byType(TextField), 'Next draft');
+      repo.pending!.complete(true);
+      await tester.pumpAndSettle();
+      expect(find.text('Next draft'), findsOneWidget);
+      repo.pending = null;
+      repo.fail = true;
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Still editable');
+      expect(find.text('Still editable'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     },
   );
