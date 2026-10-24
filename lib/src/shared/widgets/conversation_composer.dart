@@ -96,8 +96,10 @@ class ConversationComposer extends StatefulWidget {
     required this.controller,
     required this.child,
     this.searchUsers,
+    this.showReplyPreview = true,
   });
   final ConversationController controller;
+  final bool showReplyPreview;
   final Widget child;
   final Future<List<UserProfile>> Function(String)? searchUsers;
   @override
@@ -181,7 +183,7 @@ class _ConversationComposerState extends State<ConversationComposer> {
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (widget.controller.reply != null)
+      if (widget.showReplyPreview && widget.controller.reply != null)
         Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.only(left: 12),

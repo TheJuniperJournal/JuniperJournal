@@ -104,6 +104,18 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _sending = false);
   }
 
+  Future<void> _openThread(Message root) => showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: .28),
+    builder: (_) => _FocusedMessageThread(
+      root: root,
+      repo: _chatRepo,
+      currentUserId: _currentUserId ?? '',
+      otherUserName: widget.otherUserName,
+      isGroup: widget.isGroup,
+    ),
+  );
+
   Future<void> _renameGroup() async {
     if (!widget.isGroup || !widget.canRenameGroup) return;
     final name = await showAppDialog<String>(
@@ -247,40 +259,40 @@ class _ChatScreenState extends State<ChatScreen> {
                             : widget.otherUserName.split(' ').first,
                         inlineReply: inlineReply,
                         threadOriginal: threadOriginal,
-                        onReply: () => _inputController.replyTo(
-                          threadParent.id,
-                          widget.isGroup ||
-                                  threadParent.senderId == _currentUserId
-                              ? threadParent.resolvedSenderName
-                              : widget.otherUserName,
-                          threadParent.content,
-                        ),
+                        onReply: () => _openThread(threadParent),
                       );
                     }
 
+                    final threadByMessage = <String, MessageThread>{
+                      for (final thread in threads)
+                        for (final msg in [thread.parent, ...thread.replies])
+                          msg.id: thread,
+                    };
                     return ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 12,
                       ),
-                      itemCount: threads.length,
+                      itemCount: messages.length,
                       itemBuilder: (_, index) {
-                        final thread = threads[index];
-                        return InlineMessageThread(
-                          key: ValueKey('thread-${thread.parent.id}'),
-                          isSent: thread.parent.senderId == _currentUserId,
-                          parent: bubble(
-                            thread.parent,
-                            threadParent: thread.parent,
-                            threadOriginal: thread.replies.isNotEmpty,
-                          ),
-                          replies: [
-                            for (final reply in thread.replies)
-                              bubble(
-                                reply,
-                                threadParent: thread.parent,
-                                inlineReply: true,
+                        final msg = messages[index];
+                        final thread = threadByMessage[msg.id]!;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            bubble(msg, threadParent: thread.parent),
+                            if (thread.replies.isNotEmpty)
+                              Align(
+                                alignment: msg.senderId == _currentUserId
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: TextButton(
+                                  onPressed: () => _openThread(thread.parent),
+                                  child: Text(
+                                    '${thread.replies.length} ${thread.replies.length == 1 ? 'Reply' : 'Replies'}',
+                                  ),
+                                ),
                               ),
                           ],
                         );
@@ -476,11 +488,13 @@ class _InputBar extends StatelessWidget {
   final ConversationController controller;
   final bool sending;
   final VoidCallback onSend;
+  final bool showReplyPreview;
 
   const _InputBar({
     required this.controller,
     required this.sending,
     required this.onSend,
+    this.showReplyPreview = true,
   });
 
   @override
@@ -520,6 +534,7 @@ class _InputBar extends StatelessWidget {
               },
               child: ConversationComposer(
                 controller: controller,
+                showReplyPreview: showReplyPreview,
                 child: TextField(
                   controller: controller,
                   focusNode: controller.focusNode,
@@ -568,4 +583,164 @@ class _InputBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FocusedMessageThread extends StatefulWidget {
+  const _FocusedMessageThread({
+    required this.root,
+    required this.repo,
+    required this.currentUserId,
+    required this.otherUserName,
+    required this.isGroup,
+  });
+  final Message root;
+  final ChatRepo repo;
+  final String currentUserId, otherUserName;
+  final bool isGroup;
+  @override
+  State<_FocusedMessageThread> createState() => _FocusedMessageThreadState();
+}
+
+class _FocusedMessageThreadState extends State<_FocusedMessageThread> {
+  final _controller = ConversationController();
+  late final Stream<List<Message>> _messages;
+  bool _sending = false;
+  String _name(Message message) => message.senderId == widget.currentUserId
+      ? 'You'
+      : widget.isGroup
+      ? message.resolvedSenderName
+      : widget.otherUserName;
+  @override
+  void initState() {
+    super.initState();
+    _messages = widget.isGroup
+        ? widget.repo.streamCommunityMessages(widget.root.conversationId)
+        : widget.repo.streamMessages(widget.root.conversationId);
+    _setReply();
+  }
+
+  void _setReply() => _controller.replyTo(
+    widget.root.id,
+    _name(widget.root),
+    widget.root.content,
+  );
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (_sending || _controller.text.trim().isEmpty) return;
+    _setReply();
+    setState(() => _sending = true);
+    final ok = await widget.repo.sendMessage(
+      widget.root.conversationId,
+      _controller.payload,
+    );
+    if (!mounted) return;
+    if (ok) {
+      _controller.clear();
+      _setReply();
+    } else {
+      showTopSnackBar(context, 'Failed to send. Try again.', isError: true);
+    }
+    setState(() => _sending = false);
+  }
+
+  Widget _bubble(Message message, {bool original = false}) => _MessageBubble(
+    key: ValueKey('focused-${message.id}'),
+    message: message,
+    isSent: message.senderId == widget.currentUserId,
+    showSenderName: true,
+    senderFirstName: _name(message),
+    inlineReply: true,
+    threadOriginal: original,
+    onReply: () => _controller.focusNode.requestFocus(),
+  );
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: AppColors.white,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    child: SizedBox(
+      width: 560,
+      height: MediaQuery.sizeOf(context).height * .8,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 8, 8),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.forum_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Replies',
+                    style: TextStyle(
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close thread',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.divider),
+          Expanded(
+            child: StreamBuilder<List<Message>>(
+              stream: _messages,
+              builder: (context, snapshot) {
+                final threads = groupMessageThreads(
+                  snapshot.data ?? [widget.root],
+                );
+                final thread = threads
+                    .where((t) => t.parent.id == widget.root.id)
+                    .firstOrNull;
+                final replies = thread?.replies ?? <Message>[];
+                return ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    InlineMessageThread(
+                      parent: _bubble(
+                        thread?.parent ?? widget.root,
+                        original: true,
+                      ),
+                      isSent: widget.root.senderId == widget.currentUserId,
+                      replies: replies.map((m) => _bubble(m)).toList(),
+                    ),
+                    if (replies.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: Text(
+                          'Start the conversation here.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          _InputBar(
+            controller: _controller,
+            sending: _sending,
+            onSend: _send,
+            showReplyPreview: false,
+          ),
+        ],
+      ),
+    ),
+  );
 }
