@@ -159,8 +159,10 @@ class BuildMaterialsStage extends StatelessWidget {
         const SizedBox(height: AppMetrics.sectionGap),
         const Text('Itemized Budget List', style: AppTypography.fieldLabel),
         const SizedBox(height: 8),
-        const Text(
-          'Add the materials and costs used for this build.',
+        Text(
+          onChanged == null
+              ? 'Materials and costs recorded for this build.'
+              : 'Add the materials and costs used for this build.',
           style: AppTypography.helper,
         ),
         const SizedBox(height: 16),
@@ -209,7 +211,7 @@ class BuildMaterialsStage extends StatelessWidget {
                   ),
                 ),
               ),
-              const Divider(height: 1),
+              if (i < items.length - 1) const Divider(height: 1),
             ],
           ),
         if (items.isEmpty && onChanged == null)
