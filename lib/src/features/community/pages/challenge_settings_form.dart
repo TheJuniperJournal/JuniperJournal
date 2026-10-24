@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -235,7 +236,7 @@ class _ChallengeSettingsFormState extends State<ChallengeSettingsForm> {
                 child: _newImage != null
                     ? PickedImagePreview(file: _newImage!)
                     : (existingImageUrl?.isNotEmpty == true)
-                    ? Image.network(existingImageUrl!, fit: BoxFit.cover)
+                    ? ProtectedImage.network(existingImageUrl!, fit: BoxFit.cover)
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [

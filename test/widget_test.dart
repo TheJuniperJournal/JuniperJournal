@@ -1,9 +1,17 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:juniper_journal/src/backend/db/supabase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/main.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 
 void main() {
+  setUpAll(() {
+    SupabaseDatabase.instance.client = SupabaseClient(
+      'https://qa.invalid',
+      'qa-anon',
+    );
+  });
   testWidgets('app applies shared typography to inputs and buttons', (
     tester,
   ) async {

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
@@ -565,7 +566,7 @@ class _ActivityScreen extends State<ActivityScreen> {
       // Regular image
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Image.network(
+        child: ProtectedImage.network(
           imageUrl ?? '',
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) =>

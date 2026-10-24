@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'package:flutter/material.dart';
 import '../../backend/db/models/user_profile.dart';
@@ -41,7 +42,7 @@ class _JournalInvolvedPeoplePreviewState
     backgroundColor: AppColors.primaryTint,
     child: ClipOval(
       child: url != null && url.isNotEmpty
-          ? Image.network(
+          ? ProtectedImage.network(
               url,
               width: radius * 2,
               height: radius * 2,

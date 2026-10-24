@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -71,6 +72,7 @@ class ImageBlockItem {
 
 class ImageBlockEditorScreen extends StatefulWidget {
   final String moduleId;
+  final String? projectId;
   final ImageBlockData? initialData;
 
   /// Whether to show the Assessment section. Assessment belongs to the Learning
@@ -85,6 +87,7 @@ class ImageBlockEditorScreen extends StatefulWidget {
   const ImageBlockEditorScreen({
     super.key,
     required this.moduleId,
+    this.projectId,
     this.initialData,
     this.showAssessment = true,
     this.showInquiryLens = true,
@@ -221,12 +224,22 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
   }
 
   Future<void> _pickAndUploadImage(int index, ImageSource source) async {
-    final picked = await _picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
+    XFile? picked;
+    try {
+      picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+    } catch (_) {
+      if (mounted)
+        setState(
+          () => _uploadError =
+              'Could not read this image. Choose a valid image file and try again.',
+        );
+      return;
+    }
     if (picked == null || !mounted) return;
     final userId = SupabaseDatabase.instance.client.auth.currentUser?.id;
     if (userId == null) {
@@ -241,9 +254,10 @@ class _ImageBlockEditorScreenState extends State<ImageBlockEditorScreen> {
     try {
       final uploaded = await _storage.uploadImageFile(
         picked,
-        bucketName: 'images',
-        folder:
-            'learning-modules/$userId/${widget.moduleId}/concept-exploration/images',
+        bucketName: widget.projectId == null ? 'images' : 'journal-attachments',
+        folder: widget.projectId != null
+            ? '${widget.projectId}/evidence/${widget.moduleId}'
+            : 'learning-modules/$userId/${widget.moduleId}/concept-exploration/images',
       );
       if (!mounted || index >= _images.length) return;
       setState(() {
@@ -660,7 +674,7 @@ class _ImageRow extends StatelessWidget {
                   : image.publicUrl.isNotEmpty
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(7),
-                      child: Image.network(
+                      child: ProtectedImage.network(
                         image.publicUrl,
                         width: 98,
                         height: 51,

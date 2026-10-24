@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -19,6 +20,7 @@ class VideoBlockData {
   final String title;
   final VideoSourceMode sourceMode;
   final String storagePath;
+  final String storageBucket;
   final String signedUrl;
   final String externalUrl;
   final String fileName;
@@ -34,6 +36,7 @@ class VideoBlockData {
     this.title = '',
     this.sourceMode = VideoSourceMode.upload,
     this.storagePath = '',
+    this.storageBucket = 'learning-module-videos',
     this.signedUrl = '',
     this.externalUrl = '',
     this.fileName = '',
@@ -56,6 +59,7 @@ class VideoBlockData {
     'title': title,
     'source_mode': sourceMode.name,
     'storage_path': storagePath,
+    'storage_bucket': storageBucket,
     'external_url': externalUrl,
     'file_name': fileName,
     'description': description,
@@ -77,6 +81,8 @@ class VideoBlockData {
       title: json['title']?.toString() ?? '',
       sourceMode: sourceMode,
       storagePath: json['storage_path']?.toString() ?? '',
+      storageBucket:
+          json['storage_bucket']?.toString() ?? 'learning-module-videos',
       signedUrl: '',
       externalUrl: json['external_url']?.toString() ?? '',
       fileName: json['file_name']?.toString() ?? '',
@@ -112,11 +118,13 @@ class VideoBlockData {
 
 class VideoBlockEditorScreen extends StatefulWidget {
   final String moduleId;
+  final String? projectId;
   final VideoBlockData? initialData;
 
   const VideoBlockEditorScreen({
     super.key,
     required this.moduleId,
+    this.projectId,
     this.initialData,
   });
 
@@ -130,7 +138,10 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
   static const _muted = Color(0xFFCECECE);
   static const _error = Color(0xFFFD1212);
   static const _screenWidth = 393.0;
-  static const _bucket = 'learning-module-videos';
+  late String _storageBucket = widget.initialData?.storageBucket ?? _bucket;
+  String get _bucket => widget.projectId == null
+      ? 'learning-module-videos'
+      : 'journal-attachments';
 
   final _picker = ImagePicker();
   final _storage = StorageService();
@@ -199,7 +210,7 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
     try {
       final url = await _storage.createSignedUrl(
         _storagePath,
-        bucketName: _bucket,
+        bucketName: _storageBucket,
       );
       if (mounted) setState(() => _signedUrl = url);
     } catch (_) {
@@ -225,11 +236,14 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
       final uploaded = await _storage.uploadVideo(
         picked,
         bucketName: _bucket,
-        folder: '$userId/${widget.moduleId}',
+        folder: widget.projectId == null
+            ? '$userId/${widget.moduleId}'
+            : '${widget.projectId}/video/${widget.moduleId}',
       );
       if (!mounted) return;
       setState(() {
         _storagePath = uploaded.path;
+        _storageBucket = _bucket;
         _signedUrl = uploaded.signedUrl;
       });
     } catch (error) {
@@ -271,6 +285,7 @@ class _VideoBlockEditorScreenState extends State<VideoBlockEditorScreen> {
         title: _titleController.text.trim(),
         sourceMode: _mode,
         storagePath: _mode == VideoSourceMode.upload ? _storagePath : '',
+        storageBucket: _storageBucket,
         signedUrl: _mode == VideoSourceMode.upload ? _signedUrl : '',
         externalUrl: _mode == VideoSourceMode.url
             ? _urlController.text.trim()
@@ -690,7 +705,7 @@ class _VideoPreview extends StatelessWidget {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
+                  ProtectedImage.network(
                     thumbnail,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>

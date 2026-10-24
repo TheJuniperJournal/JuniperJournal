@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../../shared/widgets/journal_preview_image.dart';
 import '../utils/eco_points_calculator.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
@@ -1186,7 +1187,12 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
       builder: (_) => const _EvidenceBlockPicker(),
     );
     if (!mounted || type == null) return;
-    final block = await _openPrototypeEvidenceEditor(context, type, null);
+    final block = await _openPrototypeEvidenceEditor(
+      context,
+      type,
+      null,
+      projectId: widget.projectId,
+    );
     if (!mounted || block == null) return;
     setState(() => _evidence.add(block));
   }
@@ -1197,6 +1203,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
       context,
       existing.type,
       existing,
+      projectId: widget.projectId,
     );
     if (!mounted || block == null) return;
     setState(() => _evidence[index] = block);
@@ -4966,7 +4973,12 @@ class _PrototypingJournalEntryPageState
           builder: (_) => const _EvidenceBlockPicker(),
         );
     if (!mounted || type == null) return;
-    final block = await _openPrototypeEvidenceEditor(context, type, existing);
+    final block = await _openPrototypeEvidenceEditor(
+      context,
+      type,
+      existing,
+      projectId: widget.projectId,
+    );
     if (!mounted || block == null) return;
     setState(() {
       if (index == null) {
@@ -5864,8 +5876,6 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         'challenges': _nextChallenges.text.trim(),
         'nextSteps': _nextSteps.text.trim(),
         'notes': _nextNotes.text.trim(),
-        'linkedTimelineEventId': _linkedTimelineEvent?['id'],
-        'linkedTimelineEvent': _linkedTimelineEvent,
         'submitted': _submitted,
         if (_submitted) 'submittedAt': DateTime.now().toUtc().toIso8601String(),
       },
@@ -6042,6 +6052,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         MaterialPageRoute(
           builder: (_) => ImageBlockEditorScreen(
             moduleId: _entryId ?? widget.projectId,
+            projectId: widget.projectId,
             initialData: existing?.imageData,
             showAssessment: false,
             showInquiryLens: false,
@@ -6067,6 +6078,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         MaterialPageRoute(
           builder: (_) => SketchBlockEditorScreen(
             moduleId: _entryId ?? widget.projectId,
+            projectId: widget.projectId,
             initialData: existing?.sketchData,
           ),
         ),
@@ -6111,6 +6123,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         MaterialPageRoute(
           builder: (_) => VideoBlockEditorScreen(
             moduleId: _entryId ?? widget.projectId,
+            projectId: widget.projectId,
             initialData: existing?.videoData,
           ),
         ),
@@ -6229,33 +6242,12 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         timeline: events,
       );
       if (!mounted || !ok) return;
-      setState(() => _linkedTimelineEvent = event);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Timeline event created.')));
       await _save();
     },
   );
-
-  Future<void> _linkExistingTimelineEvent() => runActionOnce(
-    this,
-    'timeline-event',
-    () async {
-      final timeline = await widget.projectsRepo.getTimeline(widget.projectId);
-      if (!mounted) return;
-      final event = await showAppModalBottomSheet<Map<String, String>>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) =>
-            _ExistingTimelineEventSheet(events: timeline ?? const []),
-      );
-      if (event == null || !mounted) return;
-      setState(() => _linkedTimelineEvent = event);
-      await _save();
-    },
-  );
-
-  void _unlinkTimelineEvent() {
-    setState(() => _linkedTimelineEvent = null);
-  }
 
   Future<void> _submit() async {
     if (_submitted) {
@@ -6455,9 +6447,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
                         projectId: widget.projectId,
                         isOwner: true,
                         projectsRepo: widget.projectsRepo,
-                        onLinkExistingTimelineEvent: _linkExistingTimelineEvent,
                         onCreateTimelineEvent: _createTimelineEvent,
-                        onUnlinkTimelineEvent: _unlinkTimelineEvent,
                         onBack: () =>
                             setState(() => _stage = _IdeatingStage.learning),
                         onSubmit: _submit,
@@ -8981,12 +8971,11 @@ class _NextActionPreviewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if ([
-          if (includeLearned) learned,
-          challenges,
-          nextSteps,
-          notes,
-        ].every((value) => value.trim().isEmpty) &&
-        linkedTimelineEvent == null)
+      if (includeLearned) learned,
+      challenges,
+      nextSteps,
+      notes,
+    ].every((value) => value.trim().isEmpty))
       return const SizedBox.shrink();
     return _PreviewPanel(
       title: 'Next Action',
@@ -8994,39 +8983,6 @@ class _NextActionPreviewContent extends StatelessWidget {
         if (includeLearned) _PreviewField('What I learned', learned),
         _PreviewField('Challenges and open questions', challenges),
         _PreviewField('What I’ll try next', nextSteps),
-        if (linkedTimelineEvent != null) ...[
-          const SizedBox(height: 8),
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () async {
-              final repo = ProjectsRepo();
-              final project = await repo.getProjectById(projectId);
-              if (!context.mounted || project == null) return;
-              await pushAppRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => KeyedSubtree(
-                    key: ValueKey('journal-timeline-$projectId'),
-                    child: ProjectDashboard(
-                      projectId: projectId,
-                      projectName: project.projectName,
-                      tags: project.tags,
-                      isOwner: project.userId == _journalCurrentUserId(),
-                      projectsRepo: repo,
-                      initialSection: ProjectDashboardSection.timeline,
-                      initialEventId: linkedTimelineEvent!['id'],
-                    ),
-                  ),
-                ),
-              );
-            },
-            child: SizedBox(
-              width: double.infinity,
-              child: _LinkedTimelineEventCard(event: linkedTimelineEvent!),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
         _PreviewField('Additional thoughts', notes),
       ],
     );
@@ -9575,6 +9531,7 @@ class _PrototypeBuildLogsPageState extends State<_PrototypeBuildLogsPage> {
       context,
       MaterialPageRoute(
         builder: (_) => _PrototypeBuildLogEditorPage(
+          projectId: widget.projectId,
           onNavigate: (draft, index) => _openLogLearning(
             draft,
             initialStage: index,
@@ -9610,6 +9567,7 @@ class _PrototypeBuildLogsPageState extends State<_PrototypeBuildLogsPage> {
       context,
       MaterialPageRoute(
         builder: (_) => _PrototypeBuildLogEditorPage(
+          projectId: widget.projectId,
           onNavigate: (draft, index) => _openLogLearning(
             draft,
             initialStage: index,
@@ -9767,6 +9725,7 @@ class _PrototypeBuildLogDashboard extends StatelessWidget {
 
 class _PrototypeBuildLogEditorPage extends StatefulWidget {
   const _PrototypeBuildLogEditorPage({
+    required this.projectId,
     this.onDraftChanged,
     this.existing,
     this.onNavigate,
@@ -9776,6 +9735,8 @@ class _PrototypeBuildLogEditorPage extends StatefulWidget {
   final ValueChanged<_PrototypeBuildLogDraft>? onDraftChanged;
 
   final _PrototypeBuildLogDraft? existing;
+
+  final String projectId;
 
   @override
   State<_PrototypeBuildLogEditorPage> createState() =>
@@ -9808,7 +9769,12 @@ class _PrototypeBuildLogEditorPageState
       builder: (_) => const _EvidenceBlockPicker(),
     );
     if (!mounted || type == null) return;
-    final block = await _openPrototypeEvidenceEditor(context, type, null);
+    final block = await _openPrototypeEvidenceEditor(
+      context,
+      type,
+      null,
+      projectId: widget.projectId,
+    );
     if (!mounted || block == null) return;
     setState(() => _evidence.add(block));
   }
@@ -9819,6 +9785,7 @@ class _PrototypeBuildLogEditorPageState
       context,
       existing.type,
       existing,
+      projectId: widget.projectId,
     );
     if (!mounted || block == null) return;
     setState(() => _evidence[index] = block);
@@ -10030,6 +9997,7 @@ class _PrototypeTestLogsPageState extends State<_PrototypeTestLogsPage> {
       context,
       MaterialPageRoute(
         builder: (_) => _PrototypeTestEntryEditorPage(
+          projectId: widget.projectId,
           onNavigate: (draft, index) => _openTestLearning(
             draft,
             initialStage: index,
@@ -10065,6 +10033,7 @@ class _PrototypeTestLogsPageState extends State<_PrototypeTestLogsPage> {
       context,
       MaterialPageRoute(
         builder: (_) => _PrototypeTestEntryEditorPage(
+          projectId: widget.projectId,
           onNavigate: (draft, index) => _openTestLearning(
             draft,
             initialStage: index,
@@ -10362,6 +10331,7 @@ class _PrototypeTestEntryCard extends StatelessWidget {
 
 class _PrototypeTestEntryEditorPage extends StatefulWidget {
   const _PrototypeTestEntryEditorPage({
+    required this.projectId,
     this.onDraftChanged,
     this.existing,
     this.onNavigate,
@@ -10371,6 +10341,8 @@ class _PrototypeTestEntryEditorPage extends StatefulWidget {
   final ValueChanged<_PrototypeTestEntryDraft>? onDraftChanged;
 
   final _PrototypeTestEntryDraft? existing;
+
+  final String projectId;
 
   @override
   State<_PrototypeTestEntryEditorPage> createState() =>
@@ -10412,7 +10384,12 @@ class _PrototypeTestEntryEditorPageState
       builder: (_) => const _EvidenceBlockPicker(),
     );
     if (!mounted || type == null) return;
-    final block = await _openPrototypeEvidenceEditor(context, type, null);
+    final block = await _openPrototypeEvidenceEditor(
+      context,
+      type,
+      null,
+      projectId: widget.projectId,
+    );
     if (!mounted || block == null) return;
     setState(() => _evidence.add(block));
   }
@@ -10423,6 +10400,7 @@ class _PrototypeTestEntryEditorPageState
       context,
       existing.type,
       existing,
+      projectId: widget.projectId,
     );
     if (!mounted || block == null) return;
     setState(() => _evidence[index] = block);
@@ -11035,8 +11013,6 @@ class _PrototypeLogLearningFlowState extends State<_PrototypeLogLearningFlow>
       'challenges': _nextChallenges.text.trim(),
       'nextSteps': _nextSteps.text.trim(),
       'notes': _nextNotes.text.trim(),
-      'linkedTimelineEventId': _linkedTimelineEvent?['id'],
-      'linkedTimelineEvent': _linkedTimelineEvent,
       'submitted': submitted,
     };
     widget.onChanged();
@@ -11073,29 +11049,11 @@ class _PrototypeLogLearningFlowState extends State<_PrototypeLogLearningFlow>
         timeline: events,
       );
       if (!mounted || !ok) return;
-      setState(() => _linkedTimelineEvent = event);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Timeline event created.')));
     },
   );
-
-  Future<void> _linkExistingTimelineEvent() => runActionOnce(
-    this,
-    'timeline-event',
-    () async {
-      final timeline = await widget.projectsRepo.getTimeline(widget.projectId);
-      if (!mounted) return;
-      final event = await showAppModalBottomSheet<Map<String, String>>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) =>
-            _ExistingTimelineEventSheet(events: timeline ?? const []),
-      );
-      if (event == null || !mounted) return;
-      setState(() => _linkedTimelineEvent = event);
-    },
-  );
-
-  void _unlinkTimelineEvent() => setState(() => _linkedTimelineEvent = null);
 
   @override
   void didUpdateWidget(covariant _PrototypeLogLearningFlow oldWidget) {
@@ -11208,10 +11166,7 @@ class _PrototypeLogLearningFlowState extends State<_PrototypeLogLearningFlow>
                             projectId: widget.projectId,
                             isOwner: true,
                             projectsRepo: widget.projectsRepo,
-                            onLinkExistingTimelineEvent:
-                                _linkExistingTimelineEvent,
                             onCreateTimelineEvent: _createTimelineEvent,
-                            onUnlinkTimelineEvent: _unlinkTimelineEvent,
                             onBack: () async {
                               if (!await flushDraft() || !mounted) return;
                               setState(() => _showNextAction = false);
@@ -12395,14 +12350,16 @@ class _PrototypeBuildLogDraft implements _HasLearningStages {
 Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
   BuildContext context,
   String type,
-  _EvidenceBlock? existing,
-) async {
+  _EvidenceBlock? existing, {
+  required String projectId,
+}) async {
   if (type == 'Images') {
     final result = await pushAppRoute<ImageBlockData>(
       context,
       MaterialPageRoute(
         builder: (_) => ImageBlockEditorScreen(
           moduleId: 'prototype',
+          projectId: projectId,
           initialData: existing?.imageData,
           showAssessment: false,
           showInquiryLens: false,
@@ -12418,6 +12375,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
               context,
               selected,
               selected == type ? existing : null,
+              projectId: projectId,
             ),
           )
         : _EvidenceBlock.images(result);
@@ -12428,6 +12386,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
       MaterialPageRoute(
         builder: (_) => SketchBlockEditorScreen(
           moduleId: 'prototype',
+          projectId: projectId,
           initialData: existing?.sketchData,
         ),
       ),
@@ -12441,6 +12400,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
               context,
               selected,
               selected == type ? existing : null,
+              projectId: projectId,
             ),
           )
         : _EvidenceBlock.sketch(result);
@@ -12461,6 +12421,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
               context,
               selected,
               selected == type ? existing : null,
+              projectId: projectId,
             ),
           )
         : _EvidenceBlock.link(result);
@@ -12471,6 +12432,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
       MaterialPageRoute(
         builder: (_) => VideoBlockEditorScreen(
           moduleId: 'prototype',
+          projectId: projectId,
           initialData: existing?.videoData,
         ),
       ),
@@ -12484,6 +12446,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
               context,
               selected,
               selected == type ? existing : null,
+              projectId: projectId,
             ),
           )
         : _EvidenceBlock.video(result);
@@ -12505,6 +12468,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
               context,
               selected,
               selected == type ? existing : null,
+              projectId: projectId,
             ),
           )
         : _EvidenceBlock.graph(result);
@@ -12526,6 +12490,7 @@ Future<_EvidenceBlock?> _openPrototypeEvidenceEditor(
               context,
               selected,
               selected == type ? existing : null,
+              projectId: projectId,
             ),
           )
         : _EvidenceBlock.table(result);
@@ -12824,8 +12789,6 @@ class _DiscoveryObservationEntryPageState
         'challenges': _nextChallenges.text.trim(),
         'nextSteps': _nextSteps.text.trim(),
         'notes': _nextNotes.text.trim(),
-        'linkedTimelineEventId': _linkedTimelineEvent?['id'],
-        'linkedTimelineEvent': _linkedTimelineEvent,
         'submitted': _submitted,
         if (_submitted) 'submittedAt': DateTime.now().toUtc().toIso8601String(),
       },
@@ -13049,33 +13012,12 @@ class _DiscoveryObservationEntryPageState
         timeline: events,
       );
       if (!mounted || !ok) return;
-      setState(() => _linkedTimelineEvent = event);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Timeline event created.')));
       await _save();
     },
   );
-
-  Future<void> _linkExistingTimelineEvent() => runActionOnce(
-    this,
-    'timeline-event',
-    () async {
-      final timeline = await widget.projectsRepo.getTimeline(widget.projectId);
-      if (!mounted) return;
-      final event = await showAppModalBottomSheet<Map<String, String>>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) =>
-            _ExistingTimelineEventSheet(events: timeline ?? const []),
-      );
-      if (event == null || !mounted) return;
-      setState(() => _linkedTimelineEvent = event);
-      await _save();
-    },
-  );
-
-  void _unlinkTimelineEvent() {
-    setState(() => _linkedTimelineEvent = null);
-  }
 
   void _toggleLearningSelection(Set<String> target, String value) {
     setState(() {
@@ -13201,6 +13143,7 @@ class _DiscoveryObservationEntryPageState
         MaterialPageRoute(
           builder: (_) => ImageBlockEditorScreen(
             moduleId: _entryId ?? widget.projectId,
+            projectId: widget.projectId,
             initialData: existing?.imageData,
             showAssessment: false,
             showInquiryLens: false,
@@ -13214,6 +13157,7 @@ class _DiscoveryObservationEntryPageState
         MaterialPageRoute(
           builder: (_) => SketchBlockEditorScreen(
             moduleId: _entryId ?? widget.projectId,
+            projectId: widget.projectId,
             initialData: existing?.sketchData,
           ),
         ),
@@ -13234,6 +13178,7 @@ class _DiscoveryObservationEntryPageState
         MaterialPageRoute(
           builder: (_) => VideoBlockEditorScreen(
             moduleId: _entryId ?? widget.projectId,
+            projectId: widget.projectId,
             initialData: existing?.videoData,
           ),
         ),
@@ -13453,9 +13398,7 @@ class _DiscoveryObservationEntryPageState
                         projectId: widget.projectId,
                         isOwner: true,
                         projectsRepo: widget.projectsRepo,
-                        onLinkExistingTimelineEvent: _linkExistingTimelineEvent,
                         onCreateTimelineEvent: _createTimelineEvent,
-                        onUnlinkTimelineEvent: _unlinkTimelineEvent,
                         onBack: () =>
                             setState(() => _stage = _DiscoveryStage.learning),
                         onSubmit: _finishNextActionStage,
@@ -15190,9 +15133,7 @@ class _NextActionStageBody extends StatelessWidget {
     required this.projectId,
     required this.isOwner,
     required this.projectsRepo,
-    required this.onLinkExistingTimelineEvent,
     required this.onCreateTimelineEvent,
-    required this.onUnlinkTimelineEvent,
     required this.onBack,
     required this.onSubmit,
     this.completed = false,
@@ -15208,9 +15149,7 @@ class _NextActionStageBody extends StatelessWidget {
   final String projectId;
   final bool isOwner;
   final ProjectsRepo projectsRepo;
-  final VoidCallback onLinkExistingTimelineEvent;
   final VoidCallback onCreateTimelineEvent;
-  final VoidCallback onUnlinkTimelineEvent;
   final VoidCallback onBack;
   final VoidCallback onSubmit;
 
@@ -15231,14 +15170,10 @@ class _NextActionStageBody extends StatelessWidget {
         const SizedBox(height: AppMetrics.fieldGap),
         _CounterTextBox(label: 'What are next steps?', controller: nextSteps),
         const SizedBox(height: AppMetrics.fieldGap),
-        _TimelineLinkCard(
-          event: linkedTimelineEvent,
-          projectId: projectId,
-          isOwner: isOwner,
-          projectsRepo: projectsRepo,
-          onLinkExisting: onLinkExistingTimelineEvent,
-          onCreate: onCreateTimelineEvent,
-          onUnlink: onUnlinkTimelineEvent,
+        _TimelineLinkButton(
+          label: 'Create New Timeline Event',
+          addIcon: true,
+          onTap: onCreateTimelineEvent,
         ),
         const SizedBox(height: AppMetrics.fieldGap),
         _CounterTextBox(label: 'Open Notes', optional: true, controller: notes),
@@ -15350,152 +15285,6 @@ class _CounterTextBox extends StatelessWidget {
   }
 }
 
-class _TimelineLinkCard extends StatelessWidget {
-  const _TimelineLinkCard({
-    required this.event,
-    required this.projectId,
-    required this.isOwner,
-    required this.projectsRepo,
-    required this.onLinkExisting,
-    required this.onCreate,
-    required this.onUnlink,
-  });
-
-  final Map<String, String>? event;
-  final String projectId;
-  final bool isOwner;
-  final ProjectsRepo projectsRepo;
-  final VoidCallback onLinkExisting;
-  final VoidCallback onCreate;
-  final VoidCallback onUnlink;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5FAF6),
-        border: Border.all(color: _devGreen),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x18000000),
-            blurRadius: 3,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              SizedBox(
-                width: 32,
-                height: 22,
-                child: CustomPaint(painter: _TimelineLinkIconPainter()),
-              ),
-              SizedBox(width: 9),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Timeline Link ',
-                        style: TextStyle(
-                          color: _devGreen,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      TextSpan(
-                        text: '(Optional)',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    fontSize: AppTypography.bodySize,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppMetrics.fieldGap),
-          if (event == null) ...[
-            const Text(
-              'No timeline event linked yet.',
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                color: AppColors.textSecondary,
-                fontSize: AppTypography.helperSize,
-                fontWeight: FontWeight.w400,
-                height: 1.2,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Link this entry to a timeline event or create a new one.',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                color: AppColors.textSecondary,
-                fontSize: AppTypography.helperSize,
-              ),
-            ),
-            const SizedBox(height: AppMetrics.labelGap),
-            _TimelineLinkButton(
-              label: 'Link to Existing Event',
-              onTap: onLinkExisting,
-            ),
-            const SizedBox(height: 10),
-            _TimelineLinkButton(
-              label: 'Create New Timeline Event',
-              addIcon: true,
-              onTap: onCreate,
-            ),
-          ] else ...[
-            AppTapTarget(
-              onTap: () => pushAppRoute(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => _ProjectTimelineRoutePage(
-                    projectId: projectId,
-                    isOwner: isOwner,
-                    projectsRepo: projectsRepo,
-                  ),
-                ),
-              ),
-              child: _LinkedTimelineEventCard(event: event!),
-            ),
-            const SizedBox(height: 12),
-            AppTapTarget(
-              onTap: onUnlink,
-              child: const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Unlink',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: _devGreen,
-                    fontSize: AppTypography.helperSize,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _TimelineLinkButton extends StatelessWidget {
   const _TimelineLinkButton({
     required this.label,
@@ -15556,198 +15345,6 @@ class _TimelineLinkButton extends StatelessWidget {
   }
 }
 
-class _ProjectTimelineRoutePage extends StatelessWidget {
-  const _ProjectTimelineRoutePage({
-    required this.projectId,
-    required this.isOwner,
-    required this.projectsRepo,
-  });
-
-  final String projectId;
-  final bool isOwner;
-  final ProjectsRepo projectsRepo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: JournalPageLayout.widthFor(context, mobileWidth: 402),
-            ),
-            child: Stack(
-              children: [
-                ProjectTimelineTab(
-                  projectId: projectId,
-                  isOwner: isOwner,
-                  projectsRepo: projectsRepo,
-                ),
-                Positioned(
-                  left: 21,
-                  top: 24,
-                  child: ContentAlignedBackButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LinkedTimelineEventCard extends StatelessWidget {
-  const _LinkedTimelineEventCard({required this.event});
-
-  final Map<String, String> event;
-
-  @override
-  Widget build(BuildContext context) {
-    final start = DateTime.tryParse(event['start'] ?? '');
-    return Container(
-      width: 319,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 48, height: 31, child: _CalendarMiniIcon()),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event['name'] ?? event['event'] ?? 'Timeline Event',
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: _devText,
-                    fontSize: AppTypography.bodySize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  start == null
-                      ? event['date'] ?? ''
-                      : DateFormat('MMM d, yyyy').format(start),
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: _devText,
-                    fontSize: AppTypography.captionSize,
-                  ),
-                ),
-                if ((event['assigneeNames'] ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    event['assigneeNames']!.split('|').join(', '),
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: _devText,
-                      fontSize: AppTypography.captionSize,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExistingTimelineEventSheet extends StatelessWidget {
-  const _ExistingTimelineEventSheet({required this.events});
-
-  final List<Map<String, String>> events;
-
-  @override
-  Widget build(BuildContext context) {
-    final sorted = [...events]
-      ..sort((a, b) {
-        final aStart = DateTime.tryParse(a['start'] ?? '') ?? DateTime.now();
-        final bStart = DateTime.tryParse(b['start'] ?? '') ?? DateTime.now();
-        return aStart.compareTo(bStart);
-      });
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: .68,
-      maxChildSize: .86,
-      builder: (context, scrollController) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(25, 18, 25, 28),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 20,
-                height: 2,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: AppMetrics.labelGap),
-              const Text(
-                'Link Event',
-                style: TextStyle(
-                  fontFamily: AppTypography.headingFamily,
-                  color: _devText,
-                  fontSize: AppTypography.sectionTitleSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppMetrics.fieldGap),
-              Expanded(
-                child: sorted.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No timeline events for this project yet.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            color: AppColors.textSecondary,
-                            fontSize: AppTypography.helperSize,
-                          ),
-                        ),
-                      )
-                    : ListView.separated(
-                        controller: scrollController,
-                        itemCount: sorted.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final event = sorted[index];
-                          return AppTapTarget(
-                            onTap: () => Navigator.of(context).pop(event),
-                            child: _LinkedTimelineEventCard(event: event),
-                          );
-                        },
-                      ),
-              ),
-              const SizedBox(height: 16),
-              _SmallStageButton(
-                label: 'Cancel',
-                onTap: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
 class CreateJournalTimelineEventSheet extends StatefulWidget {
   const CreateJournalTimelineEventSheet({
     super.key,
@@ -15780,75 +15377,6 @@ class CreateJournalTimelineEventSheetState
   DateTime _start = DateTime.now().add(const Duration(hours: 1));
   DateTime _end = DateTime.now().add(const Duration(hours: 2));
   bool _allDay = false;
-  List<JournalEntry> _entries = [];
-  late String? _selectedEntryId = widget.entryId;
-  late String _selectedEntryTitle = widget.entryTitle;
-  bool _loadingEntries = true;
-  bool _entryLoadFailed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadEntries();
-  }
-
-  bool _containsChild(Object? content, String id) {
-    if (content is Map)
-      return content['id'] == id ||
-          content.values.any((value) => _containsChild(value, id));
-    if (content is List)
-      return content.any((value) => _containsChild(value, id));
-    return false;
-  }
-
-  Future<void> _loadEntries() async {
-    try {
-      final entries = await widget.projectsRepo.getJournalEntries(
-        projectId: widget.projectId,
-      );
-      if (!mounted) return;
-      setState(() {
-        _entries = entries ?? [];
-        if (_selectedEntryId == null && widget.entryChildId != null) {
-          _selectedEntryId = _entries
-              .where(
-                (entry) => _containsChild(entry.content, widget.entryChildId!),
-              )
-              .firstOrNull
-              ?.id;
-        }
-        final current = _entries
-            .where((entry) => entry.id == _selectedEntryId)
-            .firstOrNull;
-        if (current != null) {
-          _selectedEntryTitle = current.title;
-          _entries = [
-            current,
-            ..._entries.where((entry) => entry.id != current.id),
-          ];
-        } else if (_selectedEntryId != null) {
-          _entries.insert(
-            0,
-            JournalEntry(
-              id: _selectedEntryId!,
-              title: _selectedEntryTitle,
-              projectId: widget.projectId,
-              content: const [],
-            ),
-          );
-        }
-        _loadingEntries = false;
-        _entryLoadFailed = entries == null;
-      });
-    } catch (_) {
-      if (mounted)
-        setState(() {
-          _loadingEntries = false;
-          _entryLoadFailed = true;
-        });
-    }
-  }
-
   @override
   void dispose() {
     _name.dispose();
@@ -15932,8 +15460,6 @@ class CreateJournalTimelineEventSheetState
       'assigneeNames': assignees
           .map((member) => member.resolvedDisplayName)
           .join('|'),
-      if (_selectedEntryId != null) 'journalEntryId': _selectedEntryId!,
-      'journalEntryTitle': _selectedEntryTitle,
     };
     Navigator.of(context).pop(event);
   }
@@ -16086,39 +15612,12 @@ class CreateJournalTimelineEventSheetState
                 ],
               ),
               const SizedBox(height: AppMetrics.labelGap),
-              const Text(
-                'Link Journal Entry',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.helperSize,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_loadingEntries)
-                const LinearProgressIndicator()
-              else
-                JournalEntryLinkSelector(
-                  entries: _entries
-                      .where((entry) => entry.id == _selectedEntryId)
-                      .toList(),
-                  selected: _entries
-                      .where((entry) => entry.id == _selectedEntryId)
-                      .firstOrNull,
-                  selectable: false,
-                  onSelected: (_) {},
-                ),
-              if (_entryLoadFailed)
-                TextButton(
-                  onPressed: _loadEntries,
-                  child: const Text('Could not load journal entries. Retry'),
-                ),
               const SizedBox(height: AppMetrics.sectionGap),
               Center(
                 child: _SmallStageButton(
                   label: 'Create',
                   filled: true,
-                  onTap: _loadingEntries ? null : _submit,
+                  onTap: _submit,
                 ),
               ),
             ],
@@ -17764,7 +17263,7 @@ class _VideoEvidencePreviewState extends State<_VideoEvidencePreview> {
     if (widget.data.storagePath.isEmpty) return '';
     return StorageService().createSignedUrl(
       widget.data.storagePath,
-      bucketName: 'learning-module-videos',
+      bucketName: widget.data.storageBucket,
     );
   }
 
@@ -17800,7 +17299,7 @@ class _VideoEvidencePreviewState extends State<_VideoEvidencePreview> {
                 children: [
                   Container(color: const Color(0xFFFFE2E2)),
                   if (id != null)
-                    Image.network(
+                    ProtectedImage.network(
                       'https://img.youtube.com/vi/$id/hqdefault.jpg',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -17910,7 +17409,7 @@ class _ImageEvidencePreviewState extends State<_ImageEvidencePreview> {
                     child: Stack(
                       children: [
                         InteractiveViewer(
-                          child: Image.network(
+                          child: ProtectedImage.network(
                             url,
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) =>
@@ -17931,7 +17430,7 @@ class _ImageEvidencePreviewState extends State<_ImageEvidencePreview> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
+                  child: ProtectedImage.network(
                     url,
                     width: double.infinity,
                     height: 140,
@@ -18892,7 +18391,7 @@ class _CommunityAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (community.imageUrl != null && community.imageUrl!.isNotEmpty) {
       return ClipOval(
-        child: Image.network(
+        child: ProtectedImage.network(
           community.imageUrl!,
           width: size,
           height: size,
@@ -19358,41 +18857,6 @@ class _DraftSaveStatus extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _TimelineLinkIconPainter extends CustomPainter {
-  const _TimelineLinkIconPainter();
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _devGreen
-      ..strokeWidth = 1.3
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-      Offset(0, size.height * .5),
-      Offset(size.width, size.height * .5),
-      paint,
-    );
-    for (final x in [.25, .65]) {
-      canvas.drawLine(
-        Offset(size.width * x, size.height * .15),
-        Offset(size.width * x, size.height * .5),
-        paint,
-      );
-      canvas.drawCircle(Offset(size.width * x, size.height * .1), 2, paint);
-    }
-    for (final x in [.4, .85]) {
-      canvas.drawLine(
-        Offset(size.width * x, size.height * .5),
-        Offset(size.width * x, size.height * .85),
-        paint,
-      );
-      canvas.drawCircle(Offset(size.width * x, size.height * .9), 2, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _LearningRequiredMessage extends StatelessWidget {

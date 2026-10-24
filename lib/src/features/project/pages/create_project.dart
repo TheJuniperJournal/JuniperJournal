@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../home_page/pages/public_user_profile.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
@@ -3142,7 +3143,7 @@ class _ProjectCommunityPickerState extends State<ProjectCommunityPicker> {
                                 child:
                                     community.imageUrl?.trim().isNotEmpty ==
                                         true
-                                    ? Image.network(
+                                    ? ProtectedImage.network(
                                         community.imageUrl!,
                                         width: 40,
                                         height: 40,

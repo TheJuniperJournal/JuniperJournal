@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/desktop_modal_layer.dart';
 import '../../../backend/db/models/community.dart';
@@ -343,7 +344,7 @@ class _ProjectRow extends StatelessWidget {
           width: 60,
           height: 60,
           child: (project.imageUrl != null && project.imageUrl!.isNotEmpty)
-              ? Image.network(project.imageUrl!, fit: BoxFit.cover)
+              ? ProtectedImage.network(project.imageUrl!, fit: BoxFit.cover)
               : Container(
                   color: AppColors.avatarBackground,
                   child: const Icon(

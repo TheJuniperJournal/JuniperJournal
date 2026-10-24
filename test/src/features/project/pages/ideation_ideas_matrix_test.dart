@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:juniper_journal/src/backend/db/models/project.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:juniper_journal/src/shared/widgets/app_scroll_behavior.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,14 @@ import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/features/project/pages/project_development_flow.dart';
 
 class _Repo extends ProjectsRepo {
+  @override
+  String? get currentUserId => 'qa-owner';
+  @override
+  Future<Project?> getProjectById(String id) async =>
+      Project(id: id, projectName: 'QA', tags: const [], userId: 'qa-owner');
+  @override
+  Future<bool> canViewInternalProjectLogs(String projectId) async => true;
+
   List<dynamic>? saved;
   @override
   Future<List<UserProfile>> getProjectMembers({
@@ -99,6 +109,7 @@ Future<void> _openIdeas(
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('stage underlines match the width of short and wrapped labels', (
     tester,
   ) async {

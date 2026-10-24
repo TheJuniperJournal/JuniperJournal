@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -117,7 +118,7 @@ class CreationImagePicker extends StatelessWidget {
       child: imageBytes != null
           ? Image.memory(imageBytes!, fit: BoxFit.cover, gaplessPlayback: true)
           : imageUrl?.isNotEmpty == true
-          ? Image.network(
+          ? ProtectedImage.network(
               imageUrl!,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) =>

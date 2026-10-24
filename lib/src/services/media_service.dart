@@ -18,6 +18,7 @@ class MediaService {
   Future<String?> pickAndUploadImage(
     ImageSource source, {
     String folder = 'journal-log',
+    String? projectId,
     void Function(Uint8List bytes)? onSelected,
   }) async {
     try {
@@ -34,8 +35,8 @@ class MediaService {
       // Upload to Supabase Storage
       return await _storage.uploadImage(
         image,
-        bucketName: 'images',
-        folder: folder,
+        bucketName: projectId == null ? 'images' : 'journal-attachments',
+        folder: projectId == null ? folder : '$projectId/$folder',
       );
     } catch (e) {
       print('MediaService Error: $e');

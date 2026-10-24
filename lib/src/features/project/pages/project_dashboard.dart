@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/project_photo_dialog.dart';
 import '../../../shared/widgets/page_refresh_state.dart';
@@ -830,7 +831,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                   child: InteractiveViewer(
                     minScale: .5,
                     maxScale: 5,
-                    child: Image.network(
+                    child: ProtectedImage.network(
                       url,
                       key: const ValueKey('expanded-project-cover'),
                       fit: BoxFit.contain,
@@ -879,7 +880,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                 child: _uploadingCover
                     ? const Center(child: CircularProgressIndicator())
                     : hasImage
-                    ? Image.network(
+                    ? ProtectedImage.network(
                         _imageUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => _HeroPlaceholder(),

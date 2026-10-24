@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:juniper_journal/src/backend/db/models/project.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/widgets/app_scroll_behavior.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,14 @@ import 'package:juniper_journal/src/features/project/pages/project_development_f
 import 'package:juniper_journal/src/shared/widgets/item_action_menu.dart';
 
 class _Repo extends ProjectsRepo {
+  @override
+  String? get currentUserId => 'creator';
+  @override
+  Future<Project?> getProjectById(String id) async =>
+      Project(id: id, projectName: 'QA', tags: const [], userId: 'creator');
+  @override
+  Future<bool> canViewInternalProjectLogs(String projectId) async => true;
+
   _Repo(this.entries, {this.members = const []});
   final List<UserProfile> members;
   List<JournalEntry> entries;
@@ -138,6 +148,7 @@ Future<void> _createBuildingComponent(
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets(
     'completion colors, final validation, preview and owner editing follow required content',
     (tester) async {
@@ -621,7 +632,7 @@ void main() {
         ),
         desktop: true,
       );
-      await tester.tap(find.text('+ Journal Entry'));
+      await tester.tap(find.text('+ Add Journal Entry'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
@@ -809,7 +820,7 @@ void main() {
           projectsRepo: repo,
         ),
       );
-      await tester.tap(find.text('+ Journal Entry'));
+      await tester.tap(find.text('+ Add Journal Entry'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
@@ -895,7 +906,7 @@ void main() {
         ),
         desktop: true,
       );
-      await tester.tap(find.text('+ Journal Entry'));
+      await tester.tap(find.text('+ Add Journal Entry'));
       await tester.pumpAndSettle();
       final title = find.text('New Prototyping Entry');
       final surface = tester
@@ -925,7 +936,7 @@ void main() {
       ),
     );
     for (final type in ['building', 'testing']) {
-      await tester.tap(find.text('+ Journal Entry'));
+      await tester.tap(find.text('+ Add Journal Entry'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('prototype-type-$type')));
       await tester.pumpAndSettle();
@@ -1008,7 +1019,7 @@ void main() {
       );
       expect(find.text('Add your first entry'), findsOneWidget);
       expect(find.text('+ Iteration'), findsNothing);
-      await tester.tap(find.text('+ Journal Entry'));
+      await tester.tap(find.text('+ Add Journal Entry'));
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.text('New Prototyping Entry'), findsOneWidget);
@@ -1037,7 +1048,7 @@ void main() {
           ),
           observer: observer,
         );
-        await tester.tap(find.text('+ Journal Entry'));
+        await tester.tap(find.text('+ Add Journal Entry'));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(ValueKey('prototype-type-$type')));
         await tester.pumpAndSettle();

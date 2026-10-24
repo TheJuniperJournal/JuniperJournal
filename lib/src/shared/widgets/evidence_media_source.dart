@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:flutter/material.dart';
 import '../../backend/storage/storage_service.dart';
 
@@ -63,7 +64,7 @@ class _SavedEvidenceImageState extends State<SavedEvidenceImage> {
         return const Center(child: CircularProgressIndicator());
       if (snapshot.hasError || snapshot.data?.isNotEmpty != true)
         return const Center(child: Icon(Icons.image_not_supported_outlined));
-      return Image.network(
+      return ProtectedImage.network(
         snapshot.data!,
         fit: widget.fit,
         errorBuilder: (_, __, ___) =>

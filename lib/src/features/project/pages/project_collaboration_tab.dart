@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/conversation_composer.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/widgets/flower_reaction_button.dart';
@@ -940,7 +941,7 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                           borderRadius: BorderRadius.circular(12),
                           child: AspectRatio(
                             aspectRatio: 1,
-                            child: Image.network(
+                            child: ProtectedImage.network(
                               url,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) =>
@@ -1128,7 +1129,7 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
               child: InteractiveViewer(
                 minScale: .5,
                 maxScale: 5,
-                child: Image.network(
+                child: ProtectedImage.network(
                   url,
                   key: const ValueKey('expanded-forum-image'),
                   fit: BoxFit.contain,
@@ -1351,7 +1352,7 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                                   onTap: () => _expandImage(url),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
+                                    child: ProtectedImage.network(
                                       url,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) =>
@@ -1568,7 +1569,7 @@ class _ProjectCommentsState extends State<_ProjectComments> {
                       for (final image in widget.post.imageUrls)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Image.network(
+                          child: ProtectedImage.network(
                             image,
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) =>
@@ -1838,7 +1839,7 @@ class _InlineForumPostEditorState extends State<_InlineForumPostEditor>
                                   onTap: () => widget.onExpand(url),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
+                                    child: ProtectedImage.network(
                                       url,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) =>

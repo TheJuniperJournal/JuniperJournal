@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
 import 'project_development_flow.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -281,7 +282,7 @@ class _JournalLogScreenState extends State<JournalLogScreen> {
                                     ),
                                   )
                                 : null,
-                            child: Image.network(
+                            child: ProtectedImage.network(
                               imageUrls[i],
                               fit: BoxFit.cover,
                               height: 140,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'dart:convert';
 import '../services/journal_text_selection.dart';
@@ -604,6 +605,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
           : await _mediaService.pickAndUploadImage(
               source,
               folder: 'journal-images',
+              projectId: widget.projectId,
             );
       if (url == null || !mounted) return;
       _insertAfterFocused(_Block.image(url: url));
@@ -1415,7 +1417,7 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
+                      child: ProtectedImage.network(
                         widget.block.imageUrl!,
                         width: double.infinity,
                         fit: BoxFit.cover,

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -357,11 +358,13 @@ class SketchImagePlaceholder {
 
 class SketchBlockEditorScreen extends StatefulWidget {
   final String moduleId;
+  final String? projectId;
   final SketchBlockData? initialData;
 
   const SketchBlockEditorScreen({
     super.key,
     required this.moduleId,
+    this.projectId,
     this.initialData,
   });
 
@@ -1031,12 +1034,22 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
       ),
     );
     if (source == null || !mounted) return;
-    final picked = await _picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
+    XFile? picked;
+    try {
+      picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+    } catch (_) {
+      if (mounted)
+        setState(
+          () => _uploadError =
+              'Could not read this image. Choose a valid image file and try again.',
+        );
+      return;
+    }
     if (picked == null || !mounted) return;
     final userId = SupabaseDatabase.instance.client.auth.currentUser?.id;
     if (userId == null) {
@@ -1051,9 +1064,10 @@ class _SketchBlockEditorScreenState extends State<SketchBlockEditorScreen> {
     try {
       final uploaded = await _storage.uploadImageFile(
         picked,
-        bucketName: 'images',
-        folder:
-            'learning-modules/$userId/${widget.moduleId}/concept-exploration/sketch',
+        bucketName: widget.projectId == null ? 'images' : 'journal-attachments',
+        folder: widget.projectId != null
+            ? '${widget.projectId}/evidence/${widget.moduleId}'
+            : 'learning-modules/$userId/${widget.moduleId}/concept-exploration/sketch',
       );
       if (!mounted) return;
       _pushHistory();
@@ -1518,7 +1532,7 @@ class _CanvasBox extends StatelessWidget {
                               child: IgnorePointer(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
+                                  child: ProtectedImage.network(
                                     image.publicUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) =>

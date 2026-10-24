@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:intl/intl.dart';
 import '../services/home_journal_feed.dart';
 import '../../../shared/widgets/journal_preview_image.dart';
@@ -2182,7 +2183,7 @@ class _StackAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: (url != null && url!.trim().isNotEmpty)
-            ? Image.network(
+            ? ProtectedImage.network(
                 url!,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => _placeholder(),
@@ -2417,7 +2418,7 @@ class _CommunityCarousel extends StatelessWidget {
                                     child:
                                         (c.imageUrl != null &&
                                             c.imageUrl!.isNotEmpty)
-                                        ? Image.network(
+                                        ? ProtectedImage.network(
                                             c.imageUrl!,
                                             fit: BoxFit.cover,
                                           )

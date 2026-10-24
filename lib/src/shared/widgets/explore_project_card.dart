@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter/material.dart';
 import '../../backend/db/models/project.dart';
@@ -54,7 +55,7 @@ class ExploreProjectCard extends StatelessWidget {
                   height: 142,
                   width: double.infinity,
                   child: project.imageUrl?.isNotEmpty == true
-                      ? Image.network(
+                      ? ProtectedImage.network(
                           project.imageUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => _placeholder(),

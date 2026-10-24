@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'evidence_media_source.dart';
@@ -82,7 +83,7 @@ class JournalPreviewImage extends StatelessWidget {
         fit: fit,
       );
     }
-    return Image.network(
+    return ProtectedImage.network(
       source,
       fit: fit,
       errorBuilder: (_, __, ___) =>

@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
@@ -731,7 +732,7 @@ class _PreviewListCard extends StatelessWidget {
               SizedBox(
                 height: 105,
                 width: double.infinity,
-                child: Image.network(
+                child: ProtectedImage.network(
                   imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => const _MediaPlaceholder(),
@@ -2135,7 +2136,7 @@ class _ReadOnlySketchCanvas extends StatelessWidget {
             if (image.publicUrl.isNotEmpty)
               Positioned.fromRect(
                 rect: _scaleRect(image.rect, 305, 190),
-                child: Image.network(
+                child: ProtectedImage.network(
                   image.publicUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => const SizedBox.shrink(),
@@ -2418,7 +2419,7 @@ class _RoundedNetworkImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Image.network(
+      child: ProtectedImage.network(
         url,
         width: double.infinity,
         fit: BoxFit.cover,

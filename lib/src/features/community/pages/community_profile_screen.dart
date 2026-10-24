@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../../shared/styling/app_metrics.dart';
 import '../../../backend/db/models/project.dart';
 import '../../../shared/widgets/profile_ecopoints_card.dart';
@@ -215,7 +216,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen> {
         backgroundColor: AppColors.primaryTint,
         child: ClipOval(
           child: url?.isNotEmpty == true
-              ? Image.network(
+              ? ProtectedImage.network(
                   url!,
                   width: radius * 2,
                   height: radius * 2,

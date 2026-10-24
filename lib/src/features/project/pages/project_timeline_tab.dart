@@ -1,6 +1,5 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
-import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
-import 'journal_entry_view.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
@@ -8,7 +7,6 @@ import 'package:juniper_journal/src/shared/widgets/modal_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:juniper_journal/src/backend/auth/auth_service.dart';
-import 'package:juniper_journal/src/backend/db/models/journal_entry.dart';
 import 'package:juniper_journal/src/backend/db/models/user_profile.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/backend/db/repositories/users_repo.dart';
@@ -44,7 +42,6 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
   final _weekController = PageController(initialPage: 10000);
   final List<_TimelineEvent> _events = [];
   final List<UserProfile> _members = [];
-  final List<JournalEntry> _journalEntries = [];
 
   late DateTime _selectedDate;
   late DateTime _baseWeekStart;
@@ -84,12 +81,10 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
         _projectsRepo.getTimeline(widget.projectId),
         _projectsRepo.getProjectCollaborators(projectId: widget.projectId),
         _usersRepo.getCurrentUserProfile(),
-        _projectsRepo.getJournalEntries(projectId: widget.projectId),
       ]);
       final timeline = results[0] as List<Map<String, String>>?;
       final collaborators = results[1] as List<UserProfile>;
       final profile = results[2] as UserProfile?;
-      final journals = results[3] as List<JournalEntry>?;
       if (!mounted) return;
 
       final currentUser = AuthService.instance.currentUser;
@@ -114,14 +109,11 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
             if (currentProfile != null) currentProfile,
             ...collaborators.where((member) => member.id != currentProfile?.id),
           ]);
-        _journalEntries
-          ..clear()
-          ..addAll(journals ?? const []);
         _events
           ..clear()
           ..addAll((timeline ?? const []).map(_TimelineEvent.fromMap));
         _isLoading = false;
-        _loadFailed = timeline == null || journals == null;
+        _loadFailed = timeline == null;
       });
       if (!_notificationOpened && widget.initialEventId != null) {
         _notificationOpened = true;
@@ -187,7 +179,6 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
         selectedDate: _selectedDate,
         members: _members,
         currentUserId: _currentUserId,
-        journalEntries: _journalEntries,
       ),
     );
     if (event == null || !mounted) return;
@@ -201,61 +192,13 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _TimelineEventDetailSheet(
-        event: event,
-        canDelete: widget.isOwner,
-        onOpenJournal: event.journalEntryId == null
-            ? null
-            : () {
-                Navigator.of(sheetContext).pop(false);
-                _openLinkedJournal(event);
-              },
-      ),
+      builder: (sheetContext) =>
+          _TimelineEventDetailSheet(event: event, canDelete: widget.isOwner),
     );
     if (deleted != true || !mounted) return;
 
     setState(() => _events.removeWhere((item) => item.id == event.id));
     await _save();
-  }
-
-  Future<void> _openLinkedJournal(_TimelineEvent event) async {
-    try {
-      final entries = await _projectsRepo.getJournalEntries(
-        projectId: widget.projectId,
-      );
-      final entry = entries
-          ?.where((item) => item.id == event.journalEntryId)
-          .firstOrNull;
-      final project = await _projectsRepo.getProjectById(widget.projectId);
-      if (!mounted) return;
-      if (entry == null || project == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This journal entry is no longer available.'),
-          ),
-        );
-        return;
-      }
-      await pushAppRoute(
-        context,
-        MaterialPageRoute(
-          builder: (_) => JournalEntryView(
-            entry: entry,
-            project: project,
-            projectsRepo: _projectsRepo,
-          ),
-        ),
-      );
-    } catch (_) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not open the journal entry. Please try again.',
-            ),
-          ),
-        );
-    }
   }
 
   @override
@@ -625,13 +568,11 @@ class _CreateTimelineEventSheet extends StatefulWidget {
     required this.selectedDate,
     required this.members,
     required this.currentUserId,
-    required this.journalEntries,
   });
 
   final DateTime selectedDate;
   final List<UserProfile> members;
   final String? currentUserId;
-  final List<JournalEntry> journalEntries;
 
   @override
   State<_CreateTimelineEventSheet> createState() =>
@@ -652,7 +593,6 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
   String _endAmPm = 'AM';
   bool _allDay = false;
   final Set<String> _assigneeIds = {};
-  JournalEntry? _linkedJournal;
 
   @override
   void initState() {
@@ -738,8 +678,6 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
         assigneeNames: assignees
             .map((member) => member.resolvedDisplayName)
             .toList(),
-        journalEntryId: _linkedJournal?.id,
-        journalEntryTitle: _linkedJournal?.title,
       ),
     );
   }
@@ -923,13 +861,6 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              const _SheetLabel('Link Journal Entry'),
-              const SizedBox(height: 12),
-              JournalEntryLinkSelector(
-                entries: widget.journalEntries,
-                selected: _linkedJournal,
-                onSelected: (entry) => setState(() => _linkedJournal = entry),
-              ),
               const SizedBox(height: 45),
               Center(
                 child: AppTapTarget(
@@ -966,11 +897,9 @@ class _TimelineEventDetailSheet extends StatelessWidget {
   const _TimelineEventDetailSheet({
     required this.event,
     required this.canDelete,
-    this.onOpenJournal,
   });
   final _TimelineEvent event;
   final bool canDelete;
-  final VoidCallback? onOpenJournal;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -1056,39 +985,6 @@ class _TimelineEventDetailSheet extends StatelessWidget {
                         ? 'No location'
                         : event.location,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: onOpenJournal,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.article_outlined),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Linked Journal Entry',
-                          style: AppTypography.helper,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          event.journalEntryTitle ?? 'No linked journal entry',
-                          style: AppTypography.body,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (onOpenJournal != null) const Icon(Icons.arrow_forward),
                 ],
               ),
             ),
@@ -1349,113 +1245,6 @@ class _AssigneeChip extends StatelessWidget {
   }
 }
 
-class JournalEntryLinkSelector extends StatefulWidget {
-  const JournalEntryLinkSelector({
-    super.key,
-    required this.entries,
-    required this.selected,
-    required this.onSelected,
-    this.selectable = true,
-  });
-  final List<JournalEntry> entries;
-  final JournalEntry? selected;
-  final ValueChanged<JournalEntry?> onSelected;
-  final bool selectable;
-  @override
-  State<JournalEntryLinkSelector> createState() =>
-      _JournalEntryLinkSelectorState();
-}
-
-class _JournalEntryLinkSelectorState extends State<JournalEntryLinkSelector> {
-  final _fieldKey = GlobalKey();
-  Future<void> _open() async {
-    if (!widget.selectable || widget.entries.isEmpty) return;
-    final box = _fieldKey.currentContext!.findRenderObject() as RenderBox;
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final rect = box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
-    final selected = await showMenu<JournalEntry>(
-      context: context,
-      color: Colors.white,
-      surfaceTintColor: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-      constraints: BoxConstraints.tightFor(width: rect.width),
-      menuPadding: const EdgeInsets.symmetric(vertical: 4),
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(rect.left, rect.bottom + 4, rect.width, 0),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        for (final entry in widget.entries)
-          PopupMenuItem(
-            value: entry,
-            height: 36,
-            child: Text(
-              entry.title,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.helperSize,
-                fontWeight: FontWeight.w400,
-                color: _timelineText,
-              ),
-            ),
-          ),
-      ],
-    );
-    if (selected != null && mounted) widget.onSelected(selected);
-  }
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: widget.selectable,
-    child: AppTapTarget(
-      key: _fieldKey,
-      onTap: widget.selectable ? _open : null,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 39,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: widget.entries.isEmpty
-                ? const Color(0xFFE8E8E8)
-                : _timelineGreen,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 18, height: 22, child: _JournalIcon()),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Text(
-                widget.selected?.title ??
-                    (widget.entries.isEmpty
-                        ? 'No journal entries'
-                        : 'Select journal entry'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.textPrimary,
-                  fontSize: AppTypography.helperSize,
-                ),
-              ),
-            ),
-            if (widget.selectable)
-              const Icon(
-                Icons.keyboard_arrow_down,
-                size: 16,
-                color: _timelineMuted,
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 class _Avatar extends StatelessWidget {
   const _Avatar({required this.profile, required this.size});
 
@@ -1472,7 +1261,7 @@ class _Avatar extends StatelessWidget {
         color: _timelineGreen.withValues(alpha: .2),
         alignment: Alignment.center,
         child: avatarUrl != null && avatarUrl.isNotEmpty
-            ? Image.network(avatarUrl, fit: BoxFit.cover)
+            ? ProtectedImage.network(avatarUrl, fit: BoxFit.cover)
             : Text(
                 profile.resolvedDisplayName.characters.first.toUpperCase(),
                 style: TextStyle(

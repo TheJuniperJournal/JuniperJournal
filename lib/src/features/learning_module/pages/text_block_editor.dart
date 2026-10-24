@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import '../../../shared/widgets/evidence_description_field.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -1036,7 +1037,7 @@ class _ImageRow extends StatelessWidget {
                   : item.publicUrl.isNotEmpty
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(7),
-                      child: Image.network(
+                      child: ProtectedImage.network(
                         item.publicUrl,
                         width: 98,
                         height: 51,
