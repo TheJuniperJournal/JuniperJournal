@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/styling/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/shared/widgets/progress_tracker.dart';
@@ -74,7 +75,7 @@ void main() {
     );
     expect(
       tester.widget<Text>(find.text('Build')).style,
-      AppTypography.sectionTitle,
+      AppTypography.sectionTitle.copyWith(color: AppColors.primary),
     );
     expect(
       tester.widget<Text>(find.text('Evidence')).style,

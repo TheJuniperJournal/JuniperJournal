@@ -3904,11 +3904,11 @@ class _PrototypingJournalEntryPageState
       widget.entry?.content ?? [],
       _labels.length,
     );
-    if (widget.entry?.content.whereType<Map>().any(
-          (row) => row['stage'] == '_navigation' && row['currentStage'] is int,
-        ) ==
-        true)
+    // Only Learning and Next Action belong to the guided continuation. Earlier
+    // saved sections must reopen their own editor (component, build or analysis).
+    if (_buildingStage >= _labels.length - 2) {
       _guidedStage = _buildingStage;
+    }
     journalEntryNumber(
       widget.projectsRepo,
       widget.projectId,

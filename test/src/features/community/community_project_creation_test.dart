@@ -173,11 +173,9 @@ void main() {
       await tapText(tester, 'Small');
       await tapText(tester, 'Private');
       await tapText(tester, '+ Add Objective');
-      await tapText(tester, 'Select');
-      // First chip selects the objective action; the second selects the subject.
-      // The last Select above is the subject chip.
+      await tapText(tester, 'Subject');
       await tapText(tester, 'Environment & Sustainability');
-      await tapText(tester, 'Select');
+      await tapText(tester, 'Objective');
       await tapText(tester, 'Analyze');
       await tester.ensureVisible(find.byType(TextField).last);
       await tester.enterText(

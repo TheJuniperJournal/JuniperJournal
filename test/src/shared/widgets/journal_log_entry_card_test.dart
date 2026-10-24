@@ -1,3 +1,4 @@
+import '../../../support/fake_backend.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_project_link.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +6,7 @@ import 'package:juniper_journal/src/backend/db/models/journal_entry.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_log_entry_card.dart';
 
 void main() {
+  setUpAll(() => initializeFakeBackend(userId: 'author'));
   testWidgets(
     'project footer routes separately from entry and aligns with card content',
     (tester) async {

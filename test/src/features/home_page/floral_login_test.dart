@@ -17,7 +17,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Back to Explore'), findsOneWidget);
+    expect(find.text('Explore'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('login-back-to-explore')));
     await tester.pumpAndSettle();
     expect(find.text('Explore landing'), findsOneWidget);

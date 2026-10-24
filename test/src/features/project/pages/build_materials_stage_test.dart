@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/backend/db/models/journal_entry.dart';
@@ -29,6 +30,7 @@ class _Repo extends ProjectsRepo {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   test(
     'build completion includes materials without changing testing stages',
     () {
@@ -107,6 +109,8 @@ void main() {
               {
                 'stage': 'prototyping',
                 'entryType': 'building',
+                'buildingWorkflow': true,
+                'materialsWorkflow': true,
                 'title': 'Build',
                 'objective': 'Make lid',
                 'summary': 'Assemble',

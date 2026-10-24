@@ -405,7 +405,7 @@ void main() {
       tester.getTopLeft(find.text('Zoe Friend')).dy,
       lessThan(tester.getTopLeft(find.text('Aaron Other')).dy),
     );
-    await tester.tap(find.text('Zoe Friend'));
+    await tester.tap(find.byTooltip('Add Zoe Friend'));
     await tester.pumpAndSettle();
     expect(confirmed, isNull);
     expect(find.text('Zoe Friend'), findsOneWidget);

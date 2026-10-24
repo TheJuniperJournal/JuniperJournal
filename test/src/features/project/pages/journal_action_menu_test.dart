@@ -1,3 +1,6 @@
+import '../../../../support/fake_backend.dart';
+import 'package:juniper_journal/src/shared/widgets/journal_draft_session.dart';
+import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:juniper_journal/src/backend/db/models/project.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
@@ -147,7 +150,19 @@ Future<void> _createBuildingComponent(
   await tester.pumpAndSettle();
 }
 
+// The exit-sheet Save draft action uses this session operation. Separate guard
+// tests cover the dialog; these cases keep the editor open to verify stage data.
+Future<void> _keepDraft(WidgetTester tester) async {
+  final session = tester
+      .widget<JournalDraftGuard>(find.byType(JournalDraftGuard).last)
+      .session;
+  expect(session.current, isNotNull);
+  expect(await session.keep(), isTrue);
+  await tester.pumpAndSettle();
+}
+
 void main() {
+  setUpAll(() => initializeFakeBackend(userId: 'creator'));
   setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets(
     'completion colors, final validation, preview and owner editing follow required content',
@@ -218,28 +233,25 @@ void main() {
       expect(dot(1), const Color(0xFF5DB075));
       await tester.tap(find.byKey(const ValueKey('stage-label-1')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).at(1), '');
+      final objective = find.byWidgetPredicate(
+        (w) => w is TextField && w.controller?.text == 'Does it open?',
+      );
+      final objectiveController = tester
+          .widget<TextField>(objective)
+          .controller;
+      await tester.enterText(objective, '');
       await tester.pump();
       expect(dot(1), Colors.white);
-      await tester.tap(find.text('Next Action').first);
+      await tester.tap(find.byKey(const ValueKey('stage-label-3')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Submit').last);
-      await tester.tap(find.text('Submit').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Complete your journal'), findsOneWidget);
-      expect(find.textContaining('• Test'), findsOneWidget);
-      expect(find.textContaining('• Learning'), findsNothing);
-      await tester.tap(find.text('Continue editing'));
-      await tester.pumpAndSettle();
-      expect(
-        (repo.entries.last.content.whereType<Map>().firstWhere(
-          (row) => row['stage'] == 'nextAction',
-        ))['submitted'],
-        isFalse,
+      expect(find.text('Submit'), findsNothing);
+      expect(find.text('Required'), findsWidgets);
+      await tester.enterText(
+        find.byWidgetPredicate(
+          (w) => w is TextField && w.controller == objectiveController,
+        ),
+        'Does it open?',
       );
-      await tester.tap(find.byKey(const ValueKey('stage-label-1')));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).at(1), 'Does it open?');
       await tester.pump();
       expect(dot(1), const Color(0xFF5DB075));
       await tester.tap(find.text('Next Action').first);
@@ -272,6 +284,8 @@ void main() {
       await tester.tap(find.byType(ItemActionMenu).last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Edit').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('stage-label-0')));
       await tester.pumpAndSettle();
       expect(find.text('Select Component'), findsOneWidget);
       expect(find.byType(TextField), findsWidgets);
@@ -398,23 +412,35 @@ void main() {
         tester,
         DiscoveryObservationEntryPage(projectId: 'p', projectsRepo: repo),
       );
-      expect(find.text('Discovery Title', findRichText: true), findsWidgets);
+      expect(
+        find.text('Discovery Title (Optional)', findRichText: true),
+        findsWidgets,
+      );
       final title = find.byType(TextField).first;
-      expect(tester.getSize(title).height, greaterThanOrEqualTo(64));
+      expect(
+        tester.getSize(title).height,
+        greaterThanOrEqualTo(AppMetrics.controlHeight),
+      );
       await tester.enterText(title, 'Campus waste observations');
       await tester.pump();
       expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('prototype-entry-title')))
-            .data,
-        'Journal Entry: Discovery',
+        tester.widget<TextField>(title).controller!.text,
+        'Campus waste observations',
       );
       await tester.enterText(
-        find.byType(TextField).at(1),
+        find
+            .byWidgetPredicate(
+              (w) =>
+                  w is TextField &&
+                  w.controller != tester.widget<TextField>(title).controller,
+            )
+            .first,
         'Students sort food scraps.',
       );
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
+      expect(repo.entries, isEmpty);
+      await _keepDraft(tester);
       expect(repo.entries.last.title, 'Campus waste observations');
       final observation = repo.entries.last.content.whereType<Map>().firstWhere(
         (row) => row['stage'] == 'observations',
@@ -545,7 +571,7 @@ void main() {
         find.byType(JournalInvolvedPeopleField),
       );
       expect(people.selectedIds, contains('creator'));
-      expect(find.text('Entry Creator'), findsOneWidget);
+      expect(find.text('Entry Creator · Author'), findsOneWidget);
       final evidence = find.text('+ Add Evidence Block');
       await tester.ensureVisible(evidence);
       await tester.tap(evidence);
@@ -654,7 +680,14 @@ void main() {
       );
       expect(tester.getCenter(fields.at(0)).dx, closeTo(sheetCenter, .01));
       expect(tester.getCenter(fields.at(1)).dx, closeTo(sheetCenter, .01));
-      expect(tester.getSize(fields.at(0)).height, greaterThanOrEqualTo(64));
+      expect(
+        tester.getSize(fields.at(0)).width,
+        tester.getSize(fields.at(1)).width,
+      );
+      expect(
+        tester.getSize(fields.at(1)).height,
+        greaterThan(tester.getSize(fields.at(0)).height),
+      );
       await tester.enterText(fields.at(0), 'Current Component');
       await tester.enterText(fields.at(1), 'Current purpose');
       await tester.ensureVisible(find.text('Create').last);
@@ -691,8 +724,12 @@ void main() {
       expect(find.text('Earlier Component'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
+      await _keepDraft(tester);
       final saved =
-          (repo.entries.last.content.first as Map)['component'] as Map;
+          repo.entries.last.content.whereType<Map>().firstWhere(
+                (row) => row['stage'] == 'prototyping',
+              )['component']
+              as Map;
       expect(saved['features'], hasLength(10));
       expect(saved['name'], 'Current Component');
       expect(
@@ -847,15 +884,26 @@ void main() {
       expect(find.text('Selected'), findsNothing);
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
-      expect((repo.entries.last.content.first as Map)['component'], isNull);
+      expect(
+        repo.entries.last.content.whereType<Map>().firstWhere(
+          (row) => row['stage'] == 'prototyping',
+        )['component'],
+        isNull,
+      );
       await tester.tap(find.text('Next').last);
       await tester.pumpAndSettle();
-      expect(find.text('Select or create a component.'), findsOneWidget);
+      expect(
+        find.text('Select or create a component, or choose No component.'),
+        findsOneWidget,
+      );
       await tester.ensureVisible(find.text('Cover'));
       await tester.tap(find.text('Cover'));
       await tester.pumpAndSettle();
       expect(find.text('Selected'), findsOneWidget);
-      expect(find.text('Select or create a component.'), findsNothing);
+      expect(
+        find.text('Select or create a component, or choose No component.'),
+        findsNothing,
+      );
       expect(find.text('Keep rain out'), findsOneWidget);
 
       await tester.ensureVisible(find.byType(ItemActionMenu).last);
@@ -877,8 +925,12 @@ void main() {
       expect(find.text('Water resistant'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
+      await _keepDraft(tester);
       final savedComponent =
-          (repo.entries.last.content.first as Map)['component'] as Map;
+          repo.entries.last.content.whereType<Map>().firstWhere(
+                (row) => row['stage'] == 'prototyping',
+              )['component']
+              as Map;
       expect(savedComponent['name'], 'Weather Cover');
       expect(savedComponent['features'], ['Water resistant']);
       await tester.tap(find.byType(ItemActionMenu).last);
@@ -887,7 +939,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('+ Create New Component'), findsOneWidget);
       expect(
-        repo.entries.first.content.first['createdComponents'],
+        repo.entries.first.content.whereType<Map>().firstWhere(
+          (row) => row['stage'] == 'prototyping',
+        )['createdComponents'],
         hasLength(3),
       );
       expect(tester.takeException(), isNull);
@@ -944,6 +998,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '$type record');
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
+      await _keepDraft(tester);
       tester.state<NavigatorState>(find.byType(Navigator).first).pop(true);
       await tester.pumpAndSettle();
     }
@@ -994,7 +1049,7 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     await tester.tap(find.text('Learning').first);
     await tester.pumpAndSettle();
-    expect(find.text('Design'), findsOneWidget);
+    expect(find.text('Looking through a design lens'), findsOneWidget);
     expect(find.text('Assessment'), findsNothing);
     expect(find.text('No assessment type selected.'), findsNothing);
     expect(find.text('DCI'), findsNothing);
@@ -1056,10 +1111,15 @@ void main() {
           await _createBuildingComponent(tester);
         final title = 'New $type prototype';
         final fields = find.byType(TextField);
+        final edited = <TextEditingController>{};
         for (var index = 0; index < fields.evaluate().length; index++) {
+          final controller = tester
+              .widget<TextField>(fields.at(index))
+              .controller!;
+          if (!edited.add(controller)) continue;
           await tester.enterText(
             fields.at(index),
-            index == 0 ? title : 'Work details $index',
+            edited.length == 1 ? title : 'Work details $index',
           );
         }
         if (type == 'testing') {
@@ -1095,34 +1155,44 @@ void main() {
         }
         await tester.pump(const Duration(seconds: 1));
         await tester.pumpAndSettle();
+        expect(repo.entries, isEmpty);
+        await _keepDraft(tester);
         expect(repo.entries, hasLength(1));
         final data = repo.saved!.whereType<Map>().firstWhere(
           (row) => row['stage'] == 'prototyping',
         );
         expect(data['entryType'], type);
         expect(data['title'], title);
-        expect(
-          tester
-              .widget<Text>(find.byKey(const ValueKey('prototype-entry-title')))
-              .data,
-          'Journal Entry: Prototyping',
-        );
+        expect(find.text(title), findsWidgets);
         if (type == 'testing') {
           expect(data['outcome'], 'Validated');
           expect(data['component'], isA<Map>());
           expect(data['testingWorkflow'], true);
         }
         expect(data.containsKey('iterations'), isFalse);
+        if (type == 'building') {
+          await tester.tap(find.byKey(const ValueKey('stage-label-2')));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(
+            find.text('No materials or costs for this build'),
+          );
+          await tester.tap(find.text('No materials or costs for this build'));
+          await tester.pumpAndSettle();
+        } else if (type == 'technical_analysis') {
+          await tester.ensureVisible(find.text('+ Data Source'));
+          await tester.tap(find.text('+ Data Source'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Field Measurements'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Add Selected (1)'));
+          await tester.pumpAndSettle();
+        }
         final routeCount = observer.pushes;
+        await tester.ensureVisible(find.text('Learning').first);
         await tester.tap(find.text('Learning').first);
         await tester.pumpAndSettle();
         expect(find.text('Inquiry Lens'), findsOneWidget);
-        expect(
-          tester
-              .widget<Text>(find.byKey(const ValueKey('prototype-entry-title')))
-              .data,
-          'Journal Entry: Prototyping',
-        );
+        expect(find.text('Journal Entry: Prototyping'), findsOneWidget);
         expect(observer.pushes, routeCount);
         await tester.tap(find.text('Next Action').first);
         await tester.pumpAndSettle();
@@ -1276,8 +1346,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Next Action').first);
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Learning').first);
       await tester.tap(find.text('Learning').first);
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(kind).first);
       await tester.tap(find.text(kind).first);
       await tester.pumpAndSettle();
       for (var index = 0; index < 3; index++) {

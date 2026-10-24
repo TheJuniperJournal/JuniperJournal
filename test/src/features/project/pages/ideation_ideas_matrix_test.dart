@@ -151,7 +151,7 @@ void main() {
       await _openIdeas(tester, repo);
       await tester.tap(find.text('Learning').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Challenge').first);
+      await tester.tap(find.byKey(const ValueKey('stage-label-0')));
       await tester.pumpAndSettle();
       Color? dot(int index) =>
           (tester
@@ -185,7 +185,7 @@ void main() {
     tester,
   ) async {
     await _openIdeas(tester, _Repo(), desktop: true);
-    await tester.tap(find.text('Challenge').first);
+    await tester.tap(find.byKey(const ValueKey('stage-label-0')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Changed challenge');
     await tester.pump(const Duration(seconds: 1));
@@ -196,9 +196,7 @@ void main() {
       tester.getCenter(find.text('Saved')).dx,
       closeTo(tester.getCenter(find.text('Next')).dx, 8.01),
     );
-    final headerCenter = tester
-        .getCenter(find.text('Journal Entry: Ideation'))
-        .dx;
+    final headerCenter = tester.getCenter(find.byType(TextField).first).dx;
     for (final label in ['+ Add Objective', '+ Add File', 'Next']) {
       expect(
         tester.getCenter(find.text(label)).dx,

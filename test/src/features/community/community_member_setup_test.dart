@@ -101,7 +101,7 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 400));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Amelia Yang'));
+        await tester.tap(find.byTooltip('Add Amelia Yang'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Add', skipOffstage: true));
         await tester.pumpAndSettle();

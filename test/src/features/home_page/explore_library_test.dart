@@ -1,3 +1,6 @@
+import 'package:juniper_journal/src/shared/widgets/page_refresh_state.dart';
+import '../../../support/fake_backend.dart';
+import 'package:juniper_journal/src/shared/widgets/public_site_frame.dart';
 import 'package:juniper_journal/src/shared/widgets/explore_project_card.dart';
 import 'package:juniper_journal/src/features/home_page/pages/public_explore.dart';
 import 'package:juniper_journal/src/features/home_page/pages/login.dart';
@@ -113,6 +116,7 @@ class _Communities extends CommunitiesRepo {
 }
 
 void main() {
+  setUpAll(() => initializeFakeBackend());
   testWidgets(
     'sidebar subject selection filters the regular library and can be changed',
     (tester) async {
@@ -187,8 +191,17 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final repo = _Repo();
+      final navigation = GlobalKey<NavigatorState>();
       await tester.pumpWidget(
         MaterialApp(
+          navigatorKey: navigation,
+          navigatorObservers: [PageRefreshState.instance],
+          builder: (_, child) =>
+              PublicSiteFrame(navigatorKey: navigation, child: child!),
+          routes: {
+            '/login': (_) => const LoginScreen(),
+            '/signup': (_) => const SignupScreen(),
+          },
           home: PublicExploreScreen(
             projectsRepo: repo,
             communitiesRepo: _Communities(),
@@ -206,12 +219,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Gardeners'), findsOneWidget);
       expect(find.text('Private group'), findsNothing);
-      await tester.tap(find.text('Log in'));
+      await tester.tap(find.text('Log In'));
       await tester.pumpAndSettle();
       expect(find.byType(LoginScreen), findsOneWidget);
       tester.state<NavigatorState>(find.byType(Navigator).first).pop();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Create account'));
+      await tester.tap(find.text('Log In'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Sign up'));
+      await tester.tap(find.text('Sign up'));
       await tester.pumpAndSettle();
       expect(find.byType(SignupScreen), findsOneWidget);
       expect(repo.bookmarked, isFalse);

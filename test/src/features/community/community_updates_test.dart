@@ -211,7 +211,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(LinearProgressIndicator), findsNWidgets(4));
+      expect(find.text('Public garden'), findsNothing);
+      await tester.tap(find.text('Environment & Sustainability').first);
+      await tester.pumpAndSettle();
       expect(find.text('Public garden'), findsOneWidget);
+      await tester.tap(find.byTooltip('Close').last);
+      await tester.pumpAndSettle();
       expect(
         find.text('2 completed journal entries · 12 EcoPoints'),
         findsOneWidget,

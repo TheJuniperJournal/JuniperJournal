@@ -58,6 +58,9 @@ void main() {
         await tester.tapAt(const Offset(5, 5));
         await tester.pumpAndSettle();
         expect(find.byType(TextField), findsOneWidget);
+        expect(find.text('Discard changes?'), findsOneWidget);
+        await tester.tap(find.text('Keep Editing'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Close form'));
         await tester.pumpAndSettle();
         expect(find.text('Discard changes?'), findsOneWidget);
