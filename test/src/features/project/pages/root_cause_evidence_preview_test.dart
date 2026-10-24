@@ -78,6 +78,8 @@ const entry = JournalEntry(
                 ],
                 'rows': [
                   {'c1': 'Monday', 'c2': '3 kg'},
+                  {'c1': 'Tuesday', 'c2': ''},
+                  {'c1': '', 'c2': ''},
                 ],
               },
             },
@@ -129,6 +131,11 @@ void main() {
       expect(find.byType(DataTable), findsOneWidget);
       expect(find.text('Monday'), findsOneWidget);
       expect(find.text('3 kg'), findsOneWidget);
+      expect(
+        tester.widget<DataTable>(find.byType(DataTable)).rows,
+        hasLength(2),
+      );
+      expect(find.text('—'), findsOneWidget);
       expect(find.text('Leftover food'), findsOneWidget);
       expect(find.text('Watch video'), findsOneWidget);
       expect(find.text('Open link'), findsOneWidget);

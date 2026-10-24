@@ -155,6 +155,54 @@ class _SettingsAccessRepo extends _CountingProjectsRepo {
 }
 
 void main() {
+  for (final phase in [
+    'discover',
+    'ideating',
+    'prototyping',
+    'implementation',
+  ]) {
+    testWidgets(
+      '$phase dashboard Back opens project overview from a direct link',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        tester.view.physicalSize = const Size(1440, 1000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final repo = _RefreshProjectsRepo();
+        final page = switch (phase) {
+          'discover' => DiscoveryDashboardPage(
+            projectId: 'p',
+            isOwner: false,
+            projectsRepo: repo,
+          ),
+          'ideating' => IdeatingDashboardPage(
+            projectId: 'p',
+            isOwner: false,
+            projectsRepo: repo,
+          ),
+          'prototyping' => PrototypingDashboardPage(
+            projectId: 'p',
+            isOwner: false,
+            projectsRepo: repo,
+          ),
+          _ => ImplementationDashboardPage(
+            projectId: 'p',
+            isOwner: false,
+            projectsRepo: repo,
+          ),
+        };
+        await tester.pumpWidget(MaterialApp(home: page));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('content-back-chevron')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProjectDashboard), findsOneWidget);
+        expect(find.text('Impact Summary'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final wide in [false, true]) {
     testWidgets(
       'impact preview keeps breathing room and wraps categories at ${wide ? "desktop" : "mobile"} width',

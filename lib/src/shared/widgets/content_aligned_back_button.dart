@@ -1,7 +1,7 @@
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:flutter/material.dart';
 
-/// The visible chevron starts at the content edge; the tap area remains 44px.
+/// A centered chevron and feedback share a fixed 44px tap area.
 class ContentAlignedBackButton extends StatelessWidget {
   const ContentAlignedBackButton({
     super.key,
@@ -23,20 +23,24 @@ class ContentAlignedBackButton extends StatelessWidget {
         cursor: onPressed == null
             ? SystemMouseCursors.basic
             : SystemMouseCursors.click,
-        child: AppTapTarget(
-          highlightInsets: const EdgeInsets.fromLTRB(0, 7, 30, 7),
-          highlightBorderRadius: BorderRadius.circular(4),
-          behavior: HitTestBehavior.opaque,
-          onTap: onPressed,
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: CustomPaint(
-                key: const ValueKey('content-back-chevron'),
-                size: Size(size * .36, size * .66),
-                painter: _EdgeChevron(color),
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: AppTapTarget(
+            highlightInsets: EdgeInsets.zero,
+            highlightBorderRadius: BorderRadius.circular(4),
+            behavior: HitTestBehavior.opaque,
+            onTap: onPressed,
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Align(
+                alignment: Alignment.center,
+                child: CustomPaint(
+                  key: const ValueKey('content-back-chevron'),
+                  size: Size(size * .36, size * .66),
+                  painter: _EdgeChevron(color),
+                ),
               ),
             ),
           ),

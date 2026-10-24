@@ -26,6 +26,7 @@ ThemeData buildAppTheme() {
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
         overlayColor: pointerOverlay,
+        alignment: Alignment.center,
         minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
         padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
         shape: const WidgetStatePropertyAll(CircleBorder()),

@@ -1,0 +1,471 @@
+[
+  {
+    "id": "qa-discover",
+    "project_id": "p",
+    "title": "QA Guided Discovery \u2014 evidence and water observations",
+    "progress": "discover",
+    "content": [
+      {
+        "stage": "_navigation",
+        "currentStage": 0,
+        "visitedStages": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "known": "A green and blue test image and three mock measurements are available.",
+        "stage": "observations",
+        "title": "QA Guided Discovery \u2014 evidence and water observations",
+        "involved": [],
+        "location": "QA demonstration workspace",
+        "observed": "The synthetic demonstration planter needs consistent water measurements and an accessible evidence record."
+      },
+      {
+        "stage": "analyze",
+        "rootCauses": [
+          {
+            "title": "Missing baseline records",
+            "reason": "A shared log has not been introduced.",
+            "evidence": [
+              {
+                "data": {
+                  "title": "QA green image",
+                  "images": [
+                    {
+                      "url": "https://example.com/qa-green.png",
+                      "description": "Synthetic green evidence"
+                    },
+                    {
+                      "url": "https://example.com/qa-green.png",
+                      "description": "Synthetic green evidence"
+                    }
+                  ],
+                  "caption": "Image upload and caption persistence test."
+                },
+                "type": "Images"
+              },
+              {
+                "data": {
+                  "rows": [
+                    {
+                      "col-1": "Trial A",
+                      "col-2": "10",
+                      "col-3": "Pass"
+                    },
+                    {
+                      "col-1": "Trial B",
+                      "col-2": "12",
+                      "col-3": "Pass"
+                    },
+                    {
+                      "col-1": "Trial C",
+                      "col-2": "11",
+                      "col-3": "Pass"
+                    }
+                  ],
+                  "title": "QA measurements table",
+                  "columns": [
+                    {
+                      "id": "col-1",
+                      "name": "Trial",
+                      "order_index": 0
+                    },
+                    {
+                      "id": "col-2",
+                      "name": "Measurement (mL)",
+                      "order_index": 1
+                    },
+                    {
+                      "id": "col-3",
+                      "name": "Result",
+                      "order_index": 2
+                    }
+                  ],
+                  "inquiry": {
+                    "lens": "",
+                    "custom_focus": [],
+                    "thinking_focus": [],
+                    "student_response": "",
+                    "student_instruction": ""
+                  },
+                  "row_count": 3,
+                  "assessment": {},
+                  "updated_at": "2026-10-24T02:21:29.867Z",
+                  "inquiry_lens": "None",
+                  "inquiry_lens_data": {
+                    "lens_states": {},
+                    "selected_lens": "None"
+                  }
+                },
+                "type": "Table"
+              },
+              {
+                "data": {
+                  "id": "1792808383782000",
+                  "url": "https://example.org/qa-evidence-revised",
+                  "title": "QA link evidence",
+                  "inquiry": {
+                    "lens": "",
+                    "custom_focus": [],
+                    "thinking_focus": [],
+                    "student_response": "",
+                    "student_instruction": ""
+                  },
+                  "assessment": {},
+                  "created_at": "2026-10-24T02:19:43.782Z",
+                  "updated_at": "2026-10-24T10:24:23.238Z",
+                  "description": "Revised QA link caption after completion.",
+                  "inquiry_lens": "None",
+                  "inquiry_lens_data": {
+                    "lens_states": {},
+                    "selected_lens": "None"
+                  }
+                },
+                "type": "Link"
+              }
+            ],
+            "description": "Measurements have no consistent record."
+          }
+        ],
+        "patternChange": "Reduction",
+        "patternExplanation": "Reduce unnecessary water use by making trial measurements repeatable."
+      },
+      {
+        "stage": "question",
+        "questions": [
+          {
+            "text": "How can repeatable measurements improve the planter demonstration?",
+            "type": "How"
+          }
+        ]
+      },
+      {
+        "ccc": [
+          "Systems & System Models"
+        ],
+        "dci": [
+          "Human Impact on Natural Systems"
+        ],
+        "sep": [
+          "Designing Solutions"
+        ],
+        "stage": "learning",
+        "assessment": {},
+        "inquiryLens": "Design",
+        "inquiryLensData": {
+          "lens_states": {
+            "Design": {
+              "updated_at": "2026-10-24T02:27:30.162Z",
+              "custom_focus_items": [],
+              "checked_focus_items": [],
+              "student_instruction": "",
+              "selected_student_response": "Write"
+            }
+          },
+          "selected_lens": "Design"
+        }
+      },
+      {
+        "notes": "Public QA fixture only; no real environmental impact claimed.",
+        "stage": "nextAction",
+        "learned": "Structured prompts connect observations, evidence and decisions.",
+        "nextSteps": "Repeat the measurement protocol and review saved evidence with a collaborator.",
+        "submitted": true,
+        "challenges": "Synthetic trials do not establish real environmental savings."
+      }
+    ]
+  },
+  {
+    "id": "qa-ideating",
+    "project_id": "p",
+    "title": "QA Guided Ideation \u2014 compare two planter designs",
+    "progress": "ideating",
+    "content": [
+      {
+        "stage": "_navigation",
+        "currentStage": 0,
+        "visitedStages": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "stage": "challenge",
+        "title": "QA Guided Ideation \u2014 compare two planter designs",
+        "problem": "Design an easy-to-measure demonstration planter using reusable parts.",
+        "involved": [],
+        "objectives": [
+          {
+            "id": "qa-objective",
+            "text": "Compare water measurements while reusing the existing frame."
+          }
+        ],
+        "supportingContext": {
+          "data": {
+            "id": "1792808383782000",
+            "url": "https://example.org/qa-evidence-revised",
+            "title": "QA link evidence",
+            "inquiry": {
+              "lens": "",
+              "custom_focus": [],
+              "thinking_focus": [],
+              "student_response": "",
+              "student_instruction": ""
+            },
+            "assessment": {},
+            "created_at": "2026-10-24T02:19:43.782Z",
+            "updated_at": "2026-10-24T10:24:23.238Z",
+            "description": "Revised QA link caption after completion.",
+            "inquiry_lens": "None",
+            "inquiry_lens_data": {
+              "lens_states": {},
+              "selected_lens": "None"
+            }
+          },
+          "type": "Link"
+        }
+      },
+      {
+        "items": [
+          {
+            "id": "qa-idea-a",
+            "title": "Wick reservoir",
+            "rationale": "Easy to assemble and observe.",
+            "description": "Use a reusable reservoir and wick."
+          },
+          {
+            "id": "qa-idea-b",
+            "title": "Timed drip",
+            "rationale": "Allows a controlled comparison.",
+            "description": "Use a measured drip and catch tray."
+          }
+        ],
+        "stage": "ideas"
+      },
+      {
+        "stage": "decisionMatrix",
+        "criteria": [
+          {
+            "id": "qa-criterion-a",
+            "weight": 60,
+            "ratings": {
+              "qa-idea-a": 4,
+              "qa-idea-b": 5
+            },
+            "criterion": "Ease of measurement"
+          },
+          {
+            "id": "qa-criterion-b",
+            "weight": 40,
+            "ratings": {
+              "qa-idea-a": 5,
+              "qa-idea-b": 3
+            },
+            "criterion": "Reuse of materials"
+          }
+        ]
+      },
+      {
+        "ccc": [
+          "Systems & System Models"
+        ],
+        "dci": [
+          "Human Impact on Natural Systems"
+        ],
+        "sep": [
+          "Designing Solutions"
+        ],
+        "stage": "learning",
+        "assessment": {},
+        "inquiryLens": "Design",
+        "inquiryLensData": {
+          "lens_states": {
+            "Design": {
+              "updated_at": "2026-10-24T02:27:30.162Z",
+              "custom_focus_items": [],
+              "checked_focus_items": [],
+              "student_instruction": "",
+              "selected_student_response": "Write"
+            }
+          },
+          "selected_lens": "Design"
+        }
+      },
+      {
+        "notes": "Public QA fixture only; no real environmental impact claimed.",
+        "stage": "nextAction",
+        "learned": "Structured prompts connect observations, evidence and decisions.",
+        "nextSteps": "Repeat the measurement protocol and review saved evidence with a collaborator.",
+        "submitted": true,
+        "challenges": "Synthetic trials do not establish real environmental savings."
+      }
+    ]
+  },
+  {
+    "id": "qa-implementation",
+    "project_id": "p",
+    "title": "QA Guided Implementation \u2014 demonstration review",
+    "progress": "implementation",
+    "content": [
+      {
+        "stage": "_navigation",
+        "currentStage": 0,
+        "visitedStages": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "stage": "overview",
+        "summary": "Installed a synthetic planter demonstration and reviewed the mock measurement log. No real savings claimed.",
+        "evidence": [
+          {
+            "data": {
+              "title": "QA green image",
+              "images": [
+                {
+                  "url": "https://example.com/qa-green.png",
+                  "description": "Synthetic green evidence"
+                },
+                {
+                  "url": "https://example.com/qa-green.png",
+                  "description": "Synthetic green evidence"
+                }
+              ],
+              "caption": "Image upload and caption persistence test."
+            },
+            "type": "Images"
+          },
+          {
+            "data": {
+              "rows": [
+                {
+                  "col-1": "Trial A",
+                  "col-2": "10",
+                  "col-3": "Pass"
+                },
+                {
+                  "col-1": "Trial B",
+                  "col-2": "12",
+                  "col-3": "Pass"
+                },
+                {
+                  "col-1": "Trial C",
+                  "col-2": "11",
+                  "col-3": "Pass"
+                }
+              ],
+              "title": "QA measurements table",
+              "columns": [
+                {
+                  "id": "col-1",
+                  "name": "Trial",
+                  "order_index": 0
+                },
+                {
+                  "id": "col-2",
+                  "name": "Measurement (mL)",
+                  "order_index": 1
+                },
+                {
+                  "id": "col-3",
+                  "name": "Result",
+                  "order_index": 2
+                }
+              ],
+              "inquiry": {
+                "lens": "",
+                "custom_focus": [],
+                "thinking_focus": [],
+                "student_response": "",
+                "student_instruction": ""
+              },
+              "row_count": 3,
+              "assessment": {},
+              "updated_at": "2026-10-24T02:21:29.867Z",
+              "inquiry_lens": "None",
+              "inquiry_lens_data": {
+                "lens_states": {},
+                "selected_lens": "None"
+              }
+            },
+            "type": "Table"
+          },
+          {
+            "data": {
+              "id": "1792808383782000",
+              "url": "https://example.org/qa-evidence-revised",
+              "title": "QA link evidence",
+              "inquiry": {
+                "lens": "",
+                "custom_focus": [],
+                "thinking_focus": [],
+                "student_response": "",
+                "student_instruction": ""
+              },
+              "assessment": {},
+              "created_at": "2026-10-24T02:19:43.782Z",
+              "updated_at": "2026-10-24T10:24:23.238Z",
+              "description": "Revised QA link caption after completion.",
+              "inquiry_lens": "None",
+              "inquiry_lens_data": {
+                "lens_states": {},
+                "selected_lens": "None"
+              }
+            },
+            "type": "Link"
+          }
+        ],
+        "involved": [],
+        "location": "QA demonstration workspace"
+      },
+      {
+        "stage": "assessment",
+        "complete": true
+      },
+      {
+        "ccc": [
+          "Systems & System Models"
+        ],
+        "dci": [
+          "Human Impact on Natural Systems"
+        ],
+        "sep": [
+          "Designing Solutions"
+        ],
+        "stage": "learning",
+        "assessment": {},
+        "inquiryLens": "Design",
+        "inquiryLensData": {
+          "lens_states": {
+            "Design": {
+              "updated_at": "2026-10-24T02:27:30.162Z",
+              "custom_focus_items": [],
+              "checked_focus_items": [],
+              "student_instruction": "",
+              "selected_student_response": "Write"
+            }
+          },
+          "selected_lens": "Design"
+        }
+      },
+      {
+        "stage": "reflection",
+        "change": "Collect real baseline data before an environmental impact assessment.",
+        "didntWork": "Synthetic evidence cannot prove water savings.",
+        "submitted": true,
+        "workedWell": "The labeled image, table and link make the demonstration easy to review.",
+        "keyTakeaways": "Keep repeatable measurements attached to the corresponding journal."
+      }
+    ]
+  }
+]

@@ -309,6 +309,26 @@ Future<void> _openNewFreeNotes(
   );
 }
 
+/// Phase dashboards return to their project even when opened from a deep link.
+void _returnToProjectOverview(
+  BuildContext context,
+  String projectId,
+  ProjectsRepo repo,
+  bool isOwner,
+) {
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute(
+      builder: (_) => ProjectDashboard(
+        projectId: projectId,
+        projectName: '',
+        tags: const [],
+        projectsRepo: repo,
+        isOwner: isOwner,
+      ),
+    ),
+  );
+}
+
 class ProjectDevelopmentTab extends StatelessWidget {
   const ProjectDevelopmentTab({
     super.key,
@@ -714,7 +734,12 @@ class _ImplementationDashboardPageState
       repo: widget.projectsRepo,
       child: _PrototypeScaffold(
         title: 'Implementation',
-        onBack: () => Navigator.of(context).pop(true),
+        onBack: () => _returnToProjectOverview(
+          context,
+          widget.projectId,
+          widget.projectsRepo,
+          widget.isOwner,
+        ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
@@ -2550,7 +2575,12 @@ class _DiscoveryDashboardPageState extends State<DiscoveryDashboardPage> {
       isLoading: _isLoading,
       isOwner: widget.isOwner,
       badgeLabel: 'DISCOVERY',
-      onBack: () => Navigator.of(context).pop(true),
+      onBack: () => _returnToProjectOverview(
+        context,
+        widget.projectId,
+        widget.projectsRepo,
+        widget.isOwner,
+      ),
       onAddEntry: _openEntry,
       onOpenEntry: _editEntry,
       onDeleteEntry: _deleteEntry,
@@ -2734,7 +2764,12 @@ class _IdeatingDashboardPageState extends State<IdeatingDashboardPage> {
       isLoading: _isLoading,
       isOwner: widget.isOwner,
       badgeLabel: 'IDEATING',
-      onBack: () => Navigator.of(context).pop(true),
+      onBack: () => _returnToProjectOverview(
+        context,
+        widget.projectId,
+        widget.projectsRepo,
+        widget.isOwner,
+      ),
       onAddEntry: () => _openEntry(),
       onOpenEntry: _openEntry,
       onDeleteEntry: _deleteEntry,
@@ -2920,7 +2955,12 @@ class _PrototypingDashboardPageState extends State<PrototypingDashboardPage> {
     isLoading: _isLoading,
     isOwner: widget.isOwner,
     badgeLabel: 'PROTOTYPING',
-    onBack: () => Navigator.pop(context, true),
+    onBack: () => _returnToProjectOverview(
+      context,
+      widget.projectId,
+      widget.projectsRepo,
+      widget.isOwner,
+    ),
     onAddEntry: _addEntry,
     onOpenEntry: _openEntry,
     onEditEntry: (entry) => _openEntry(entry, edit: true),
@@ -5298,7 +5338,7 @@ class _PrototypeTopBar extends StatelessWidget {
           ),
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 56),
+              padding: EdgeInsets.symmetric(horizontal: inset + 52),
               child: titleController != null
                   ? TextField(
                       controller: titleController,
@@ -16404,7 +16444,7 @@ class _RootCauseCompactCardState extends State<_RootCauseCompactCard> {
       behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _expanded = true),
       child: Container(
-        height: 67,
+        constraints: const BoxConstraints(minHeight: 67),
         margin: const EdgeInsets.only(bottom: 19),
         padding: const EdgeInsets.fromLTRB(25, 10, 24, 9),
         decoration: BoxDecoration(
@@ -16418,6 +16458,7 @@ class _RootCauseCompactCardState extends State<_RootCauseCompactCard> {
             const SizedBox(width: 18),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -17209,7 +17250,7 @@ class _TableEvidencePreview extends StatelessWidget {
         child: DataTable(
           headingRowHeight: 36,
           dataRowMinHeight: 32,
-          dataRowMaxHeight: 60,
+          dataRowMaxHeight: 44,
           columnSpacing: 18,
           horizontalMargin: 10,
           columns: [
@@ -17226,13 +17267,19 @@ class _TableEvidencePreview extends StatelessWidget {
               ),
           ],
           rows: [
-            for (final row in data.rows)
+            for (final row in data.rows.where(
+              (row) => data.columns.any(
+                (column) => (row[column.id] ?? '').trim().isNotEmpty,
+              ),
+            ))
               DataRow(
                 cells: [
                   for (final column in data.columns)
                     DataCell(
                       Text(
-                        row[column.id] ?? '',
+                        (row[column.id] ?? '').trim().isEmpty
+                            ? '—'
+                            : row[column.id]!,
                         style: const TextStyle(
                           fontFamily: AppTypography.bodyFamily,
                           fontSize: AppTypography.helperSize,
@@ -17406,25 +17453,40 @@ class _ImageEvidencePreviewState extends State<_ImageEvidencePreview> {
                 onTap: () => showAppDialog<void>(
                   context: context,
                   builder: (context) => Dialog(
-                    child: Stack(
-                      children: [
-                        InteractiveViewer(
-                          child: ProtectedImage.network(
-                            url,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                _unavailable('Image could not be loaded.'),
+                    insetPadding: const EdgeInsets.all(24),
+                    child: SizedBox(
+                      width: MediaQuery.sizeOf(context).width * .85,
+                      height: MediaQuery.sizeOf(context).height * .8,
+                      child: Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              tooltip: 'Close image',
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close),
+                            ),
                           ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: InteractiveViewer(
+                                child: Center(
+                                  child: ProtectedImage.network(
+                                    url,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => _unavailable(
+                                      'Image could not be loaded.',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
