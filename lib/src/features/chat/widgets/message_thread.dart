@@ -58,44 +58,38 @@ class InlineMessageThread extends StatefulWidget {
 class _InlineMessageThreadState extends State<InlineMessageThread> {
   bool _expanded = true;
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: widget.isSent ? Alignment.centerRight : Alignment.centerLeft,
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 440),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          widget.parent,
-          if (widget.replies.isNotEmpty) ...[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => setState(() => _expanded = !_expanded),
-                child: Text(
-                  '${widget.replies.length} ${widget.replies.length == 1 ? 'Reply' : 'Replies'}',
-                ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      widget.parent,
+      if (widget.replies.isNotEmpty) ...[
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => setState(() => _expanded = !_expanded),
+            child: Text(
+              '${widget.replies.length} ${widget.replies.length == 1 ? 'Reply' : 'Replies'}',
+            ),
+          ),
+        ),
+        if (_expanded)
+          CustomPaint(
+            painter: const _ReplyConnectorPainter(),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: 40,
+                right: 0,
+                top: 4,
+                bottom: 22,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: widget.replies,
               ),
             ),
-            if (_expanded)
-              CustomPaint(
-                painter: const _ReplyConnectorPainter(),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 40,
-                    right: 4,
-                    top: 4,
-                    bottom: 22,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: widget.replies,
-                  ),
-                ),
-              ),
-          ],
-        ],
-      ),
-    ),
+          ),
+      ],
+    ],
   );
 }
 
