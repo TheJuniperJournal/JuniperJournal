@@ -2213,9 +2213,6 @@ class ImplementationPreviewPage extends StatefulWidget {
 }
 
 class _ImplementationPreviewPageState extends State<ImplementationPreviewPage> {
-  late final _previewImpacts = widget.projectsRepo.getImpactEntries(
-    projectId: widget.projectId,
-  );
   var _stage = 0;
 
   String _summary = '';
@@ -2302,27 +2299,6 @@ class _ImplementationPreviewPageState extends State<ImplementationPreviewPage> {
                   for (final block in _evidence)
                     _EvidencePreviewBlock(evidence: block),
                 ],
-              ],
-            ),
-            _PreviewPanel(
-              title: 'Assessment',
-              children: [
-                FutureBuilder<List<ImpactEntry>?>(
-                  future: _previewImpacts,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData)
-                      return const Center(child: CircularProgressIndicator());
-                    return Column(
-                      children: [
-                        for (final impact in snapshot.data!.where(
-                          (impact) =>
-                              impact.linkedJournalEntryId == widget.entry.id,
-                        ))
-                          _ImplementationImpactCard(impact: impact),
-                      ],
-                    );
-                  },
-                ),
               ],
             ),
             _LearningPreviewContent(
