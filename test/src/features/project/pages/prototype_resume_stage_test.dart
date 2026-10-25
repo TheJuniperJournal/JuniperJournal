@@ -30,9 +30,11 @@ void main() {
         : type == 'testing'
         ? 4
         : 3;
-    for (var section = 0; section < stages; section++) {
+    for (var section = 0; section <= stages; section++) {
       testWidgets(
-        '$type reopens saved section $section in its matching editor',
+        section == stages
+            ? '$type completed entry reopens at the first stage'
+            : '$type reopens saved section $section in its matching editor',
         (tester) async {
           tester.view.physicalSize = const Size(1200, 1800);
           tester.view.devicePixelRatio = 1;
@@ -83,12 +85,12 @@ void main() {
                       'challenges': 'Challenge',
                       'nextSteps': 'Next',
                       'learned': 'Learning',
-                      'submitted': false,
+                      'submitted': section == stages,
                     },
                     {
                       'stage': '_navigation',
                       'currentStage': section,
-                      'visitedStages': List.generate(stages, (i) => i),
+                      'visitedStages': List.generate(section + 1, (i) => i),
                     },
                   ],
                 ),
@@ -100,14 +102,15 @@ void main() {
             tester
                 .widget<ProgressTracker>(find.byType(ProgressTracker).first)
                 .currentIndex,
-            section,
+            section == stages ? 0 : section,
           );
-          if (section == 0 && type == 'technical_analysis') {
+          if ((section == 0 || section == stages) &&
+              type == 'technical_analysis') {
             expect(
               find.text('Baseline Description', findRichText: true),
               findsOneWidget,
             );
-          } else if (section == 0) {
+          } else if (section == 0 || section == stages) {
             expect(find.text('Component').last, findsOneWidget);
           }
           expect(tester.takeException(), isNull);

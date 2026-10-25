@@ -93,4 +93,54 @@ void main() {
     );
     expect(restoredJournalStage([], 5), 0);
   });
+  test('completed journal entries always reopen at the first stage', () {
+    for (final length in [3, 4, 5]) {
+      expect(
+        restoredJournalStage(
+          [
+            {
+              'stage': '_navigation',
+              'currentStage': length - 1,
+              'visitedStages': List.generate(length, (i) => i),
+            },
+          ],
+          length,
+          completed: true,
+        ),
+        0,
+      );
+    }
+  });
+  test('draft resumes furthest stage even after navigating back', () {
+    expect(
+      restoredJournalStage([
+        {
+          'stage': '_navigation',
+          'currentStage': 1,
+          'visitedStages': [0, 1, 2, 3],
+        },
+      ], 5),
+      3,
+    );
+    expect(
+      restoredJournalStage([
+        {
+          'stage': '_navigation',
+          'currentStage': 4,
+          'visitedStages': [0, 1],
+        },
+      ], 5),
+      4,
+    );
+    expect(
+      restoredJournalStage([
+        {
+          'stage': '_navigation',
+          'currentStage': -2,
+          'visitedStages': ['invalid', -1, 9],
+        },
+      ], 4),
+      3,
+    );
+  });
 }

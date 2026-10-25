@@ -1052,6 +1052,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
     final savedStage = restoredJournalStage(
       entry.content,
       _ImplementationStage.values.length,
+      completed: journalEntryIsComplete(entry),
     );
     _stage = _ImplementationStage.values[savedStage];
     _entryId = entry.id;
@@ -3897,6 +3898,7 @@ class _PrototypingJournalEntryPageState
     _buildingStage = restoredJournalStage(
       widget.entry?.content ?? [],
       _labels.length,
+      completed: widget.entry != null && journalEntryIsComplete(widget.entry!),
     );
     // Only Learning and Next Action belong to the guided continuation. Earlier
     // saved sections must reopen their own editor (component, build or analysis).
@@ -5393,6 +5395,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
     final savedStage = restoredJournalStage(
       entry.content,
       _IdeatingStage.values.length,
+      completed: journalEntryIsComplete(entry),
     );
     _stage = _IdeatingStage.values[savedStage];
     _entryId = entry.id;
@@ -12671,6 +12674,7 @@ class _DiscoveryObservationEntryPageState
     final savedStage = restoredJournalStage(
       entry.content,
       _DiscoveryStage.values.length,
+      completed: journalEntryIsComplete(entry),
     );
     _stage = _DiscoveryStage.values[savedStage];
     _entryId = entry.id;

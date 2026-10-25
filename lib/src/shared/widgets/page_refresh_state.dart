@@ -376,10 +376,25 @@ class PageRefreshState extends NavigatorObserver {
   }
 }
 
-int restoredJournalStage(List<dynamic> content, int length) {
+/// Completed entries reopen from the beginning; drafts resume their furthest visit.
+int restoredJournalStage(
+  List<dynamic> content,
+  int length, {
+  bool completed = false,
+}) {
+  if (completed || length <= 1) return 0;
+  var furthest = 0;
   for (final row in content.whereType<Map>()) {
-    if (row['stage'] == '_navigation' && row['currentStage'] is int)
-      return (row['currentStage'] as int).clamp(0, length - 1);
+    if (row['stage'] != '_navigation') continue;
+    final indices = [
+      if (row['currentStage'] is int) row['currentStage'] as int,
+      if (row['visitedStages'] is List)
+        ...(row['visitedStages'] as List).whereType<int>(),
+    ];
+    for (final index in indices) {
+      final bounded = index.clamp(0, length - 1);
+      if (bounded > furthest) furthest = bounded;
+    }
   }
-  return 0;
+  return furthest;
 }
