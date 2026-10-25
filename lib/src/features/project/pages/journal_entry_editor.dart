@@ -738,7 +738,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 16,
+                  vertical: 22,
                 ),
                 child: FutureBuilder<List<UserProfile>>(
                   future: _participantMembers,
@@ -776,7 +776,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                   },
                 ),
               ),
-            const SizedBox(height: 12),
             const Divider(height: 1, color: AppColors.divider),
 
             // Toolbar
