@@ -6,7 +6,7 @@ class EvidenceDescriptionField extends StatelessWidget {
   const EvidenceDescriptionField({
     super.key,
     required this.controller,
-    this.hintText = 'Describe what this evidence shows and why it matters.',
+    this.hintText = 'Describe what this evidence shows, how it relates to your notes, and any limits or uncertainty.',
   });
   final TextEditingController controller;
   final String hintText;

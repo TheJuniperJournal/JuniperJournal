@@ -1,3 +1,4 @@
+import '../utils/journal_prompt_guidance.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../../shared/widgets/journal_preview_image.dart';
@@ -6570,7 +6571,8 @@ class _IdeatingChallengeBody extends StatelessWidget {
       children: [
         const JournalSectionHeader(
           title: 'Challenge',
-          description: 'Set up the context for this ideation session.',
+          description:
+              'Describe the situation you want to improve and what useful progress would look like.',
         ),
         _LabeledBox(label: 'Challenge Title', controller: title, height: 64),
         const SizedBox(height: AppMetrics.sectionGap),
@@ -6591,7 +6593,7 @@ class _IdeatingChallengeBody extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         const Text(
-          'What do we hope to achieve with these designs or ideas? Add at least 1 objective, up to 4.',
+          'What changes would count as progress? Add 1–4 specific objectives you can use to compare your ideas.',
           style: TextStyle(
             fontFamily: AppTypography.bodyFamily,
             color: AppColors.textSecondary,
@@ -6883,7 +6885,8 @@ class _IdeatingIdeasBody extends StatelessWidget {
       children: [
         const JournalSectionHeader(
           title: 'Ideas',
-          description: 'Add up to four ideas to compare.',
+          description:
+              'Explore up to four approaches. Explain how each could work, then use evidence and shared criteria to compare them.',
         ),
         _RequiredJournalInteraction(
           complete: () => ideas.isNotEmpty,
@@ -8607,7 +8610,7 @@ class _IdeatingMatrixPreview extends StatelessWidget {
       title: 'Decision Matrix',
       children: [
         const Text(
-          'Each idea is rated from 1–5 against your criteria. Weights show what matters most; weighted total scores are out of 100.',
+          'Choose criteria tied to your objectives. Weights total 100%; rate every idea from 1–5 using the same standard. Explain uncertainties in your idea notes.',
           style: AppTypography.helper,
         ),
         const SizedBox(height: 16),
@@ -8782,15 +8785,21 @@ class _PreviewPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleChildren = children
+        .where(
+          (child) => child is! _PreviewField || child.value.trim().isNotEmpty,
+        )
+        .toList();
+    if (visibleChildren.isEmpty) return const SizedBox.shrink();
+    final textLength = visibleChildren.whereType<_PreviewField>().fold<int>(
+      0,
+      (sum, child) => sum + child.value.trim().length,
+    );
+    final compact = textLength > 0 && textLength < 180;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 32),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: _devGreen.withValues(alpha: .45)),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      margin: EdgeInsets.only(bottom: compact ? 16 : 24),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -8799,12 +8808,14 @@ class _PreviewPanel extends StatelessWidget {
             style: TextStyle(
               fontFamily: AppTypography.headingFamily,
               color: _devGreen,
-              fontSize: AppTypography.sectionTitleSize,
+              fontSize: compact
+                  ? AppTypography.bodySize + 2
+                  : AppTypography.sectionTitleSize,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 24),
-          ...children,
+          const SizedBox(height: 14),
+          ...visibleChildren,
         ],
       ),
     );
@@ -8880,18 +8891,25 @@ class _PreviewField extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: value.trim().length < 100 ? 10 : 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label.replaceAll(' (Optional)', ''),
-            style: const TextStyle(
-              fontFamily: AppTypography.bodyFamily,
-              fontSize: AppTypography.bodySize,
-              fontWeight: FontWeight.w500,
+          if (!label.contains('?') &&
+              !const {
+                'What I learned',
+                'Challenges and open questions',
+                'What I’ll try next',
+                'Additional thoughts',
+              }.contains(label))
+            Text(
+              label.replaceAll(' (Optional)', ''),
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFamily,
+                fontSize: AppTypography.bodySize,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
           const SizedBox(height: 6),
           if (optionIcon != null)
             Row(
@@ -8902,7 +8920,7 @@ class _PreviewField extends StatelessWidget {
               ],
             )
           else
-            _PreviewMutedText(value.trim()),
+            Text(value.trim(), style: AppTypography.body.copyWith(height: 1.7)),
           if (explanation != null) ...[
             const SizedBox(height: 8),
             _PreviewMutedText(explanation),
@@ -9000,27 +9018,40 @@ class _LearningPreviewContent extends StatelessWidget {
           ),
           const SizedBox(height: 24),
         ],
-        if (connections.any((item) => item.$3.isNotEmpty)) ...[
-          const Text(
-            'The Three Dimensions of Learning',
-            style: AppTypography.fieldLabel,
-          ),
-          const SizedBox(height: 16),
-        ],
-        for (final dimension in [
-          ('DCI', 'Disciplinary Core Ideas', 'dci', selectedDci),
-          ('SEP', 'Science and Engineering Practices', 'sep', selectedSep),
-          ('CCCs', 'Crosscutting Concepts', 'ccc', selectedCcc),
-        ])
-          if (dimension.$4.any((value) => value.trim().isNotEmpty)) ...[
-            _LearningPreviewDimensionCard(
-              title: dimension.$1,
-              subtitle: dimension.$2,
-              iconAsset: 'assets/learning_module/summary_${dimension.$3}.svg',
-              values: dimension.$4,
+        if (connections.any((item) => item.$3.isNotEmpty))
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text(
+              'Learning connections',
+              style: AppTypography.fieldLabel,
             ),
-            const SizedBox(height: 16),
-          ],
+            children: [
+              for (final dimension in [
+                ('DCI', 'Disciplinary Core Ideas', 'dci', selectedDci),
+                (
+                  'SEP',
+                  'Science and Engineering Practices',
+                  'sep',
+                  selectedSep,
+                ),
+                ('CCCs', 'Crosscutting Concepts', 'ccc', selectedCcc),
+              ])
+                if (dimension.$4.any((value) => value.trim().isNotEmpty))
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: SvgPicture.asset(
+                      'assets/learning_module/summary_${dimension.$3}.svg',
+                      width: 28,
+                      height: 28,
+                    ),
+                    title: Text(dimension.$1, style: AppTypography.helper),
+                    subtitle: Text(
+                      dimension.$4.join(' · '),
+                      style: AppTypography.body,
+                    ),
+                  ),
+            ],
+          ),
         if (assessmentFeaturesEnabled && assessment.type != null)
           _AssessmentPreviewCard(assessment: assessment),
       ],
@@ -14027,7 +14058,7 @@ class _QuestionTypeOption {
 const _questionTypeOptions = [
   _QuestionTypeOption(
     label: 'How',
-    description: 'Ask about process or methods',
+    description: 'Ask how something works, changes, or could be improved.',
     color: Color(0xFF2C70BF),
     fill: Color(0x332C70BF),
     assets: [
@@ -14037,21 +14068,21 @@ const _questionTypeOptions = [
   ),
   _QuestionTypeOption(
     label: 'Where',
-    description: 'Ask about locations or places',
+    description: 'Ask where a pattern, need, or effect occurs.',
     color: Color(0xFFF3AA15),
     fill: Color(0x33F3AA15),
     assets: ['assets/discovery/question_where_figma.svg'],
   ),
   _QuestionTypeOption(
     label: 'What',
-    description: 'Ask about things or outcomes',
+    description: 'Ask what is happening, what matters, or what could change.',
     color: Color(0xFF5DB075),
     fill: Color(0x335DB075),
     assets: ['assets/discovery/question_what_figma.svg'],
   ),
   _QuestionTypeOption(
     label: 'When',
-    description: 'Ask about time or timing',
+    description: 'Ask when something happens, or how it changes over time.',
     color: Color(0xFF9027BD),
     fill: Color(0x339027BD),
     assets: [
@@ -14550,7 +14581,7 @@ class _JournalLearningStageBodyState extends State<JournalLearningStageBody> {
         _LearningPanel(
           title: 'Inquiry Lens',
           description:
-              'Choose the lens that best describes your thinking for this entry.',
+              'Choose the lens that best describes how you approached this work. Use it to reflect on how you made sense of the experience.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -14573,7 +14604,8 @@ class _JournalLearningStageBodyState extends State<JournalLearningStageBody> {
         const SizedBox(height: AppMetrics.fieldGap),
         _LearningPanel(
           title: 'The Three Dimensions of Learning',
-          description: 'Select NGSS components demonstrated in this entry.',
+          description:
+              'Choose the science ideas, practices, and connections you actually used. Select those you can connect to this entry’s experience or evidence.',
           child: Column(
             children: [
               _RequiredJournalInteraction(
@@ -15326,6 +15358,10 @@ class _CounterTextBox extends StatelessWidget {
                 ),
                 style: AppTypography.fieldLabel,
               ),
+              if (guidanceForJournalPrompt(label) case final guidance?) ...[
+                const SizedBox(height: 6),
+                Text(guidance, style: AppTypography.helper),
+              ],
               const SizedBox(height: AppMetrics.labelGap),
               TextField(
                 buildCounter:
@@ -15913,10 +15949,10 @@ class _LabeledBox extends StatelessWidget {
               ],
             ),
           ),
-          if (helperText != null) ...[
+          if ((guidanceForJournalPrompt(label) ?? helperText) != null) ...[
             const SizedBox(height: AppMetrics.helperGap),
             Text(
-              helperText!,
+              (guidanceForJournalPrompt(label) ?? helperText)!,
               style: const TextStyle(
                 fontFamily: AppTypography.bodyFamily,
                 color: AppColors.textSecondary,
@@ -16305,6 +16341,10 @@ class _CompactField extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+          if (guidanceForJournalPrompt(label) case final guidance?) ...[
+            const SizedBox(height: 6),
+            Text(guidance, style: AppTypography.helper),
+          ],
           const SizedBox(height: 9),
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 40),

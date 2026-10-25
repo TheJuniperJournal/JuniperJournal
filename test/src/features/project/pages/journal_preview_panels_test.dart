@@ -76,12 +76,16 @@ void main() {
       );
       expect(find.text('What I learned'), findsOneWidget);
       expect(find.text('Water carefully'), findsOneWidget);
+      expect(find.text('DCI'), findsNothing);
+      await tester.ensureVisible(find.text('Learning connections'));
+      await tester.tap(find.text('Learning connections'));
+      await tester.pumpAndSettle();
       expect(find.text('DCI'), findsOneWidget);
       expect(find.text('SEP'), findsOneWidget);
       expect(find.text('CCCs'), findsOneWidget);
-      expect(find.text('Challenges and open questions'), findsOneWidget);
-      expect(find.text('What I’ll try next'), findsOneWidget);
-      expect(find.byIcon(Icons.check), findsNWidgets(3));
+      expect(find.text('Challenges and open questions'), findsNothing);
+      expect(find.text('What I’ll try next'), findsNothing);
+      expect(find.text('Learning connections'), findsOneWidget);
       expect(
         find.text('Use fewer resources or reduce waste and harmful impacts.'),
         findsOneWidget,

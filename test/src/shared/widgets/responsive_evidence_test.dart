@@ -142,7 +142,10 @@ void main() {
     await tester.pump();
     expect(
       find.byWidgetPredicate(
-        (widget) => widget is Tooltip && widget.message == '1: 12',
+        (widget) =>
+            widget is CustomPaint &&
+            widget.painter.runtimeType.toString() == '_GraphPainter' &&
+            (widget.painter as dynamic).rows.single.y == '12',
       ),
       findsOneWidget,
     );

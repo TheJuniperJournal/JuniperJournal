@@ -125,7 +125,7 @@ void main() {
       expect(before.top, lessThan(56));
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
-      expect(find.text('Add up to four ideas to compare.'), findsOneWidget);
+      expect(find.text('Explore up to four approaches. Explain how each could work, then use evidence and shared criteria to compare them.'), findsOneWidget);
       expect(tester.getCenter(find.text('Back')).dy, greaterThan(2000));
       expect(
         tester.getCenter(find.text('Next')).dy,
