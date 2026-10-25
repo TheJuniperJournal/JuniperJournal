@@ -115,8 +115,15 @@ void main() {
       await tester.tap(find.text('Field Measurements'));
       await tester.tap(find.text('Equipment Specifications'));
       await tester.pumpAndSettle();
+      final sourceHeader = find.text('Add Data Source');
+      final sourceHeaderPosition = tester.getTopLeft(sourceHeader);
       final customField = find.byType(TextField).last;
       await tester.ensureVisible(customField);
+      expect(tester.getTopLeft(sourceHeader), sourceHeaderPosition);
+      expect(
+        tester.getBottomRight(sourceHeader).dy,
+        lessThan(tester.getTopLeft(customField).dy),
+      );
       await tester.enterText(customField, 'Lab notebook');
       final addCustom = find.text('Add Custom Source');
       await tester.ensureVisible(addCustom);
