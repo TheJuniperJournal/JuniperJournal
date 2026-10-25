@@ -3432,7 +3432,13 @@ class _CompletePrototypePreview extends StatelessWidget {
 }
 
 class _CreateBuildingComponentSheet extends StatefulWidget {
-  const _CreateBuildingComponentSheet({this.component});
+  const _CreateBuildingComponentSheet({
+    this.component,
+    this.onSave,
+    this.onBack,
+  });
+  final ValueChanged<_PrototypeComponentDraft>? onSave;
+  final VoidCallback? onBack;
   final _PrototypeComponentDraft? component;
   @override
   State<_CreateBuildingComponentSheet> createState() =>
@@ -3473,21 +3479,23 @@ class _CreateBuildingComponentSheetState
     final hasFeature = _features.any((field) => field.text.trim().isNotEmpty);
     setState(() => _featureError = !hasFeature);
     if (!validInputs || !hasFeature) return;
-    Navigator.pop(
-      context,
-      _PrototypeComponentDraft(
-        id:
-            widget.component?.id ??
-            DateTime.now().microsecondsSinceEpoch.toString(),
-        name: _name.text.trim(),
-        description: _purpose.text.trim(),
-        status: 'In Progress',
-        features: _features
-            .map((field) => field.text.trim())
-            .where((value) => value.isNotEmpty)
-            .toList(),
-      ),
+    final result = _PrototypeComponentDraft(
+      id:
+          widget.component?.id ??
+          DateTime.now().microsecondsSinceEpoch.toString(),
+      name: _name.text.trim(),
+      description: _purpose.text.trim(),
+      status: 'In Progress',
+      features: _features
+          .map((field) => field.text.trim())
+          .where((value) => value.isNotEmpty)
+          .toList(),
     );
+    if (widget.onSave != null) {
+      widget.onSave!(result);
+    } else {
+      Navigator.pop(context, result);
+    }
   }
 
   @override
@@ -3501,14 +3509,23 @@ class _CreateBuildingComponentSheetState
         ),
         child: DialogFormScroll(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
-                    const SizedBox(width: 40),
+                    SizedBox(
+                      width: 40,
+                      child: widget.onBack == null
+                          ? null
+                          : IconButton(
+                              tooltip: 'Back to component selection',
+                              onPressed: widget.onBack,
+                              icon: const Icon(Icons.arrow_back),
+                            ),
+                    ),
                     Expanded(
                       child: Text(
                         widget.component == null
@@ -3540,7 +3557,7 @@ class _CreateBuildingComponentSheetState
                 ),
                 const SizedBox(height: AppMetrics.fieldGap),
                 _LabeledBox(
-                  label: 'Title Component',
+                  label: 'Component Name',
                   controller: _name,
                   height: 64,
                 ),
@@ -3765,7 +3782,7 @@ class _CreateBuildingComponentSheetState
                 const SizedBox(height: AppMetrics.fieldGap),
                 Center(
                   child: _SmallStageButton(
-                    label: widget.component == null ? 'Create' : 'Save',
+                    label: widget.component == null ? 'Add' : 'Save',
                     filled: true,
                     onTap: _create,
                   ),
@@ -3940,17 +3957,17 @@ class _PrototypingJournalEntryPageState
   }
 
   Future<void> _createComponent({_PrototypeComponentDraft? existing}) async {
-    final component = await showAppModalBottomSheet<_PrototypeComponentDraft>(
+    final component = await showAppDialog<_PrototypeComponentDraft>(
       context: context,
-      isScrollControlled: true,
-      constraints: BoxConstraints(
-        maxWidth: JournalPageLayout.widthFor(context),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.all(20),
+        child: SizedBox(
+          width: 600,
+          height: MediaQuery.sizeOf(context).height * .88,
+          child: _CreateBuildingComponentSheet(component: existing),
+        ),
       ),
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _CreateBuildingComponentSheet(component: existing),
     );
     if (!mounted || component == null) return;
     setState(() {
@@ -3976,183 +3993,160 @@ class _PrototypingJournalEntryPageState
   }
 
   Future<void> _chooseComponent() async {
-    var query = '';
     var pending = _selectedComponent;
-    var noComponent = _draft.data['noComponent'] == true;
+    var none = _draft.data['noComponent'] == true;
+    var creating = false;
+    var created = false;
     final result = await showAppDialog<Object>(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (modalContext) => StatefulBuilder(
         builder: (context, update) => Dialog(
           backgroundColor: Colors.white,
           insetPadding: const EdgeInsets.all(20),
           child: SizedBox(
-            width: 640,
-            height: MediaQuery.sizeOf(context).height * .8,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      const SizedBox(width: 48),
-                      const Expanded(
-                        child: Text(
-                          'Choose Component',
-                          textAlign: TextAlign.center,
-                          style: AppTypography.sectionTitle,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Close component selection',
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    key: const ValueKey('project-component-search'),
-                    onChanged: (value) =>
-                        update(() => query = value.trim().toLowerCase()),
-                    decoration: const InputDecoration(
-                      hintText: 'Search components',
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: DialogFormScroll(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
+            width: 600,
+            height: MediaQuery.sizeOf(context).height * .88,
+            child: IndexedStack(
+              index: creating ? 1 : 0,
+              sizing: StackFit.expand,
+              children: [
+                DialogFormScroll(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
                           children: [
-                            for (final component in _components.where(
-                              (c) =>
-                                  query.isEmpty ||
-                                  c.name.toLowerCase().contains(query) ||
-                                  c.description.toLowerCase().contains(query),
-                            ))
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: ListTile(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    side: const BorderSide(
-                                      color: AppColors.divider,
-                                    ),
-                                  ),
-                                  leading: const Icon(
-                                    Icons.view_in_ar_outlined,
-                                    color: _devGreen,
-                                  ),
-                                  title: Text(
-                                    component.name,
-                                    style: AppTypography.fieldLabel,
-                                  ),
-                                  subtitle: component.description.isEmpty
-                                      ? null
-                                      : Text(
-                                          component.description,
-                                          style: AppTypography.helper,
-                                        ),
-                                  trailing: Icon(
-                                    pending?.id == component.id && !noComponent
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_off,
-                                    color: _devGreen,
-                                  ),
-                                  onTap: () => update(() {
-                                    pending = component;
-                                    noComponent = false;
-                                  }),
-                                ),
+                            const SizedBox(width: 48),
+                            const Expanded(
+                              child: Text(
+                                'Select Component',
+                                textAlign: TextAlign.center,
+                                style: AppTypography.sectionTitle,
                               ),
-                            if (_loadingComponents)
-                              const CircularProgressIndicator(),
-                            if (!_loadingComponents && _components.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Text(
-                                  'No project components yet.',
-                                  style: AppTypography.helper,
-                                ),
-                              ),
-                            if (_components.isNotEmpty &&
-                                !_components.any(
-                                  (c) =>
-                                      query.isEmpty ||
-                                      c.name.toLowerCase().contains(query) ||
-                                      c.description.toLowerCase().contains(
-                                        query,
-                                      ),
-                                ))
-                              const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Text(
-                                  'No matching components.',
-                                  style: AppTypography.helper,
-                                ),
-                              ),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: () => Navigator.pop(context, 'create'),
-                              icon: const Icon(Icons.add),
-                              label: const Text('Create New Component'),
                             ),
-                            const SizedBox(height: 20),
-                            ListTile(
-                              title: const Text(
-                                'No component',
-                                style: AppTypography.fieldLabel,
-                              ),
-                              subtitle: const Text(
-                                'Continue without linking this entry to a component.',
-                                style: AppTypography.helper,
-                              ),
-                              trailing: Icon(
-                                noComponent
-                                    ? Icons.radio_button_checked
-                                    : Icons.radio_button_off,
-                                color: _devGreen,
-                              ),
-                              onTap: () => update(() {
-                                pending = null;
-                                noComponent = true;
-                              }),
+                            IconButton(
+                              tooltip: 'Close component selection',
+                              onPressed: () => Navigator.pop(modalContext),
+                              icon: const Icon(Icons.close),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 24),
+                        LayoutBuilder(
+                          builder: (context, constraints) =>
+                              DropdownMenu<_PrototypeComponentDraft>(
+                                key: const ValueKey('project-component-search'),
+                                width: constraints.maxWidth,
+                                menuHeight: 240,
+                                enableFilter: true,
+                                filterCallback: (entries, query) => entries
+                                    .where(
+                                      (entry) =>
+                                          entry.value.name
+                                              .toLowerCase()
+                                              .contains(query.toLowerCase()) ||
+                                          entry.value.description
+                                              .toLowerCase()
+                                              .contains(query.toLowerCase()),
+                                    )
+                                    .toList(),
+                                requestFocusOnTap: true,
+                                hintText: 'Search components',
+                                leadingIcon: const Icon(Icons.search),
+                                initialSelection: none ? null : pending,
+                                dropdownMenuEntries: [
+                                  for (final component in _components)
+                                    DropdownMenuEntry(
+                                      value: component,
+                                      label: component.name,
+                                      labelWidget: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            component.name,
+                                            style: AppTypography.fieldLabel,
+                                          ),
+                                          if (component.description.isNotEmpty)
+                                            Text(
+                                              component.description,
+                                              style: AppTypography.helper,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                                onSelected: (value) => update(() {
+                                  pending = value;
+                                  none = false;
+                                }),
+                              ),
+                        ),
+                        const SizedBox(height: 20),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            'No component',
+                            style: AppTypography.fieldLabel,
+                          ),
+                          subtitle: const Text(
+                            'Continue without linking a component.',
+                            style: AppTypography.helper,
+                          ),
+                          value: none,
+                          onChanged: (value) => update(() {
+                            none = value == true;
+                            if (none) pending = null;
+                          }),
+                        ),
+                        const SizedBox(height: 24),
+                        OutlinedButton.icon(
+                          onPressed: () => update(() => creating = true),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Create New Component'),
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: pending == null && !none
+                              ? null
+                              : () => Navigator.pop(
+                                  modalContext,
+                                  none ? 'none' : pending,
+                                ),
+                          child: const Text('Use Selection'),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: pending == null && !noComponent
-                        ? null
-                        : () => Navigator.pop(
-                            context,
-                            noComponent ? 'none' : pending,
-                          ),
-                    child: const Text('Use Selection'),
-                  ),
-                ],
-              ),
+                ),
+                _CreateBuildingComponentSheet(
+                  onBack: () => update(() => creating = false),
+                  onSave: (component) {
+                    created = true;
+                    Navigator.pop(modalContext, component);
+                  },
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
     if (!mounted || result == null) return;
-    if (result == 'create') {
-      await _createComponent();
-      return;
-    }
     setState(() {
       if (result == 'none') {
         _draft.data['noComponent'] = true;
         _draft.data.remove('component');
       } else if (result is _PrototypeComponentDraft) {
+        if (created) {
+          _components.insert(0, result);
+          _draft.data['createdComponents'] = [
+            ..._maps(_draft.data['createdComponents']),
+            result.toMap(),
+          ];
+        }
         _draft.data['noComponent'] = false;
         _draft.data['component'] = result.toMap();
       }
@@ -4175,8 +4169,8 @@ class _PrototypingJournalEntryPageState
           message: 'Select or create a component, or choose No component.',
           child: _PrototypeOutlinedAction(
             label: selected != null || _draft.data['noComponent'] == true
-                ? 'Change Component'
-                : 'Choose Component',
+                ? 'Select Component'
+                : 'Select Component',
             onTap: _chooseComponent,
           ),
         ),
@@ -6334,6 +6328,8 @@ class _IdeatingChallengeBody extends StatelessWidget {
                   objectives: objectives,
                   onRemove: onRemoveObjective,
                 ),
+              if (objectives.isNotEmpty && objectives.length < 4)
+                const SizedBox(height: 16),
               if (objectives.length < 4)
                 centeredAction(
                   TextButton(
@@ -8981,187 +8977,166 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
       height: MediaQuery.sizeOf(context).height * .85,
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+        child: DialogFormScroll(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(width: 48),
-                const Expanded(
-                  child: Text(
-                    'Add Data Source',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.sectionTitle,
+                Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    const Expanded(
+                      child: Text(
+                        'Add Data Source',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.sectionTitle,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close data sources',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const Text(
+                  'Choose the information used in this analysis.',
+                  style: AppTypography.helper,
+                ),
+                const SizedBox(height: 16),
+                const Text('Source types', style: AppTypography.fieldLabel),
+                const SizedBox(height: 12),
+                for (final source in _analysisSources)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: Colors.white,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(color: AppColors.divider),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: CheckboxListTile(
+                        secondary: Icon(source.$3, color: _devGreen),
+                        title: Text(source.$1, style: AppTypography.fieldLabel),
+                        subtitle: Text(source.$2, style: AppTypography.helper),
+                        value: selected.contains(source.$1),
+                        onChanged: (value) => toggle(source.$1, value),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                const Text('Your sources', style: AppTypography.fieldLabel),
+                const SizedBox(height: 12),
+                for (final source in custom)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(color: AppColors.divider),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: CheckboxListTile(
+                              secondary: const Icon(
+                                Icons.note_add_outlined,
+                                color: _devGreen,
+                              ),
+                              subtitle: const Text(
+                                'Custom data source',
+                                style: AppTypography.helper,
+                              ),
+                              title: Text(
+                                source,
+                                style: AppTypography.fieldLabel,
+                              ),
+                              value: selected.contains(source),
+                              onChanged: (value) => toggle(source, value),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Edit custom source $source',
+                            onPressed: () => setState(() {
+                              editing = source;
+                              name.text = source;
+                              error = null;
+                            }),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete custom source $source',
+                            onPressed: () => setState(() {
+                              custom.remove(source);
+                              selected.remove(source);
+                              if (editing == source) {
+                                editing = null;
+                                name.clear();
+                              }
+                            }),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (custom.isEmpty)
+                  const Text(
+                    'Custom sources you add will appear here.',
+                    style: AppTypography.helper,
+                  ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: name,
+                  decoration: InputDecoration(
+                    labelText: editing == null
+                        ? 'Source name'
+                        : 'Rename source',
+                    errorText: error,
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  onSubmitted: (_) => add(),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: OutlinedButton.icon(
+                    onPressed: add,
+                    icon: const Icon(Icons.add),
+                    label: Text(
+                      editing == null ? 'Add Custom Source' : 'Save Source',
+                    ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Close data sources',
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                if (editing != null)
+                  Center(
+                    child: TextButton(
+                      onPressed: () => setState(() {
+                        editing = null;
+                        name.clear();
+                        error = null;
+                      }),
+                      child: const Text('Cancel Rename'),
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, {
+                    'selected': [
+                      for (final label in selected) {'label': label},
+                    ],
+                    'custom': [
+                      for (final label in custom) {'label': label},
+                    ],
+                  }),
+                  child: Text('Add Selected (${selected.length})'),
                 ),
               ],
             ),
-            const Text(
-              'Choose the information used in this analysis.',
-              style: AppTypography.helper,
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: DialogFormScroll(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Source types',
-                        style: AppTypography.fieldLabel,
-                      ),
-                      const SizedBox(height: 12),
-                      for (final source in _analysisSources)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Material(
-                            color: Colors.white,
-                            clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                              side: const BorderSide(color: AppColors.divider),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: CheckboxListTile(
-                              secondary: Icon(source.$3, color: _devGreen),
-                              title: Text(
-                                source.$1,
-                                style: AppTypography.fieldLabel,
-                              ),
-                              subtitle: Text(
-                                source.$2,
-                                style: AppTypography.helper,
-                              ),
-                              value: selected.contains(source.$1),
-                              onChanged: (value) => toggle(source.$1, value),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Your sources',
-                        style: AppTypography.fieldLabel,
-                      ),
-                      const SizedBox(height: 12),
-                      for (final source in custom)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Material(
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              side: const BorderSide(color: AppColors.divider),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: CheckboxListTile(
-                                    secondary: const Icon(
-                                      Icons.note_add_outlined,
-                                      color: _devGreen,
-                                    ),
-                                    subtitle: const Text(
-                                      'Custom data source',
-                                      style: AppTypography.helper,
-                                    ),
-                                    title: Text(
-                                      source,
-                                      style: AppTypography.fieldLabel,
-                                    ),
-                                    value: selected.contains(source),
-                                    onChanged: (value) => toggle(source, value),
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: 'Edit custom source $source',
-                                  onPressed: () => setState(() {
-                                    editing = source;
-                                    name.text = source;
-                                    error = null;
-                                  }),
-                                  icon: const Icon(Icons.edit_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: 'Delete custom source $source',
-                                  onPressed: () => setState(() {
-                                    custom.remove(source);
-                                    selected.remove(source);
-                                    if (editing == source) {
-                                      editing = null;
-                                      name.clear();
-                                    }
-                                  }),
-                                  icon: const Icon(Icons.delete_outline),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (custom.isEmpty)
-                        const Text(
-                          'Custom sources you add will appear here.',
-                          style: AppTypography.helper,
-                        ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: name,
-                        decoration: InputDecoration(
-                          labelText: editing == null
-                              ? 'Source name'
-                              : 'Rename source',
-                          errorText: error,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                        onSubmitted: (_) => add(),
-                      ),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: OutlinedButton.icon(
-                          onPressed: add,
-                          icon: const Icon(Icons.add),
-                          label: Text(
-                            editing == null
-                                ? 'Add Custom Source'
-                                : 'Save Source',
-                          ),
-                        ),
-                      ),
-                      if (editing != null)
-                        Center(
-                          child: TextButton(
-                            onPressed: () => setState(() {
-                              editing = null;
-                              name.clear();
-                              error = null;
-                            }),
-                            child: const Text('Cancel Rename'),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, {
-                'selected': [
-                  for (final label in selected) {'label': label},
-                ],
-                'custom': [
-                  for (final label in custom) {'label': label},
-                ],
-              }),
-              child: Text('Add Selected (${selected.length})'),
-            ),
-          ],
+          ),
         ),
       ),
     ),
@@ -14028,14 +14003,34 @@ class _QuestionStageBody extends StatelessWidget {
                 : constraints.maxWidth >= 300
                 ? 2
                 : 1;
+            final tileWidth =
+                (constraints.maxWidth - (columns - 1) * 12) / columns;
+            var tileHeight = 116.0;
+            for (final option in _questionTypeOptions) {
+              final painter = TextPainter(
+                text: TextSpan(
+                  text: option.description,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    fontSize: AppTypography.helperSize,
+                    height: 1.4,
+                  ),
+                ),
+                textDirection: Directionality.of(context),
+                textScaler: MediaQuery.textScalerOf(context),
+              )..layout(maxWidth: tileWidth - 28);
+              final height = painter.height + 88;
+              if (height > tileHeight) tileHeight = height;
+              painter.dispose();
+            }
             return Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
                 for (final option in _questionTypeOptions)
                   SizedBox(
-                    width:
-                        (constraints.maxWidth - (columns - 1) * 12) / columns,
+                    width: tileWidth,
+                    height: tileHeight,
                     child: _QuestionTypeTile(
                       option: option,
                       showError:
@@ -16180,7 +16175,10 @@ class _RootCauseEditorDialogState extends State<_RootCauseEditorDialog> {
                 ),
                 SizedBox(
                   width: 64,
-                  child: TextButton(onPressed: save, child: const Text('Save')),
+                  child: TextButton(
+                    onPressed: save,
+                    child: Text(widget.initial == null ? 'Add' : 'Save'),
+                  ),
                 ),
               ],
             ),
@@ -16571,18 +16569,21 @@ class _RootCauseCompactCardState extends State<_RootCauseCompactCard> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.rootCause.description.text.trim(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.textSecondary,
-                      fontSize: AppTypography.helperSize,
-                      fontWeight: FontWeight.w400,
+                  if (widget.rootCause.description.text.trim() !=
+                      widget.rootCause.title.text.trim()) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.rootCause.description.text.trim(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        color: AppColors.textSecondary,
+                        fontSize: AppTypography.helperSize,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -17136,17 +17137,20 @@ class _RootCausePreviewCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                rootCause.description.text.trim(),
-                style: const TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  color: AppColors.textSecondary,
-                  fontSize: AppTypography.helperSize,
-                  fontWeight: FontWeight.w400,
-                  height: 1.25,
+              if (rootCause.description.text.trim() !=
+                  rootCause.title.text.trim()) ...[
+                const SizedBox(height: 8),
+                Text(
+                  rootCause.description.text.trim(),
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFamily,
+                    color: AppColors.textSecondary,
+                    fontSize: AppTypography.helperSize,
+                    fontWeight: FontWeight.w400,
+                    height: 1.25,
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: AppMetrics.fieldGap),
               const Divider(color: Color(0xFFE1E1E1)),
               const SizedBox(height: 8),

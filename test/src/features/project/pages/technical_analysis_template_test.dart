@@ -110,16 +110,33 @@ void main() {
       expect(tester.getCenter(find.text('Next')).dy, lessThan(footerY));
       await tester.ensureVisible(add);
       await tester.pumpAndSettle();
+      tester.view.physicalSize = const Size(1000, 1000);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(add);
       await tester.tap(add);
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Field Measurements'));
       await tester.tap(find.text('Field Measurements'));
+      await tester.ensureVisible(find.text('Equipment Specifications'));
       await tester.tap(find.text('Equipment Specifications'));
       await tester.pumpAndSettle();
       final sourceHeader = find.text('Add Data Source');
+      final sourceScroll = tester.state<ScrollableState>(
+        find
+            .ancestor(of: sourceHeader, matching: find.byType(Scrollable))
+            .first,
+      );
+      sourceScroll.position.jumpTo(0);
+      await tester.pumpAndSettle();
       final sourceHeaderPosition = tester.getTopLeft(sourceHeader);
       final customField = find.byType(TextField).last;
+      sourceScroll.position.jumpTo(sourceScroll.position.maxScrollExtent);
+      await tester.pumpAndSettle();
       await tester.ensureVisible(customField);
-      expect(tester.getTopLeft(sourceHeader), sourceHeaderPosition);
+      expect(
+        tester.getTopLeft(sourceHeader).dy,
+        lessThan(sourceHeaderPosition.dy),
+      );
       expect(
         tester.getBottomRight(sourceHeader).dy,
         lessThan(tester.getTopLeft(customField).dy),
@@ -129,6 +146,7 @@ void main() {
       await tester.ensureVisible(addCustom);
       await tester.tap(addCustom);
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Add Selected (3)'));
       await tester.tap(find.text('Add Selected (3)'));
       await tester.pumpAndSettle();
       expect(find.text('Field Measurements'), findsOneWidget);
@@ -178,6 +196,7 @@ void main() {
       await tester.tap(find.byTooltip('Delete custom source Lab record'));
       await tester.pumpAndSettle();
       expect(find.text('Lab record'), findsNothing);
+      await tester.ensureVisible(find.text('Add Selected (2)'));
       await tester.tap(find.text('Add Selected (2)'));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 1));

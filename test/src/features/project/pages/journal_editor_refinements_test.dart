@@ -107,7 +107,7 @@ void main() {
         fields.at(2),
         'Observed differences support investigating this',
       );
-      await tester.tap(find.text('Save').last);
+      await tester.tap(find.text('Add').last);
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsNothing);
       expect(find.text('New cause'), findsOneWidget);
@@ -152,6 +152,18 @@ void main() {
       if (width >= 640) expect((how.top - where.top).abs(), lessThan(1));
       expect(how.left, greaterThanOrEqualTo(0));
       expect(where.right, lessThanOrEqualTo(width));
+      final cards = find.byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == '_QuestionTypeTile',
+      );
+      expect(cards, findsNWidgets(4));
+      final heights = [
+        for (final element in cards.evaluate())
+          tester.getSize(find.byWidget(element.widget)).height,
+      ];
+      expect(
+        heights.every((height) => (height - heights.first).abs() < 1),
+        isTrue,
+      );
       // The composer has explicit inset space above its first line.
       final composer = find.byType(TextField).last;
       final decoration = tester.widget<TextField>(composer).decoration!;

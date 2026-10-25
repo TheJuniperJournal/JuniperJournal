@@ -120,14 +120,16 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Choose Component'));
+    await tester.tap(find.text('Select Component').first);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('No component'));
     await tester.tap(find.text('No component'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Use Selection'));
     await tester.tap(find.text('Use Selection'));
     await tester.pumpAndSettle();
     await _next(tester);
-    expect(find.text('Select Component'), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

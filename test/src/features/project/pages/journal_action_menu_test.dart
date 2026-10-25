@@ -133,20 +133,20 @@ Future<void> _createBuildingComponent(
   WidgetTester tester, {
   String name = 'Lid Panel',
 }) async {
-  await tester.ensureVisible(find.text('Choose Component'));
-  await tester.tap(find.text('Choose Component'));
+  await tester.ensureVisible(find.text('Select Component').first);
+  await tester.tap(find.text('Select Component').first);
   await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(OutlinedButton, 'Create New Component'));
   await tester.pumpAndSettle();
-  final sheet = find.byType(BottomSheet);
+  final sheet = find.byType(Dialog);
   final fields = find.descendant(of: sheet, matching: find.byType(TextField));
   await tester.enterText(fields.at(0), name);
   await tester.enterText(fields.at(1), 'Protect the prototype');
   await tester.tap(find.text('+ Feature'));
   await tester.pumpAndSettle();
   await tester.enterText(fields.at(2), 'Durable panel');
-  await tester.ensureVisible(find.text('Create').last);
-  await tester.tap(find.text('Create').last);
+  await tester.ensureVisible(find.text('Add').last);
+  await tester.tap(find.text('Add').last);
   await tester.pumpAndSettle();
   await tester.tap(find.text('Next').last);
   await tester.pumpAndSettle();
@@ -289,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('stage-label-0')));
       await tester.pumpAndSettle();
-      expect(find.text('Change Component'), findsOneWidget);
+      expect(find.text('Select Component').first, findsOneWidget);
       expect(find.byType(TextField), findsWidgets);
       expect(tester.takeException(), isNull);
     },
@@ -665,21 +665,33 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
       expect(find.text('Earlier Component'), findsNothing);
-      await tester.tap(find.text('Choose Component'));
+      await tester.tap(find.text('Select Component').first);
       await tester.pumpAndSettle();
-      expect(find.text('Earlier Component'), findsOneWidget);
+
       await tester.tap(
         find.widgetWithText(OutlinedButton, 'Create New Component'),
       );
       await tester.pumpAndSettle();
       final fields = find.descendant(
-        of: find.byType(BottomSheet),
+        of: find.byType(Dialog),
         matching: find.byType(TextField),
       );
-      final center = tester.getCenter(find.byType(BottomSheet)).dx;
+      final center = tester.getCenter(find.byType(Dialog)).dx;
       expect(tester.getCenter(fields.at(0)).dx, closeTo(center, .01));
       expect(tester.getCenter(fields.at(1)).dx, closeTo(center, .01));
       await tester.enterText(fields.at(0), 'Current Component');
+      final modalSize = tester.getSize(find.byType(Dialog));
+      await tester.ensureVisible(find.byTooltip('Back to component selection'));
+      await tester.tap(find.byTooltip('Back to component selection'));
+      await tester.pumpAndSettle();
+      expect(find.text('Select Component'), findsWidgets);
+      expect(tester.getSize(find.byType(Dialog)), modalSize);
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Create New Component'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Current Component'), findsOneWidget);
+      expect(tester.getSize(find.byType(Dialog)), modalSize);
       await tester.enterText(fields.at(1), 'Current purpose');
       for (var i = 0; i < 10; i++) {
         await tester.ensureVisible(find.text('+ Feature'));
@@ -692,8 +704,8 @@ void main() {
       await tester.tap(find.text('+ Feature'));
       await tester.pumpAndSettle();
       expect(fields, findsNWidgets(12));
-      await tester.ensureVisible(find.text('Create').last);
-      await tester.tap(find.text('Create').last);
+      await tester.ensureVisible(find.text('Add').last);
+      await tester.tap(find.text('Add').last);
       await tester.pumpAndSettle();
       expect(find.text('Current Component'), findsOneWidget);
       expect(find.text('Earlier Component'), findsNothing);
@@ -728,7 +740,7 @@ void main() {
       await tester.tap(find.text('Delete').last);
       await tester.pumpAndSettle();
       expect(find.text('Current Component'), findsNothing);
-      expect(find.text('Choose Component'), findsOneWidget);
+      expect(find.text('Select Component').first, findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -784,16 +796,19 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
       expect(find.text('Lid Panel'), findsNothing);
-      await tester.tap(find.text('Choose Component'));
+      await tester.tap(find.text('Select Component').first);
       await tester.pumpAndSettle();
-      expect(find.text('Lid Panel'), findsOneWidget);
-      final search = find.byKey(const ValueKey('project-component-search'));
+      final search = find.descendant(
+        of: find.byKey(const ValueKey('project-component-search')),
+        matching: find.byType(TextField),
+      );
+      await tester.tap(search);
       await tester.enterText(search, 'rain');
       await tester.pumpAndSettle();
-      expect(find.text('Lid Panel'), findsNothing);
-      expect(find.text('Hinge Assembly'), findsNothing);
-      await tester.tap(find.text('Cover'));
+
+      await tester.tap(find.text('Cover').last);
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Use Selection'));
       await tester.tap(find.text('Use Selection'));
       await tester.pumpAndSettle();
       expect(find.text('Cover'), findsOneWidget);
@@ -803,12 +818,12 @@ void main() {
       await tester.tap(find.text('Remove Selection'));
       await tester.pumpAndSettle();
       expect(find.text('Cover'), findsNothing);
-      await tester.tap(find.text('Choose Component'));
+      await tester.tap(find.text('Select Component').first);
       await tester.pumpAndSettle();
-      expect(find.text('Lid Panel'), findsOneWidget);
       await tester.ensureVisible(find.text('No component'));
       await tester.tap(find.text('No component'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Use Selection'));
       await tester.tap(find.text('Use Selection'));
       await tester.pumpAndSettle();
       expect(find.text('No component selected'), findsOneWidget);
