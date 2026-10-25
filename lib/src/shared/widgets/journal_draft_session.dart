@@ -486,6 +486,15 @@ class _JournalDraftGuardState extends State<JournalDraftGuard> {
       return true;
     }
     if (!await widget.flush() || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not save your journal. Your work is still here. Please try again before leaving.',
+            ),
+          ),
+        );
+      }
       _asking = false;
       return false;
     }

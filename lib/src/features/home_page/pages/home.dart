@@ -573,8 +573,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   },
                   onJournalTap: () async {
                     Navigator.pop(ctx);
+                    await WidgetsBinding.instance.endOfFrame;
+                    if (!mounted) return;
+                    // The persistent sidebar belongs to Home even when a
+                    // project page is visible. Launch from that visible page
+                    // so the modal's stale-route protection permits the picker.
+                    final route = desktopRouteObserver.current;
+                    final pageContext = route is ModalRoute
+                        ? route.subtreeContext ?? context
+                        : context;
                     final result = await showAppModalBottomSheet(
-                      context: context,
+                      context: pageContext,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
                       builder: (_) => const JournalAddToSheet(),
