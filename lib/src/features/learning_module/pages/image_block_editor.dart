@@ -834,6 +834,7 @@ class _DropdownField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      clipBehavior: Clip.antiAlias,
       initialValue: value,
       onSelected: onSelected,
       offset: const Offset(0, 47),

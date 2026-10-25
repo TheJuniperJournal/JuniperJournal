@@ -115,6 +115,7 @@ class PublicSiteFrame extends StatelessWidget {
                                               ?.overlay;
                                           if (overlay == null) return;
                                           final target = await showMenu<String>(
+                                            clipBehavior: Clip.antiAlias,
                                             context: overlay.context,
                                             position:
                                                 const RelativeRect.fromLTRB(

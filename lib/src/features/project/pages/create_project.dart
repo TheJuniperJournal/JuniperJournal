@@ -1926,6 +1926,7 @@ class ProjectChipMenuState extends State<ProjectChipMenu> {
     final chipRect = chipTopLeft & chipBox.size;
 
     final selected = await showMenu<String>(
+      clipBehavior: Clip.antiAlias,
       context: context,
       color: Colors.white,
       elevation: 2,
@@ -2364,6 +2365,7 @@ class _AddMemberDialogState extends State<ProjectMemberPicker> {
               splashColor: Colors.transparent,
             ),
             child: PopupMenuButton<String>(
+              clipBehavior: Clip.antiAlias,
               tooltip: 'Profile options',
               onSelected: (_) => openUserProfile(context, person.id),
               itemBuilder: (_) => const [

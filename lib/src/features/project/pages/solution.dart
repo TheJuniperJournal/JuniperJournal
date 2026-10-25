@@ -774,6 +774,7 @@ class _SolutionScreenState extends State<SolutionScreen> {
                       ),
                       // Save button with options
                       PopupMenuButton<String>(
+                        clipBehavior: Clip.antiAlias,
                         icon: const Icon(Icons.save, color: AppColors.primary),
                         tooltip: 'Save',
                         offset: const Offset(0, 40),

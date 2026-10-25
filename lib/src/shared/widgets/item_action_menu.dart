@@ -36,6 +36,7 @@ class ItemActionMenu extends StatelessWidget {
         splashFactory: NoSplash.splashFactory,
       ),
       child: PopupMenuButton<String>(
+        clipBehavior: Clip.antiAlias,
         tooltip: 'More options',
         padding: EdgeInsets.zero,
         menuPadding: EdgeInsets.zero,

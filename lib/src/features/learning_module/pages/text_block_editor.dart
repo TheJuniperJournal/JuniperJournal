@@ -817,6 +817,7 @@ class _TinyDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      clipBehavior: Clip.antiAlias,
       onSelected: onSelected,
       offset: const Offset(0, 30),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1241,6 +1242,7 @@ class _DropdownField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      clipBehavior: Clip.antiAlias,
       onSelected: onSelected,
       offset: const Offset(0, 47),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),

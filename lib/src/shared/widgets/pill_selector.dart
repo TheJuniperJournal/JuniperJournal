@@ -111,6 +111,7 @@ class PillSelector extends StatelessWidget {
     );
 
     showMenu<String>(
+      clipBehavior: Clip.antiAlias,
       context: context,
       position: rect,
       constraints: BoxConstraints(minWidth: box.size.width, maxWidth: maxWidth),

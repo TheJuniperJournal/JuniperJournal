@@ -66,6 +66,7 @@ class _FormatButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      clipBehavior: Clip.antiAlias,
       icon: Container(
         width: 48,
         height: 48,

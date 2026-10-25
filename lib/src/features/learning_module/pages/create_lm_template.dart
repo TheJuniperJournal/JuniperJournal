@@ -427,6 +427,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
     final chipTopLeft = chipBox.localToGlobal(Offset.zero, ancestor: overlay);
     final chipRect = chipTopLeft & chipBox.size;
     final selected = await showMenu<String>(
+      clipBehavior: Clip.antiAlias,
       context: context,
       color: Colors.white,
       elevation: 2,
@@ -831,6 +832,7 @@ class _SubjectDropdownState extends State<_SubjectDropdown> {
     final chipRect = chipTopLeft & chipBox.size;
 
     final selected = await showMenu<String>(
+      clipBehavior: Clip.antiAlias,
       context: context,
       color: Colors.white,
       elevation: 2,

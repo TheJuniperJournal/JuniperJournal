@@ -720,6 +720,7 @@ class _AnchoredChipMenuState extends State<_AnchoredChipMenu> {
     final chipRect = chipTopLeft & chipBox.size;
 
     final selected = await showMenu<String>(
+      clipBehavior: Clip.antiAlias,
       context: context,
       color: Colors.white,
       elevation: 2,

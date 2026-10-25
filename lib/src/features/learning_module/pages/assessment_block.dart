@@ -1621,6 +1621,7 @@ class _ParagraphForm extends StatelessWidget {
         const _SmallLabel('Response Type'),
         const SizedBox(height: 8),
         PopupMenuButton<String>(
+          clipBehavior: Clip.antiAlias,
           initialValue: responseLength,
           onSelected: onLengthChanged,
           offset: const Offset(0, 42),

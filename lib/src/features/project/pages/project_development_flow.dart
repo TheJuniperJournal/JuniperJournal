@@ -11753,6 +11753,7 @@ class _PrototypeStatusSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      clipBehavior: Clip.antiAlias,
       onSelected: onChanged,
       itemBuilder: (context) => const [
         PopupMenuItem(value: 'In Progress', child: Text('In Progress')),

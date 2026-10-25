@@ -41,7 +41,9 @@ ThemeData buildAppTheme() {
           platform: const AppPageTransitionsBuilder(),
       },
     ),
+    cardTheme: const CardThemeData(clipBehavior: Clip.antiAlias),
     dialogTheme: DialogThemeData(
+      clipBehavior: Clip.antiAlias,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -50,6 +52,7 @@ ThemeData buildAppTheme() {
       actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
+      clipBehavior: Clip.antiAlias,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
