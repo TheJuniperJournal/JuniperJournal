@@ -133,9 +133,6 @@ Future<void> _createBuildingComponent(
   WidgetTester tester, {
   String name = 'Lid Panel',
 }) async {
-  await tester.ensureVisible(find.text('Select Components').first);
-  await tester.tap(find.text('Select Components').first);
-  await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(OutlinedButton, 'Create New Component'));
   await tester.pumpAndSettle();
   final sheet = find.byType(Dialog);
@@ -147,9 +144,6 @@ Future<void> _createBuildingComponent(
   await tester.enterText(fields.at(2), 'Durable panel');
   await tester.ensureVisible(find.text('Add').last);
   await tester.tap(find.text('Add').last);
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('Use Selection'));
-  await tester.tap(find.text('Use Selection'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Next').last);
   await tester.pumpAndSettle();
@@ -292,7 +286,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('stage-label-0')));
       await tester.pumpAndSettle();
-      expect(find.text('Select Components').first, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('project-component-search')),
+        findsOneWidget,
+      );
       expect(find.byType(TextField), findsWidgets);
       expect(tester.takeException(), isNull);
     },
@@ -667,9 +664,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
-      expect(find.text('Earlier Component'), findsNothing);
-      await tester.tap(find.text('Select Components').first);
-      await tester.pumpAndSettle();
+      expect(find.text('Earlier Component'), findsOneWidget);
 
       await tester.tap(
         find.widgetWithText(OutlinedButton, 'Create New Component'),
@@ -683,18 +678,6 @@ void main() {
       expect(tester.getCenter(fields.at(0)).dx, closeTo(center, .01));
       expect(tester.getCenter(fields.at(1)).dx, closeTo(center, .01));
       await tester.enterText(fields.at(0), 'Current Component');
-      final modalSize = tester.getSize(find.byType(Dialog));
-      await tester.ensureVisible(find.byTooltip('Back to component selection'));
-      await tester.tap(find.byTooltip('Back to component selection'));
-      await tester.pumpAndSettle();
-      expect(find.text('Select Components'), findsWidgets);
-      expect(tester.getSize(find.byType(Dialog)), modalSize);
-      await tester.tap(
-        find.widgetWithText(OutlinedButton, 'Create New Component'),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Current Component'), findsOneWidget);
-      expect(tester.getSize(find.byType(Dialog)), modalSize);
       await tester.enterText(fields.at(1), 'Current purpose');
       for (var i = 0; i < 10; i++) {
         await tester.ensureVisible(find.text('+ Feature'));
@@ -749,15 +732,20 @@ void main() {
         isTrue,
       );
       await tester.tap(
-        find.widgetWithText(CheckboxListTile, 'Second Component'),
+        find.widgetWithText(CheckboxListTile, 'Current Component'),
       );
       await tester.pumpAndSettle();
-
-      await tester.ensureVisible(find.text('Use Selection'));
-      await tester.tap(find.text('Use Selection'));
-      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.widgetWithText(CheckboxListTile, 'Second Component'),
+            )
+            .value,
+        isFalse,
+      );
+      expect(find.text('Selected: Current Component'), findsOneWidget);
       expect(find.text('Current Component'), findsOneWidget);
-      expect(find.text('Earlier Component'), findsNothing);
+      expect(find.text('Earlier Component'), findsOneWidget);
       expect(find.text('Current purpose'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
@@ -782,19 +770,21 @@ void main() {
         ),
       );
       expect(find.text('Current Component'), findsOneWidget);
-      await tester.tap(find.byType(ItemActionMenu).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit').last);
+      await tester.ensureVisible(
+        find.byTooltip('Edit component Current Component'),
+      );
+      await tester.tap(find.byTooltip('Edit component Current Component'));
       await tester.pumpAndSettle();
       expect(find.text('Feature 9'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.close).last);
+      await tester.tap(find.byTooltip('Close component form'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(ItemActionMenu).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete').last);
+      await tester.ensureVisible(
+        find.byTooltip('Delete component Current Component'),
+      );
+      await tester.tap(find.byTooltip('Delete component Current Component'));
       await tester.pumpAndSettle();
       expect(find.text('Current Component'), findsNothing);
-      expect(find.text('Select Components').first, findsOneWidget);
+      expect(find.text('Second Component'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -849,9 +839,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
-      expect(find.text('Lid Panel'), findsNothing);
-      await tester.tap(find.text('Select Components').first);
-      await tester.pumpAndSettle();
+      expect(find.text('Lid Panel'), findsOneWidget);
       final search = find.byKey(const ValueKey('project-component-search'));
       await tester.tap(search);
       await tester.enterText(search, 'rain');
@@ -878,32 +866,38 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(CheckboxListTile, 'Lid Panel'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Use Selection'));
-      await tester.tap(find.text('Use Selection'));
-      await tester.pumpAndSettle();
-      expect(find.text('Cover'), findsOneWidget);
-      expect(find.text('Keep rain out'), findsOneWidget);
-      expect(find.text('Lid Panel'), findsOneWidget);
+      expect(find.text('Selected: Lid Panel'), findsOneWidget);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.widgetWithText(CheckboxListTile, 'Cover'),
+            )
+            .value,
+        isFalse,
+      );
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
       final selectedStage = repo.entries.last.content
           .whereType<Map>()
           .firstWhere((row) => row['stage'] == 'prototyping');
-      expect(selectedStage['selectedComponents'], hasLength(2));
-      await tester.tap(find.byType(ItemActionMenu).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove Selection'));
+      expect(selectedStage['selectedComponents'], hasLength(1));
+      expect((selectedStage['component'] as Map)['id'], 'lid');
+      await tester.ensureVisible(find.byTooltip('Delete component Cover'));
+      await tester.tap(find.byTooltip('Delete component Cover'));
       await tester.pumpAndSettle();
       expect(find.text('Cover'), findsNothing);
-      await tester.tap(find.text('Select Components').first);
-      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('No component'));
       await tester.tap(find.text('No component'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Use Selection'));
-      await tester.tap(find.text('Use Selection'));
-      await tester.pumpAndSettle();
       expect(find.text('No component selected'), findsOneWidget);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.widgetWithText(CheckboxListTile, 'Lid Panel'),
+            )
+            .value,
+        isFalse,
+      );
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
       final data = repo.entries.last.content.whereType<Map>().firstWhere(
@@ -911,6 +905,20 @@ void main() {
       );
       expect(data['noComponent'], isTrue);
       expect(data['component'], isNull);
+      expect(data['deletedComponentIds'], contains('cover'));
+      await tester.pumpWidget(const SizedBox());
+      await _open(
+        tester,
+        PrototypingJournalEntryPage(
+          projectId: 'p',
+          projectsRepo: repo,
+          entry: repo.entries.last,
+        ),
+      );
+      expect(find.text('Cover'), findsNothing);
+      expect(find.text('Lid Panel'), findsOneWidget);
+      expect(find.text('No component selected'), findsOneWidget);
+
       expect(tester.takeException(), isNull);
     },
   );

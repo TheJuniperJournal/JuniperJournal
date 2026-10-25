@@ -3316,7 +3316,7 @@ class _CompletePrototypePreview extends StatelessWidget {
           children: [
             Text(entry.title, style: AppTypography.pageTitle),
             const SizedBox(height: AppMetrics.fieldGap),
-            for (final component in components)
+            for (final component in components.take(1))
               _PreviewPanel(
                 title: 'Component',
                 children: [
@@ -3856,18 +3856,22 @@ class _PrototypingJournalEntryPageState
   final List<UserProfile> _buildMembers = [];
   final Set<String> _involved = {};
   bool _loadingComponents = true;
+  String _componentQuery = '';
+  final _componentSearch = TextEditingController();
   List<_PrototypeComponentDraft> get _selectedComponents =>
       _maps(_draft.data['selectedComponents']).isNotEmpty
       ? _maps(
           _draft.data['selectedComponents'],
-        ).map(_PrototypeComponentDraft.fromMap).toList()
+        ).take(1).map(_PrototypeComponentDraft.fromMap).toList()
       : _draft.data['component'] is Map
       ? [_PrototypeComponentDraft.fromMap(_draft.data['component'])]
       : [];
   _PrototypeComponentDraft? get _selectedComponent =>
       _selectedComponents.firstOrNull;
   void _setSelectedComponents(List<_PrototypeComponentDraft> components) {
-    _draft.data['selectedComponents'] = [for (final c in components) c.toMap()];
+    _draft.data['selectedComponents'] = [
+      for (final c in components.take(1)) c.toMap(),
+    ];
     if (components.isEmpty) {
       _draft.data.remove('component');
     } else {
@@ -3887,6 +3891,9 @@ class _PrototypingJournalEntryPageState
   @override
   void initState() {
     super.initState();
+    if (_building && _maps(_draft.data['selectedComponents']).length > 1) {
+      _setSelectedComponents(_selectedComponents);
+    }
     _buildingStage = restoredJournalStage(
       widget.entry?.content ?? [],
       _labels.length,
@@ -3920,8 +3927,10 @@ class _PrototypingJournalEntryPageState
     ]);
     if (!mounted) return;
     final found = <String, _PrototypeComponentDraft>{};
+    final deletedIds = <String>{};
     void collect(dynamic node) {
       if (node is Map) {
+        deletedIds.addAll(_stringSet(node['deletedComponentIds']));
         if (node['features'] is List &&
             node['name'] != null &&
             node['id'] != null) {
@@ -3950,6 +3959,7 @@ class _PrototypingJournalEntryPageState
       collect(entry.content);
     }
     collect(_draft.data);
+    found.removeWhere((id, _) => deletedIds.contains(id));
     setState(() {
       _components
         ..clear()
@@ -3993,315 +4003,184 @@ class _PrototypingJournalEntryPageState
       _components.removeWhere((item) => item.id == component.id);
       _components.insert(0, component);
       final created = _maps(_draft.data['createdComponents']);
-      if (existing == null ||
-          created.any((item) => item['id'] == component.id)) {
-        _draft.data['createdComponents'] = [
-          ...created.where((item) => item['id'] != component.id),
-          component.toMap(),
-        ];
+      _draft.data['createdComponents'] = [
+        ...created.where((item) => item['id'] != component.id),
+        component.toMap(),
+      ];
+      if (existing == null || _selectedComponent?.id == component.id) {
+        _draft.data['noComponent'] = false;
+        _setSelectedComponents([component]);
       }
-      _draft.data['noComponent'] = false;
-      final selected = _selectedComponents;
-      _setSelectedComponents([
-        for (final c in selected)
-          if (c.id != component.id) c,
-        component,
-      ]);
+      _componentQuery = '';
+      _componentSearch.clear();
     });
   }
 
-  Future<void> _chooseComponent() async {
-    final catalog = List<_PrototypeComponentDraft>.of(_components);
-    final pending = _selectedComponents.map((c) => c.id).toSet();
-    final added = <String, _PrototypeComponentDraft>{};
-    var none = _draft.data['noComponent'] == true;
-    var creating = false;
-    var formVersion = 0;
-    var query = '';
-    final result = await showAppDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (modalContext) => StatefulBuilder(
-        builder: (context, update) => Dialog(
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.all(20),
-          child: SizedBox(
-            width: 600,
-            height: MediaQuery.sizeOf(context).height * .88,
-            child: IndexedStack(
-              index: creating ? 1 : 0,
-              sizing: StackFit.expand,
-              children: [
-                DialogFormScroll(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            const SizedBox(width: 48),
-                            const Expanded(
-                              child: Text(
-                                'Select Components',
-                                textAlign: TextAlign.center,
-                                style: AppTypography.sectionTitle,
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Close component selection',
-                              onPressed: () => Navigator.pop(modalContext),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        TextField(
-                          key: const ValueKey('project-component-search'),
-                          onChanged: (value) =>
-                              update(() => query = value.trim().toLowerCase()),
-                          decoration: const InputDecoration(
-                            hintText: 'Search components',
-                            prefixIcon: Icon(Icons.search),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Project components',
-                          style: AppTypography.fieldLabel,
-                        ),
-                        const SizedBox(height: 12),
-                        for (final component in catalog.where(
-                          (c) =>
-                              query.isEmpty ||
-                              added.containsKey(c.id) ||
-                              c.name.toLowerCase().contains(query) ||
-                              c.description.toLowerCase().contains(query),
-                        ))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Material(
-                              color: Colors.white,
-                              clipBehavior: Clip.antiAlias,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: const BorderSide(
-                                  color: AppColors.divider,
-                                ),
-                              ),
-                              child: CheckboxListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                secondary: const Icon(
-                                  Icons.view_in_ar_outlined,
-                                  color: _devGreen,
-                                ),
-                                title: Text(
-                                  component.name,
-                                  style: AppTypography.fieldLabel,
-                                ),
-                                subtitle: component.description.isEmpty
-                                    ? null
-                                    : Text(
-                                        component.description,
-                                        style: AppTypography.helper,
-                                      ),
-                                value: pending.contains(component.id),
-                                onChanged: (value) => update(() {
-                                  if (value == true) {
-                                    pending.add(component.id);
-                                    none = false;
-                                  } else {
-                                    pending.remove(component.id);
-                                  }
-                                }),
-                              ),
-                            ),
-                          ),
-                        if (catalog.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              'Create a component to start your project list.',
-                              style: AppTypography.helper,
-                            ),
-                          ),
-                        if (catalog.isNotEmpty &&
-                            !catalog.any(
-                              (c) =>
-                                  query.isEmpty ||
-                                  added.containsKey(c.id) ||
-                                  c.name.toLowerCase().contains(query) ||
-                                  c.description.toLowerCase().contains(query),
-                            ))
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              'No matching components.',
-                              style: AppTypography.helper,
-                            ),
-                          ),
-                        const SizedBox(height: 16),
-                        CheckboxListTile(
-                          secondary: const SizedBox(width: 24, height: 24),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          title: const Text(
-                            'No component',
-                            style: AppTypography.fieldLabel,
-                          ),
-                          subtitle: const Text(
-                            'Continue without linking a component.',
-                            style: AppTypography.helper,
-                          ),
-                          value: none,
-                          onChanged: (value) => update(() {
-                            none = value == true;
-                            if (none) pending.clear();
-                          }),
-                        ),
-                        const SizedBox(height: 24),
-                        OutlinedButton.icon(
-                          onPressed: () => update(() => creating = true),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Create New Component'),
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: pending.isEmpty && !none
-                              ? null
-                              : () => Navigator.pop(modalContext, {
-                                  'selected': [
-                                    for (final c in catalog)
-                                      if (pending.contains(c.id)) c,
-                                  ],
-                                  'created': added.values.toList(),
-                                  'none': none,
-                                }),
-                          child: const Text('Use Selection'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                _CreateBuildingComponentSheet(
-                  key: ValueKey(formVersion),
-                  onBack: () => update(() => creating = false),
-                  onSave: (component) => update(() {
-                    catalog.insert(0, component);
-                    added[component.id] = component;
-                    pending.add(component.id);
-                    none = false;
-                    creating = false;
-                    formVersion++;
-                  }),
-                ),
-              ],
-            ),
+  void _deleteComponent(_PrototypeComponentDraft component) {
+    setState(() {
+      _components.removeWhere((c) => c.id == component.id);
+      _draft.data['createdComponents'] = _maps(
+        _draft.data['createdComponents'],
+      ).where((c) => c['id'] != component.id).toList();
+      _draft.data['deletedComponentIds'] = {
+        ..._stringSet(_draft.data['deletedComponentIds']),
+        component.id,
+      }.toList();
+      if (_selectedComponent?.id == component.id) {
+        _setSelectedComponents([]);
+        _draft.data['noComponent'] = false;
+      }
+    });
+  }
+
+  Widget _componentChoice({_PrototypeComponentDraft? component}) {
+    final none = component == null;
+    final chosen = none
+        ? _draft.data['noComponent'] == true
+        : _selectedComponent?.id == component.id;
+    final title = component?.name ?? 'No component';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: chosen ? AppColors.primaryTint : Colors.white,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: chosen ? _devGreen : AppColors.divider,
+            width: chosen ? 1.5 : 1,
           ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: CheckboxListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                secondary: none
+                    ? const SizedBox(width: 24, height: 24)
+                    : const Icon(Icons.view_in_ar_outlined, color: _devGreen),
+                title: Text(title, style: AppTypography.fieldLabel),
+                subtitle: none
+                    ? const Text(
+                        'Continue without linking a component.',
+                        style: AppTypography.helper,
+                      )
+                    : component.description.isEmpty
+                    ? null
+                    : Text(component.description, style: AppTypography.helper),
+                value: chosen,
+                onChanged: (value) => setState(() {
+                  _setSelectedComponents(
+                    value == true && !none ? [component] : [],
+                  );
+                  _draft.data['noComponent'] = value == true && none;
+                }),
+              ),
+            ),
+            if (component != null) ...[
+              SizedBox(
+                width: 44,
+                child: IconButton(
+                  tooltip: 'Edit component ${component.name}',
+                  onPressed: () => _createComponent(existing: component),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+              ),
+              SizedBox(
+                width: 44,
+                child: IconButton(
+                  tooltip: 'Delete component ${component.name}',
+                  onPressed: () => _deleteComponent(component),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ),
+            ] else
+              const SizedBox(width: 88),
+          ],
         ),
       ),
     );
-    if (!mounted || result == null) return;
-    setState(() {
-      for (final component
-          in result['created'] as List<_PrototypeComponentDraft>) {
-        _components.removeWhere((c) => c.id == component.id);
-        _components.insert(0, component);
-        _draft.data['createdComponents'] = [
-          ..._maps(
-            _draft.data['createdComponents'],
-          ).where((c) => c['id'] != component.id),
-          component.toMap(),
-        ];
-      }
-      _setSelectedComponents(
-        result['selected'] as List<_PrototypeComponentDraft>,
-      );
-      _draft.data['noComponent'] = result['none'] == true;
-    });
   }
 
   Widget _componentStage() {
-    final selections = _selectedComponents;
+    final selected = _selectedComponent;
+    final query = _componentQuery.trim().toLowerCase();
+    final filtered = _components
+        .where(
+          (c) =>
+              query.isEmpty ||
+              c.name.toLowerCase().contains(query) ||
+              c.description.toLowerCase().contains(query),
+        )
+        .toList();
     return _JournalStageLayout(
       children: [
         const JournalSectionHeader(title: 'Component'),
         const Text(
-          'Choose the part of the project this entry focuses on.',
+          'Choose one component for this entry, or continue without one.',
           style: AppTypography.helper,
         ),
         const SizedBox(height: 20),
+        TextField(
+          key: const ValueKey('project-component-search'),
+          controller: _componentSearch,
+          onChanged: (value) => setState(() => _componentQuery = value),
+          decoration: const InputDecoration(
+            hintText: 'Search components',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (selected != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Selected: ${selected.name}',
+              style: AppTypography.helper,
+            ),
+          ),
+        if (_draft.data['noComponent'] == true)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: Text('No component selected', style: AppTypography.helper),
+          ),
         _RequiredJournalInteraction(
           complete: () =>
               _selectedComponent != null || _draft.data['noComponent'] == true,
           message: 'Select or create a component, or choose No component.',
-          child: _PrototypeOutlinedAction(
-            label: 'Select Components',
-            onTap: _chooseComponent,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_loadingComponents)
+                const Center(child: CircularProgressIndicator()),
+              for (final component in filtered)
+                _componentChoice(component: component),
+              if (!_loadingComponents && filtered.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    _components.isEmpty
+                        ? 'Create a component to start your project list.'
+                        : 'No matching components.',
+                    style: AppTypography.helper,
+                  ),
+                ),
+              _componentChoice(),
+            ],
           ),
         ),
-        for (final selected in selections) ...[
-          const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.divider),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.view_in_ar_outlined, color: _devGreen),
-              title: Text(selected.name, style: AppTypography.fieldLabel),
-              subtitle: selected.description.isEmpty
-                  ? null
-                  : Text(selected.description, style: AppTypography.helper),
-              onTap: () => _createComponent(existing: selected),
-              trailing: ItemActionMenu(
-                onEdit: () => _createComponent(existing: selected),
-                onDelete:
-                    _maps(
-                      _draft.data['createdComponents'],
-                    ).any((item) => item['id'] == selected.id)
-                    ? () => setState(() {
-                        _components.removeWhere(
-                          (item) => item.id == selected.id,
-                        );
-                        _draft.data['createdComponents'] = _maps(
-                          _draft.data['createdComponents'],
-                        ).where((item) => item['id'] != selected.id).toList();
-                        _setSelectedComponents(
-                          _selectedComponents
-                              .where((c) => c.id != selected.id)
-                              .toList(),
-                        );
-                        _draft.data['noComponent'] = false;
-                      })
-                    : null,
-                extraActions: [
-                  ItemMenuAction(
-                    'Remove Selection',
-                    () => setState(() {
-                      _setSelectedComponents(
-                        _selectedComponents
-                            .where((c) => c.id != selected.id)
-                            .toList(),
-                      );
-                      _draft.data['noComponent'] = false;
-                    }),
-                  ),
-                ],
-              ),
-            ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _createComponent(),
+            icon: const Icon(Icons.add),
+            label: const Text('Create New Component'),
           ),
-        ],
-        if (selections.isEmpty && _draft.data['noComponent'] == true)
-          const Padding(
-            padding: EdgeInsets.only(top: 16),
-            child: Text('No component selected', style: AppTypography.helper),
-          ),
+        ),
         const SizedBox(height: 24),
         const Text('Who is involved?', style: AppTypography.fieldLabel),
         const SizedBox(height: 12),
@@ -4840,6 +4719,7 @@ class _PrototypingJournalEntryPageState
 
   @override
   void dispose() {
+    _componentSearch.dispose();
     for (final controller in _fields.values) {
       controller.dispose();
     }
