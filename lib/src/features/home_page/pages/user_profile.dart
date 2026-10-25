@@ -668,12 +668,12 @@ class UserProfilePageState extends State<UserProfilePage> {
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: widget.onMessages,
-                icon: Badge(
-                  isLabelVisible: widget.unreadMessageCount > 0,
-                  label: Text('${widget.unreadMessageCount}'),
-                  child: const Icon(Icons.chat_bubble_outline),
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: Text(
+                  widget.unreadMessageCount > 0
+                      ? 'Messages (${widget.unreadMessageCount})'
+                      : 'Messages',
                 ),
-                label: const Text('Messages'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                 ),
