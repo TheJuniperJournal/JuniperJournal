@@ -1,5 +1,6 @@
+import 'journal_draft_session.dart';
+import '../styling/app_typography.dart';
 import 'package:flutter/material.dart';
-import '../styling/app_colors.dart';
 
 /// Validation belongs to the current editor route, never to the saved draft.
 class JournalValidationIssue {
@@ -43,10 +44,7 @@ class JournalActionFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      border: Border(top: BorderSide(color: AppColors.divider)),
-    ),
+    decoration: const BoxDecoration(color: Colors.white),
     child: SafeArea(
       top: false,
       child: Padding(
@@ -87,6 +85,22 @@ class JournalActionFooter extends StatelessWidget {
                       ),
                     ),
                   child,
+                  if (JournalDraftScope.of(context)?.saveStatus
+                      case final status?)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: status,
+                        builder: (_, value, __) => Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            value,
+                            textAlign: TextAlign.center,
+                            style: AppTypography.helper,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               );
             },

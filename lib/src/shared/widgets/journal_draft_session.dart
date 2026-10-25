@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'journal_navigation.dart';
 import '../../features/project/services/journal_collaboration.dart';
 import 'journal_collaboration_panel.dart';
@@ -340,10 +341,12 @@ class JournalDraftScope extends InheritedWidget {
   const JournalDraftScope({
     super.key,
     required this.session,
+    this.saveStatus,
     required this.save,
     required super.child,
   });
   final JournalDraftSession session;
+  final ValueListenable<String>? saveStatus;
   final Future<bool> Function() save;
   static JournalDraftScope? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<JournalDraftScope>();
@@ -356,6 +359,7 @@ class JournalDraftGuard extends StatefulWidget {
   const JournalDraftGuard({
     super.key,
     required this.session,
+    this.saveStatus,
     required this.flush,
     required this.child,
     this.section,
@@ -368,6 +372,7 @@ class JournalDraftGuard extends StatefulWidget {
   final ValueChanged<String>? onSectionSelected;
   final ValueChanged<JournalEntry>? onRemoteEntry;
   final JournalDraftSession session;
+  final ValueListenable<String>? saveStatus;
   final Future<bool> Function() flush;
   final Widget child;
   static final _active = <ModalRoute<dynamic>, _JournalDraftGuardState>{};
@@ -587,6 +592,7 @@ class _JournalDraftGuardState extends State<JournalDraftGuard> {
       child: JournalDraftScope(
         session: widget.session,
         save: _save,
+        saveStatus: widget.saveStatus,
         child: ListenableBuilder(
           listenable: widget.session,
           builder: (context, _) => PopScope(

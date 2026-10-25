@@ -808,28 +808,51 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                         ),
                       ),
                       JournalActionFooter(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            OutlinedButton(
-                              onPressed: _isSaving
-                                  ? null
-                                  : () => Navigator.of(context).maybePop(),
-                              child: const Text('Back'),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: _isSaving
+                                      ? null
+                                      : () => Navigator.of(context).maybePop(),
+                                  child: const Text('Back'),
+                                ),
+                                const SizedBox(width: 16),
+                                FilledButton(
+                                  onPressed: _isSaving
+                                      ? null
+                                      : () => _saveAndPop(submit: !_submitted),
+                                  child: Text(
+                                    _isSaving
+                                        ? 'Saving...'
+                                        : _submitted
+                                        ? 'Done'
+                                        : 'Submit',
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            FilledButton(
-                              onPressed: _isSaving
-                                  ? null
-                                  : () => _saveAndPop(submit: !_submitted),
-                              child: Text(
-                                _isSaving
-                                    ? 'Saving...'
-                                    : _submitted
-                                    ? 'Done'
-                                    : 'Submit',
+                            if (!widget.readOnly && _savedLabel != null)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Text(
+                                    _savedLabel!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFamily,
+                                      fontSize: AppTypography.helperSize,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -838,22 +861,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 ),
               ),
             ),
-            if (!widget.readOnly && _savedLabel != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    _savedLabel!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.helperSize,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

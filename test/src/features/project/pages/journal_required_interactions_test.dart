@@ -120,8 +120,11 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Choose Component'));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('No component'));
     await tester.tap(find.text('No component'));
+    await tester.tap(find.text('Use Selection'));
     await tester.pumpAndSettle();
     await _next(tester);
     expect(find.text('Select Component'), findsNothing);
@@ -157,9 +160,7 @@ void main() {
       await tester.tap(find.text('Question').first);
       await tester.pumpAndSettle();
       expect(
-        find.text(
-          'Add at least one complete root cause using Add Key Root Causes.',
-        ),
+        find.text('Add at least one complete root cause.'),
         findsOneWidget,
       );
       expect(find.text('Select a pattern change.'), findsOneWidget);

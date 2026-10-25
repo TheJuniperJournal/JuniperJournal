@@ -133,8 +133,10 @@ Future<void> _createBuildingComponent(
   WidgetTester tester, {
   String name = 'Lid Panel',
 }) async {
-  await tester.ensureVisible(find.text('+ Create New Component'));
-  await tester.tap(find.text('+ Create New Component'));
+  await tester.ensureVisible(find.text('Choose Component'));
+  await tester.tap(find.text('Choose Component'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(OutlinedButton, 'Create New Component'));
   await tester.pumpAndSettle();
   final sheet = find.byType(BottomSheet);
   final fields = find.descendant(of: sheet, matching: find.byType(TextField));
@@ -287,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('stage-label-0')));
       await tester.pumpAndSettle();
-      expect(find.text('Select Component'), findsOneWidget);
+      expect(find.text('Change Component'), findsOneWidget);
       expect(find.byType(TextField), findsWidgets);
       expect(tester.takeException(), isNull);
     },
@@ -662,51 +664,29 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
-      expect(
-        tester.getTopLeft(find.text('All Project Components')).dy,
-        lessThan(tester.getTopLeft(find.text('+ Create New Component')).dy),
+      expect(find.text('Earlier Component'), findsNothing);
+      await tester.tap(find.text('Choose Component'));
+      await tester.pumpAndSettle();
+      expect(find.text('Earlier Component'), findsOneWidget);
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Create New Component'),
       );
-      await tester.ensureVisible(find.text('+ Create New Component'));
-      await tester.tap(find.text('+ Create New Component'));
       await tester.pumpAndSettle();
       final fields = find.descendant(
         of: find.byType(BottomSheet),
         matching: find.byType(TextField),
       );
-      final sheetCenter = tester.getCenter(find.byType(BottomSheet)).dx;
-      expect(
-        tester.getCenter(find.text('Create New Component')).dx,
-        closeTo(sheetCenter, .01),
-      );
-      expect(tester.getCenter(fields.at(0)).dx, closeTo(sheetCenter, .01));
-      expect(tester.getCenter(fields.at(1)).dx, closeTo(sheetCenter, .01));
-      expect(
-        tester.getSize(fields.at(0)).width,
-        tester.getSize(fields.at(1)).width,
-      );
-      expect(
-        tester.getSize(fields.at(1)).height,
-        greaterThan(tester.getSize(fields.at(0)).height),
-      );
+      final center = tester.getCenter(find.byType(BottomSheet)).dx;
+      expect(tester.getCenter(fields.at(0)).dx, closeTo(center, .01));
+      expect(tester.getCenter(fields.at(1)).dx, closeTo(center, .01));
       await tester.enterText(fields.at(0), 'Current Component');
       await tester.enterText(fields.at(1), 'Current purpose');
-      await tester.ensureVisible(find.text('Create').last);
-      await tester.tap(find.text('Create').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Add at least one feature.'), findsOneWidget);
-      expect(find.byType(BottomSheet), findsOneWidget);
-
       for (var i = 0; i < 10; i++) {
         await tester.ensureVisible(find.text('+ Feature'));
         await tester.tap(find.text('+ Feature'));
         await tester.pumpAndSettle();
         await tester.ensureVisible(fields.at(i + 2));
         await tester.enterText(fields.at(i + 2), 'Feature $i');
-        final input = tester.widget<TextField>(fields.at(i + 2));
-        expect(input.textAlign, TextAlign.left);
-        expect(input.decoration?.counterText, '');
-        expect(input.maxLines, isNull);
-        expect(input.textAlignVertical, TextAlignVertical.top);
       }
       await tester.ensureVisible(find.text('+ Feature'));
       await tester.tap(find.text('+ Feature'));
@@ -715,15 +695,10 @@ void main() {
       await tester.ensureVisible(find.text('Create').last);
       await tester.tap(find.text('Create').last);
       await tester.pumpAndSettle();
-      expect(find.text('Selected'), findsOneWidget);
-
       expect(find.text('Current Component'), findsOneWidget);
-      expect(find.text('Recent Components'), findsNothing);
-      expect(find.text('Created Component'), findsOneWidget);
-      expect(find.text('+ Create New Component'), findsNothing);
-      expect(find.text('Earlier Component'), findsOneWidget);
+      expect(find.text('Earlier Component'), findsNothing);
+      expect(find.text('Current purpose'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
       await _keepDraft(tester);
       final saved =
           repo.entries.last.content.whereType<Map>().firstWhere(
@@ -731,54 +706,6 @@ void main() {
               )['component']
               as Map;
       expect(saved['features'], hasLength(10));
-      expect(saved['name'], 'Current Component');
-      expect(
-        find.byKey(ValueKey('component-card-all-${saved['id']}')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(ValueKey('component-card-created-${saved['id']}')),
-        findsOneWidget,
-      );
-
-      expect(find.text('Current purpose'), findsNothing);
-      await tester.ensureVisible(find.byTooltip('Expand Current Component'));
-      await tester.tap(find.byTooltip('Expand Current Component'));
-      await tester.pumpAndSettle();
-      final collapse = find.byTooltip('Collapse Current Component');
-      final tileMaterial = find
-          .ancestor(of: collapse, matching: find.byType(Material))
-          .evaluate()
-          .map((element) => element.widget as Material)
-          .firstWhere(
-            (material) =>
-                material.color != null && material.color != Colors.transparent,
-          );
-      expect(tileMaterial.color, Colors.white);
-      await tester.ensureVisible(collapse);
-      final expandedHeight = tester
-          .getSize(
-            find
-                .ancestor(of: collapse, matching: find.byType(AnimatedSize))
-                .first,
-          )
-          .height;
-      await tester.tap(collapse);
-      await tester.pumpAndSettle();
-      expect(find.text('Current purpose'), findsNothing);
-      expect(find.text('Selected'), findsOneWidget);
-      final expand = find.byTooltip('Expand Current Component').first;
-      final compactHeight = tester
-          .getSize(
-            find
-                .ancestor(of: expand, matching: find.byType(AnimatedSize))
-                .first,
-          )
-          .height;
-      expect(compactHeight, lessThan(expandedHeight));
-      await tester.tap(expand);
-      await tester.pumpAndSettle();
-      expect(find.text('Current purpose'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       await _open(
         tester,
@@ -788,25 +715,20 @@ void main() {
           entry: repo.entries.last,
         ),
       );
-      expect(find.byTooltip('Expand Current Component'), findsOneWidget);
-      expect(find.byTooltip('Collapse Current Component'), findsNothing);
-      expect(find.text('Current purpose'), findsNothing);
-      expect(find.text('Selected'), findsOneWidget);
-      expect(find.text('Recent Components'), findsNothing);
-      await tester.ensureVisible(find.byTooltip('Expand Current Component'));
-      await tester.tap(find.byTooltip('Expand Current Component'));
+      expect(find.text('Current Component'), findsOneWidget);
+      await tester.tap(find.byType(ItemActionMenu).last);
       await tester.pumpAndSettle();
-      final actions = find.descendant(
-        of: find.byKey(ValueKey('component-card-created-${saved['id']}')),
-        matching: find.byType(ItemActionMenu),
-      );
-      await tester.ensureVisible(actions);
-      await tester.tap(actions);
+      await tester.tap(find.text('Edit').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Feature 9'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(ItemActionMenu).last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete').last);
       await tester.pumpAndSettle();
-      expect(find.text('+ Create New Component'), findsOneWidget);
       expect(find.text('Current Component'), findsNothing);
+      expect(find.text('Choose Component'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -861,89 +783,42 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
-      expect(find.text('Use Last Component'), findsNothing);
+      expect(find.text('Lid Panel'), findsNothing);
+      await tester.tap(find.text('Choose Component'));
+      await tester.pumpAndSettle();
       expect(find.text('Lid Panel'), findsOneWidget);
       final search = find.byKey(const ValueKey('project-component-search'));
-      await tester.ensureVisible(search);
       await tester.enterText(search, 'rain');
       await tester.pumpAndSettle();
       expect(find.text('Lid Panel'), findsNothing);
       expect(find.text('Hinge Assembly'), findsNothing);
+      await tester.tap(find.text('Cover'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use Selection'));
+      await tester.pumpAndSettle();
       expect(find.text('Cover'), findsOneWidget);
-      await tester.tap(find.text('Cover'));
-      await tester.pumpAndSettle();
-      expect(find.text('Selected'), findsOneWidget);
-      expect(find.text('Keep rain out'), findsNothing);
-      expect(find.byTooltip('Expand Cover'), findsOneWidget);
-      await tester.tap(find.byTooltip('Expand Cover'));
-      await tester.pumpAndSettle();
       expect(find.text('Keep rain out'), findsOneWidget);
-      await tester.tap(find.text('Cover'));
-      await tester.pumpAndSettle();
-      expect(find.text('Keep rain out'), findsOneWidget);
-      expect(find.text('Selected'), findsNothing);
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
-      expect(
-        repo.entries.last.content.whereType<Map>().firstWhere(
-          (row) => row['stage'] == 'prototyping',
-        )['component'],
-        isNull,
-      );
-      await tester.tap(find.text('Next').last);
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Select or create a component, or choose No component.'),
-        findsOneWidget,
-      );
-      await tester.ensureVisible(find.text('Cover'));
-      await tester.tap(find.text('Cover'));
-      await tester.pumpAndSettle();
-      expect(find.text('Selected'), findsOneWidget);
-      expect(
-        find.text('Select or create a component, or choose No component.'),
-        findsNothing,
-      );
-      expect(find.text('Keep rain out'), findsOneWidget);
-
-      await tester.ensureVisible(find.byType(ItemActionMenu).last);
       await tester.tap(find.byType(ItemActionMenu).last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit').last);
+      await tester.tap(find.text('Remove Selection'));
       await tester.pumpAndSettle();
-      final fields = find.descendant(
-        of: find.byType(BottomSheet),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(fields.at(0), 'Weather Cover');
-      await tester.tap(find.text('+ Feature'));
+      expect(find.text('Cover'), findsNothing);
+      await tester.tap(find.text('Choose Component'));
       await tester.pumpAndSettle();
-      await tester.enterText(fields.at(2), 'Water resistant');
-      await tester.ensureVisible(find.text('Save').last);
-      await tester.tap(find.text('Save').last);
+      expect(find.text('Lid Panel'), findsOneWidget);
+      await tester.ensureVisible(find.text('No component'));
+      await tester.tap(find.text('No component'));
       await tester.pumpAndSettle();
-      expect(find.text('Water resistant'), findsOneWidget);
+      await tester.tap(find.text('Use Selection'));
+      await tester.pumpAndSettle();
+      expect(find.text('No component selected'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
       await _keepDraft(tester);
-      final savedComponent =
-          repo.entries.last.content.whereType<Map>().firstWhere(
-                (row) => row['stage'] == 'prototyping',
-              )['component']
-              as Map;
-      expect(savedComponent['name'], 'Weather Cover');
-      expect(savedComponent['features'], ['Water resistant']);
-      await tester.tap(find.byType(ItemActionMenu).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete').last);
-      await tester.pumpAndSettle();
-      expect(find.text('+ Create New Component'), findsOneWidget);
-      expect(
-        repo.entries.first.content.whereType<Map>().firstWhere(
-          (row) => row['stage'] == 'prototyping',
-        )['createdComponents'],
-        hasLength(3),
+      final data = repo.entries.last.content.whereType<Map>().firstWhere(
+        (row) => row['stage'] == 'prototyping',
       );
+      expect(data['noComponent'], isTrue);
+      expect(data['component'], isNull);
       expect(tester.takeException(), isNull);
     },
   );

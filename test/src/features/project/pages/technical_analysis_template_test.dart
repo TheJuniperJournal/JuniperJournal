@@ -147,8 +147,40 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Add Selected (3)'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.close).last);
+      await tester.ensureVisible(
+        find.byTooltip('Edit custom source Lab notebook'),
+      );
+      await tester.tap(find.byTooltip('Edit custom source Lab notebook'));
       await tester.pumpAndSettle();
+      final rename = find.widgetWithText(TextField, 'Rename source');
+      await tester.ensureVisible(rename);
+      await tester.enterText(rename, 'Lab record');
+      await tester.ensureVisible(find.text('Save Source'));
+      await tester.tap(find.text('Save Source'));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.text('Lab notebook'),
+        ),
+        findsNothing,
+      );
+      await tester.ensureVisible(
+        find.byTooltip('Delete custom source Lab record'),
+      );
+      await tester.tap(find.byTooltip('Delete custom source Lab record'));
+      await tester.pumpAndSettle();
+      expect(find.text('Lab record'), findsNothing);
+      await tester.tap(find.text('Add Selected (2)'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      final updated = repo.saved!.whereType<Map>().firstWhere(
+        (row) => row['stage'] == 'prototyping',
+      );
+      expect(updated['customDataSources'], isEmpty);
+      expect((updated['dataSources'] as List).length, 2);
+      expect(find.text('Field Measurements'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

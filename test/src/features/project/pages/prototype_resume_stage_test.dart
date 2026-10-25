@@ -108,7 +108,7 @@ void main() {
               findsOneWidget,
             );
           } else if (section == 0) {
-            expect(find.text('Select Component'), findsOneWidget);
+            expect(find.text('Component').last, findsOneWidget);
           }
           expect(tester.takeException(), isNull);
         },
