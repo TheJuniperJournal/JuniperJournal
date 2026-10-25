@@ -76,6 +76,24 @@
             "value": "no-cache"
           }
         ]
+      },
+      {
+        "source": "/journal-context-preview.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/journal-context-preview.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       }
     ],
     "redirects": [
