@@ -120,7 +120,7 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Select Component').first);
+    await tester.tap(find.text('Select Components').first);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('No component'));
     await tester.tap(find.text('No component'));

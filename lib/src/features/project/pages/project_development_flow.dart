@@ -3303,7 +3303,9 @@ class _CompletePrototypePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final draft = _PrototypeJournalDraft(type, entry);
-    final component = draft.data['component'];
+    final components = _maps(draft.data['selectedComponents']).isNotEmpty
+        ? _maps(draft.data['selectedComponents'])
+        : [if (draft.data['component'] is Map) draft.data['component'] as Map];
     return _PrototypeScaffold(
       title: 'Journal Entry: Prototyping',
       previewEntry: entry,
@@ -3314,7 +3316,7 @@ class _CompletePrototypePreview extends StatelessWidget {
           children: [
             Text(entry.title, style: AppTypography.pageTitle),
             const SizedBox(height: AppMetrics.fieldGap),
-            if (component is Map)
+            for (final component in components)
               _PreviewPanel(
                 title: 'Component',
                 children: [
@@ -3390,8 +3392,9 @@ class _CompletePrototypePreview extends StatelessWidget {
                     items: _maps(draft.data['materials']),
                     currency:
                         draft.data['materialsCurrency']?.toString() ?? 'USD',
-                    componentName: (draft.data['component'] as Map?)?['name']
-                        ?.toString(),
+                    componentName: components
+                        .map((c) => c['name']?.toString() ?? '')
+                        .join(', '),
                   ),
                 ],
               ),
@@ -3433,6 +3436,7 @@ class _CompletePrototypePreview extends StatelessWidget {
 
 class _CreateBuildingComponentSheet extends StatefulWidget {
   const _CreateBuildingComponentSheet({
+    super.key,
     this.component,
     this.onSave,
     this.onBack,
@@ -3852,10 +3856,25 @@ class _PrototypingJournalEntryPageState
   final List<UserProfile> _buildMembers = [];
   final Set<String> _involved = {};
   bool _loadingComponents = true;
+  List<_PrototypeComponentDraft> get _selectedComponents =>
+      _maps(_draft.data['selectedComponents']).isNotEmpty
+      ? _maps(
+          _draft.data['selectedComponents'],
+        ).map(_PrototypeComponentDraft.fromMap).toList()
+      : _draft.data['component'] is Map
+      ? [_PrototypeComponentDraft.fromMap(_draft.data['component'])]
+      : [];
   _PrototypeComponentDraft? get _selectedComponent =>
-      _draft.data['component'] is Map
-      ? _PrototypeComponentDraft.fromMap(_draft.data['component'])
-      : null;
+      _selectedComponents.firstOrNull;
+  void _setSelectedComponents(List<_PrototypeComponentDraft> components) {
+    _draft.data['selectedComponents'] = [for (final c in components) c.toMap()];
+    if (components.isEmpty) {
+      _draft.data.remove('component');
+    } else {
+      _draft.data['component'] = components.first.toMap();
+    }
+  }
+
   List<String> get _labels => _building
       ? [
           'Component',
@@ -3982,22 +4001,24 @@ class _PrototypingJournalEntryPageState
         ];
       }
       _draft.data['noComponent'] = false;
-      _draft.data['component'] = {
-        'id': component.id,
-        'name': component.name,
-        'description': component.description,
-        'status': component.status,
-        'features': component.features,
-      };
+      final selected = _selectedComponents;
+      _setSelectedComponents([
+        for (final c in selected)
+          if (c.id != component.id) c,
+        component,
+      ]);
     });
   }
 
   Future<void> _chooseComponent() async {
-    var pending = _selectedComponent;
+    final catalog = List<_PrototypeComponentDraft>.of(_components);
+    final pending = _selectedComponents.map((c) => c.id).toSet();
+    final added = <String, _PrototypeComponentDraft>{};
     var none = _draft.data['noComponent'] == true;
     var creating = false;
-    var created = false;
-    final result = await showAppDialog<Object>(
+    var formVersion = 0;
+    var query = '';
+    final result = await showAppDialog<Map<String, dynamic>>(
       context: context,
       builder: (modalContext) => StatefulBuilder(
         builder: (context, update) => Dialog(
@@ -4021,7 +4042,7 @@ class _PrototypingJournalEntryPageState
                             const SizedBox(width: 48),
                             const Expanded(
                               child: Text(
-                                'Select Component',
+                                'Select Components',
                                 textAlign: TextAlign.center,
                                 style: AppTypography.sectionTitle,
                               ),
@@ -4034,59 +4055,101 @@ class _PrototypingJournalEntryPageState
                           ],
                         ),
                         const SizedBox(height: 24),
-                        LayoutBuilder(
-                          builder: (context, constraints) =>
-                              DropdownMenu<_PrototypeComponentDraft>(
-                                key: const ValueKey('project-component-search'),
-                                width: constraints.maxWidth,
-                                menuHeight: 240,
-                                enableFilter: true,
-                                filterCallback: (entries, query) => entries
-                                    .where(
-                                      (entry) =>
-                                          entry.value.name
-                                              .toLowerCase()
-                                              .contains(query.toLowerCase()) ||
-                                          entry.value.description
-                                              .toLowerCase()
-                                              .contains(query.toLowerCase()),
-                                    )
-                                    .toList(),
-                                requestFocusOnTap: true,
-                                hintText: 'Search components',
-                                leadingIcon: const Icon(Icons.search),
-                                initialSelection: none ? null : pending,
-                                dropdownMenuEntries: [
-                                  for (final component in _components)
-                                    DropdownMenuEntry(
-                                      value: component,
-                                      label: component.name,
-                                      labelWidget: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            component.name,
-                                            style: AppTypography.fieldLabel,
-                                          ),
-                                          if (component.description.isNotEmpty)
-                                            Text(
-                                              component.description,
-                                              style: AppTypography.helper,
-                                            ),
-                                        ],
+                        TextField(
+                          key: const ValueKey('project-component-search'),
+                          onChanged: (value) =>
+                              update(() => query = value.trim().toLowerCase()),
+                          decoration: const InputDecoration(
+                            hintText: 'Search components',
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Project components',
+                          style: AppTypography.fieldLabel,
+                        ),
+                        const SizedBox(height: 12),
+                        for (final component in catalog.where(
+                          (c) =>
+                              query.isEmpty ||
+                              added.containsKey(c.id) ||
+                              c.name.toLowerCase().contains(query) ||
+                              c.description.toLowerCase().contains(query),
+                        ))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Material(
+                              color: Colors.white,
+                              clipBehavior: Clip.antiAlias,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: const BorderSide(
+                                  color: AppColors.divider,
+                                ),
+                              ),
+                              child: CheckboxListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                secondary: const Icon(
+                                  Icons.view_in_ar_outlined,
+                                  color: _devGreen,
+                                ),
+                                title: Text(
+                                  component.name,
+                                  style: AppTypography.fieldLabel,
+                                ),
+                                subtitle: component.description.isEmpty
+                                    ? null
+                                    : Text(
+                                        component.description,
+                                        style: AppTypography.helper,
                                       ),
-                                    ),
-                                ],
-                                onSelected: (value) => update(() {
-                                  pending = value;
-                                  none = false;
+                                value: pending.contains(component.id),
+                                onChanged: (value) => update(() {
+                                  if (value == true) {
+                                    pending.add(component.id);
+                                    none = false;
+                                  } else {
+                                    pending.remove(component.id);
+                                  }
                                 }),
                               ),
-                        ),
-                        const SizedBox(height: 20),
+                            ),
+                          ),
+                        if (catalog.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              'Create a component to start your project list.',
+                              style: AppTypography.helper,
+                            ),
+                          ),
+                        if (catalog.isNotEmpty &&
+                            !catalog.any(
+                              (c) =>
+                                  query.isEmpty ||
+                                  added.containsKey(c.id) ||
+                                  c.name.toLowerCase().contains(query) ||
+                                  c.description.toLowerCase().contains(query),
+                            ))
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              'No matching components.',
+                              style: AppTypography.helper,
+                            ),
+                          ),
+                        const SizedBox(height: 16),
                         CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
+                          secondary: const SizedBox(width: 24, height: 24),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           title: const Text(
                             'No component',
                             style: AppTypography.fieldLabel,
@@ -4098,7 +4161,7 @@ class _PrototypingJournalEntryPageState
                           value: none,
                           onChanged: (value) => update(() {
                             none = value == true;
-                            if (none) pending = null;
+                            if (none) pending.clear();
                           }),
                         ),
                         const SizedBox(height: 24),
@@ -4109,12 +4172,16 @@ class _PrototypingJournalEntryPageState
                         ),
                         const SizedBox(height: 24),
                         FilledButton(
-                          onPressed: pending == null && !none
+                          onPressed: pending.isEmpty && !none
                               ? null
-                              : () => Navigator.pop(
-                                  modalContext,
-                                  none ? 'none' : pending,
-                                ),
+                              : () => Navigator.pop(modalContext, {
+                                  'selected': [
+                                    for (final c in catalog)
+                                      if (pending.contains(c.id)) c,
+                                  ],
+                                  'created': added.values.toList(),
+                                  'none': none,
+                                }),
                           child: const Text('Use Selection'),
                         ),
                       ],
@@ -4122,11 +4189,16 @@ class _PrototypingJournalEntryPageState
                   ),
                 ),
                 _CreateBuildingComponentSheet(
+                  key: ValueKey(formVersion),
                   onBack: () => update(() => creating = false),
-                  onSave: (component) {
-                    created = true;
-                    Navigator.pop(modalContext, component);
-                  },
+                  onSave: (component) => update(() {
+                    catalog.insert(0, component);
+                    added[component.id] = component;
+                    pending.add(component.id);
+                    none = false;
+                    creating = false;
+                    formVersion++;
+                  }),
                 ),
               ],
             ),
@@ -4136,25 +4208,26 @@ class _PrototypingJournalEntryPageState
     );
     if (!mounted || result == null) return;
     setState(() {
-      if (result == 'none') {
-        _draft.data['noComponent'] = true;
-        _draft.data.remove('component');
-      } else if (result is _PrototypeComponentDraft) {
-        if (created) {
-          _components.insert(0, result);
-          _draft.data['createdComponents'] = [
-            ..._maps(_draft.data['createdComponents']),
-            result.toMap(),
-          ];
-        }
-        _draft.data['noComponent'] = false;
-        _draft.data['component'] = result.toMap();
+      for (final component
+          in result['created'] as List<_PrototypeComponentDraft>) {
+        _components.removeWhere((c) => c.id == component.id);
+        _components.insert(0, component);
+        _draft.data['createdComponents'] = [
+          ..._maps(
+            _draft.data['createdComponents'],
+          ).where((c) => c['id'] != component.id),
+          component.toMap(),
+        ];
       }
+      _setSelectedComponents(
+        result['selected'] as List<_PrototypeComponentDraft>,
+      );
+      _draft.data['noComponent'] = result['none'] == true;
     });
   }
 
   Widget _componentStage() {
-    final selected = _selectedComponent;
+    final selections = _selectedComponents;
     return _JournalStageLayout(
       children: [
         const JournalSectionHeader(title: 'Component'),
@@ -4168,13 +4241,11 @@ class _PrototypingJournalEntryPageState
               _selectedComponent != null || _draft.data['noComponent'] == true,
           message: 'Select or create a component, or choose No component.',
           child: _PrototypeOutlinedAction(
-            label: selected != null || _draft.data['noComponent'] == true
-                ? 'Select Component'
-                : 'Select Component',
+            label: 'Select Components',
             onTap: _chooseComponent,
           ),
         ),
-        if (selected != null) ...[
+        for (final selected in selections) ...[
           const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
@@ -4201,7 +4272,11 @@ class _PrototypingJournalEntryPageState
                         _draft.data['createdComponents'] = _maps(
                           _draft.data['createdComponents'],
                         ).where((item) => item['id'] != selected.id).toList();
-                        _draft.data.remove('component');
+                        _setSelectedComponents(
+                          _selectedComponents
+                              .where((c) => c.id != selected.id)
+                              .toList(),
+                        );
                         _draft.data['noComponent'] = false;
                       })
                     : null,
@@ -4209,7 +4284,11 @@ class _PrototypingJournalEntryPageState
                   ItemMenuAction(
                     'Remove Selection',
                     () => setState(() {
-                      _draft.data.remove('component');
+                      _setSelectedComponents(
+                        _selectedComponents
+                            .where((c) => c.id != selected.id)
+                            .toList(),
+                      );
                       _draft.data['noComponent'] = false;
                     }),
                   ),
@@ -4217,7 +4296,8 @@ class _PrototypingJournalEntryPageState
               ),
             ),
           ),
-        ] else if (_draft.data['noComponent'] == true)
+        ],
+        if (selections.isEmpty && _draft.data['noComponent'] == true)
           const Padding(
             padding: EdgeInsets.only(top: 16),
             child: Text('No component selected', style: AppTypography.helper),
@@ -4869,7 +4949,9 @@ class _PrototypingJournalEntryPageState
                                         _draft.data['materialsCurrency']
                                             ?.toString() ??
                                         'USD',
-                                    componentName: _selectedComponent?.name,
+                                    componentName: _selectedComponents
+                                        .map((c) => c.name)
+                                        .join(', '),
                                     noMaterials:
                                         _draft.data['noMaterials'] == true,
                                     onChanged: (items, currency) =>
