@@ -13,3 +13,5 @@ Separate read-only design study using the existing public QA Ideation entry. The
 - Hide explanations, section jump links, refresh, and comparison with previous preview are clickable.
 
 Validation: release build, JavaScript syntax compilation, live browser rendering and interactions.
+
+Follow-up: softened the section descriptions, removed redundant Challenge/idea labels, combined each idea’s description and reasoning into one paragraph, and reduced within-item spacing while keeping separation between ideas. Saved text remains unchanged.
