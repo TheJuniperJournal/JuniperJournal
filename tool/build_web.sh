@@ -7,6 +7,8 @@ WEB_PUBLIC_CONFIG="$WEB_CONFIG_DIR/public.json"
 trap 'rm -f "$WEB_PUBLIC_CONFIG"; rmdir "$WEB_CONFIG_DIR"' EXIT HUP INT TERM
 python3 tool/web_config.py "${JUNIPER_ENV_FILE:-.env}" "$WEB_PUBLIC_CONFIG"
 "$WEB_FLUTTER_BIN" build web --release --dart-define-from-file="$WEB_PUBLIC_CONFIG" "$@"
+# Read-only design preview uses the same allowlisted public configuration.
+cp "$WEB_PUBLIC_CONFIG" build/web/journal-preview-config.json
 
 # Opt in for local preview; production/offline caching keeps Flutter defaults.
 if [ "${JUNIPER_PREVIEW_CACHE_BUST:-0}" = "1" ]; then
