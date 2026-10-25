@@ -24,7 +24,14 @@ class AppScrollBehavior extends MaterialScrollBehavior {
       case TargetPlatform.linux:
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
-        return AppScrollbar(controller: details.controller, child: child);
+        return AppScrollbar(
+          controller: details.controller,
+          thumbVisibility:
+              route is DialogRoute || route is ModalBottomSheetRoute
+              ? true
+              : null,
+          child: child,
+        );
       case TargetPlatform.android:
       case TargetPlatform.fuchsia:
       case TargetPlatform.iOS:

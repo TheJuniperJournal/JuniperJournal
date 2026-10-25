@@ -262,6 +262,8 @@ void main() {
     tester,
   ) async {
     await _openIdeas(tester, _Repo(), desktop: true);
+    tester.view.physicalSize = const Size(1440, 1000);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('+ Add Idea'));
     await tester.pumpAndSettle();
     final title = find.text('Add Idea');
@@ -277,6 +279,17 @@ void main() {
         .findAncestorWidgetOfExactType<Material>()!;
     final popup = tester.getRect(find.byWidget(surface));
     expect(tester.getCenter(title).dx, closeTo(popup.center.dx, .01));
+    expect(popup.width, closeTo(600, .01));
+    final input = tester.getRect(field);
+    expect(input.left - popup.left, greaterThanOrEqualTo(24));
+    expect(popup.right - input.right, closeTo(input.left - popup.left, .01));
+    final scrollbar = find
+        .descendant(
+          of: find.byKey(const ValueKey('dialog-form-scrollbar')),
+          matching: find.byType(Scrollbar),
+        )
+        .first;
+    expect(tester.widget<Scrollbar>(scrollbar).thumbVisibility, isTrue);
     final save = tester.getRect(find.widgetWithText(TextButton, 'Save'));
     expect(popup.right - save.right, greaterThanOrEqualTo(24));
     expect(tester.takeException(), isNull);

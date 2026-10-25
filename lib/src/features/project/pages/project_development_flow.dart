@@ -1,3 +1,4 @@
+import '../../../shared/widgets/dialog_form_scroll.dart';
 import '../utils/journal_prompt_guidance.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
@@ -3496,24 +3497,11 @@ class _CreateBuildingComponentSheetState
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * .88,
-          maxWidth: 444,
+          maxWidth: 600,
         ),
-        child: PageScrollWithFooter(
+        child: DialogFormScroll(
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              28,
-              24,
-              28 -
-                  (ScrollConfiguration.of(context) is AppScrollBehavior &&
-                          {
-                            TargetPlatform.macOS,
-                            TargetPlatform.windows,
-                            TargetPlatform.linux,
-                          }.contains(Theme.of(context).platform)
-                      ? AppScrollbar.gutterWidth
-                      : 0),
-              28,
-            ),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -7806,19 +7794,12 @@ class _IdeaEditorPageState extends State<_IdeaEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final platform = ScrollConfiguration.of(context).getPlatform(context);
-    final gutter = switch (platform) {
-      TargetPlatform.macOS ||
-      TargetPlatform.windows ||
-      TargetPlatform.linux => AppScrollbar.gutterWidth,
-      _ => 0.0,
-    };
     return Dialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 444,
+        width: 600,
         height: MediaQuery.sizeOf(context).height * .88,
         child: Column(
           children: [
@@ -7870,9 +7851,9 @@ class _IdeaEditorPageState extends State<_IdeaEditorPage> {
               ),
             ),
             Expanded(
-              child: PageScrollWithFooter(
+              child: DialogFormScroll(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24, 8, 24 - gutter, 24),
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
