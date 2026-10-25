@@ -28,7 +28,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Amelia Yang'), findsNothing);
-      await tester.tap(find.text('Add People'));
+      await tester.tap(find.byTooltip('Add People'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'Amelia');
       await tester.pump();
@@ -64,7 +64,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Original Author · Author'), findsOneWidget);
-      await tester.tap(find.text('Add People'));
+      await tester.tap(find.byTooltip('Add People'));
       await tester.pumpAndSettle();
       expect(find.text('Original Author'), findsNothing);
       expect(find.text('Collaborator'), findsOneWidget);

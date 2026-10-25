@@ -63,8 +63,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Who is involved?'), findsOneWidget);
-      await tester.ensureVisible(find.text('Add People'));
-      await tester.tap(find.text('Add People'));
+      await tester.ensureVisible(find.byTooltip('Add People'));
+      await tester.tap(find.byTooltip('Add People'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Morgan'));
       await tester.tap(find.text('Save Contributors'));

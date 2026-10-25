@@ -29,7 +29,10 @@ void main() {
 
     await tester.pump();
 
-    expect(find.text('Entry 1'), findsNWidgets(2));
+    expect(find.text('Entry 1'), findsOneWidget);
+    expect(find.text('Entry Title (Optional)'), findsNothing);
+    expect(find.text('Who is involved?'), findsNothing);
+    expect(find.text('Phase'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Submit'), findsOneWidget);
     expect(find.byTooltip('Back'), findsOneWidget);
     expect(

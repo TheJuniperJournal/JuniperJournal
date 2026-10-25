@@ -11,10 +11,6 @@ class PersistentDesktopShell extends StatefulWidget {
 
 class PersistentDesktopShellState extends State<PersistentDesktopShell> {
   AdaptiveAppShell? _configuration;
-  int _projectWorkspaces = 0;
-  void updateProjectWorkspaces(int delta) {
-    if (mounted) setState(() => _projectWorkspaces += delta);
-  }
 
   void configure(AdaptiveAppShell configuration) {
     if (mounted) setState(() => _configuration = configuration);
@@ -53,7 +49,7 @@ class PersistentDesktopShellState extends State<PersistentDesktopShell> {
           ? widget.child
           : AdaptiveAppShell(
               hostFrame: true,
-              showCreate: _projectWorkspaces == 0,
+              showCreate: true,
               body: widget.child,
               mobileNavigation: const SizedBox.shrink(),
               selectedIndex: config.selectedIndex,
@@ -65,40 +61,12 @@ class PersistentDesktopShellState extends State<PersistentDesktopShell> {
   }
 }
 
-/// Keeps project-specific actions in the project while its nested pages are open.
-class ProjectWorkspaceChrome extends StatefulWidget {
+/// Marks project content without suppressing global creation navigation.
+class ProjectWorkspaceChrome extends StatelessWidget {
   const ProjectWorkspaceChrome({super.key, required this.child});
   final Widget child;
   @override
-  State<ProjectWorkspaceChrome> createState() => _ProjectWorkspaceChromeState();
-}
-
-class _ProjectWorkspaceChromeState extends State<ProjectWorkspaceChrome> {
-  PersistentDesktopShellState? _host;
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final host = DesktopShellScope.of(context);
-    if (_host == host) return;
-    final previous = _host;
-    _host = host;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      previous?.updateProjectWorkspaces(-1);
-      if (mounted) host?.updateProjectWorkspaces(1);
-    });
-  }
-
-  @override
-  void dispose() {
-    final host = _host;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      host?.updateProjectWorkspaces(-1);
-    });
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => child;
 }
 
 class DesktopShellScope extends InheritedWidget {

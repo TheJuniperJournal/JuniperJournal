@@ -227,7 +227,10 @@ void main() {
       expect(repo.creates, 0);
       expect(find.byType(JournalEntryEditorScreen), findsOneWidget);
       await tester.enterText(
-        find.widgetWithText(TextField, 'Entry Title (Optional)'),
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byType(TextField),
+        ),
         'Notes',
       );
       await tester.enterText(
@@ -469,47 +472,40 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-  testWidgets(
-    'phase defaults to its dashboard and changing it explains and saves the destination',
-    (tester) async {
-      tester.view.physicalSize = const Size(900, 1400);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final repo = _Repo();
-      await tester.pumpWidget(_host(repo, 'ideating'));
-      await tester.tap(find.text('New journal entry'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Free Notes'));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('This entry appears in the Ideation dashboard.'),
-        findsOneWidget,
-      );
-      await tester.tap(find.text('Ideation'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Prototyping').last);
-      await tester.pumpAndSettle();
-      expect(
-        find.text(
-          'Saving moves this entry to the Prototyping dashboard instead of Ideation.',
-        ),
-        findsOneWidget,
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Entry Title (Optional)'),
-        'Prototype',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('free-notes-body-0')),
-        'Prototype notes',
-      );
-      await tester.ensureVisible(find.text('Submit'));
-      await tester.tap(find.text('Submit'));
-      await tester.pumpAndSettle();
-      expect(normalizePhase(repo.phase), 'prototyping');
-      expect(repo.creates, 1);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('free notes retain the creation phase without a phase selector', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = _Repo();
+    await tester.pumpWidget(_host(repo, 'ideating'));
+    await tester.tap(find.text('New journal entry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Free Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Phase'), findsNothing);
+    expect(
+      find.text('This entry appears in the Ideation dashboard.'),
+      findsNothing,
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(TextField),
+      ),
+      'Prototype',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('free-notes-body-0')),
+      'Prototype notes',
+    );
+    await tester.ensureVisible(find.text('Submit'));
+    await tester.tap(find.text('Submit'));
+    await tester.pumpAndSettle();
+    expect(normalizePhase(repo.phase), 'ideating');
+    expect(repo.creates, 1);
+    expect(tester.takeException(), isNull);
+  });
 }

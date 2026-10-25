@@ -1,3 +1,4 @@
+import '../../../shared/widgets/creation_navigation_guard.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../home_page/pages/public_user_profile.dart';
@@ -718,286 +719,307 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: CreationPageFrame(
-        desktopMaxWidth: 720,
-        child: PageScrollWithFooter(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 42),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CreationPageHeader(
-                    onClose: () => Navigator.of(context).pop(false),
-                    closeLabel: widget.existingProject == null
-                        ? 'Close create project'
-                        : 'Close project settings',
-                    title: widget.existingProject == null
-                        ? 'Create Project'
-                        : 'Project Settings',
-                  ),
-                  CreationImagePicker(
-                    label: 'Update project image',
-                    iconOnlyTap: true,
-                    imageUrl: _projectImageUrl,
-                    imageBytes: _projectImagePreview,
-                    isUploading: _isUploadingImage,
-                    onTap: _showImageSourceSheet,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: JournalPageLayout.horizontalInset,
+    return CreationNavigationGuard(
+      fingerprint: () => [
+        _nameController.text,
+        _problemController.text,
+        _selectedSubject,
+        _selectedDifficulty,
+        _selectedScale,
+        _selectedVisibility,
+        _projectImageUrl,
+        _projectType,
+        _pendingMembers.map((p) => p.id).join(','),
+        _communityLinks.toString(),
+        ..._objectiveRows.map(
+          (r) =>
+              '${r.objectiveType}|${r.subjectDomain}|${r.descriptionController.text}',
+        ),
+      ].toString(),
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: CreationPageFrame(
+          desktopMaxWidth: 720,
+          child: PageScrollWithFooter(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 42),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CreationPageHeader(
+                      onClose: () => Navigator.of(context).pop(false),
+                      closeLabel: widget.existingProject == null
+                          ? 'Close create project'
+                          : 'Close project settings',
+                      title: widget.existingProject == null
+                          ? 'Create Project'
+                          : 'Project Settings',
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionTitle('Project Name'),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        _validatedField(
-                          'name',
-                          _ProjectSetupTextField(
-                            showError:
-                                _showSetupValidation &&
-                                _setupErrors.containsKey('name'),
-                            controller: _nameController,
-                            height: 64,
+                    CreationImagePicker(
+                      label: 'Update project image',
+                      iconOnlyTap: true,
+                      imageUrl: _projectImageUrl,
+                      imageBytes: _projectImagePreview,
+                      isUploading: _isUploadingImage,
+                      onTap: _showImageSourceSheet,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: JournalPageLayout.horizontalInset,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionTitle('Project Name'),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          _validatedField(
+                            'name',
+                            _ProjectSetupTextField(
+                              showError:
+                                  _showSetupValidation &&
+                                  _setupErrors.containsKey('name'),
+                              controller: _nameController,
+                              height: 64,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        _validatedField(
-                          'type',
-                          ProjectTypeSelector(
-                            value: _projectType,
-                            showError:
-                                _showSetupValidation && _projectType == null,
-                            onChanged: (value) {
-                              if (value == 'solo' &&
-                                  _pendingMembers.any(
-                                    (m) => m.id != _projectOwner?.id,
-                                  )) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Remove other members before changing to Solo.',
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          _validatedField(
+                            'type',
+                            ProjectTypeSelector(
+                              value: _projectType,
+                              showError:
+                                  _showSetupValidation && _projectType == null,
+                              onChanged: (value) {
+                                if (value == 'solo' &&
+                                    _pendingMembers.any(
+                                      (m) => m.id != _projectOwner?.id,
+                                    )) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Remove other members before changing to Solo.',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                setState(() => _projectType = value);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          if (widget.existingProject == null &&
+                              _projectType == 'collaborative') ...[
+                            if (_loadingMembers)
+                              const LinearProgressIndicator()
+                            else
+                              _validatedField(
+                                'members',
+                                ProjectMembersSection(
+                                  members: _pendingMembers,
+                                  showError:
+                                      _showSetupValidation &&
+                                      _needsCollaborator,
+                                  owner: _projectOwner,
+                                  roles: _memberRoles,
+                                  canManageRoles: _canManageRoles,
+                                  onRoleChanged: (id, role) =>
+                                      setState(() => _memberRoles[id] = role),
+                                  onAddPeople: _openAddMemberDialog,
+                                  onRemoveMember: (person) => setState(
+                                    () => _pendingMembers.removeWhere(
+                                      (member) => member.id == person.id,
                                     ),
                                   ),
-                                );
-                                return;
-                              }
-                              setState(() => _projectType = value);
-                            },
+                                ),
+                              ),
+                            const SizedBox(height: AppMetrics.fieldGap),
+                          ],
+                          if (widget.existingProject == null)
+                            ProjectCommunitiesSection(
+                              links: _communityLinks,
+                              onAdd: _openCommunities,
+                              onRemove: (id) => setState(
+                                () => _communityLinks.removeWhere(
+                                  (link) => link['id'] == id,
+                                ),
+                              ),
+                              onCollaborator: (id) => setState(() {
+                                for (final link in _communityLinks) {
+                                  if (link['id'] == id) {
+                                    link['role'] = 'collaborator';
+                                  }
+                                }
+                              }),
+                              onHome: (id) => setState(() {
+                                for (final link in _communityLinks) {
+                                  link['role'] = link['id'] == id
+                                      ? 'home'
+                                      : 'collaborator';
+                                }
+                              }),
+                            ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _SectionTitle('Problem Statement'),
+                          const SizedBox(height: AppMetrics.helperGap),
+                          const _SectionHint(
+                            'What is the problem you are trying to solve?',
                           ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        if (widget.existingProject == null &&
-                            _projectType == 'collaborative') ...[
-                          if (_loadingMembers)
-                            const LinearProgressIndicator()
-                          else
-                            _validatedField(
-                              'members',
-                              ProjectMembersSection(
-                                members: _pendingMembers,
-                                showError:
-                                    _showSetupValidation && _needsCollaborator,
-                                owner: _projectOwner,
-                                roles: _memberRoles,
-                                canManageRoles: _canManageRoles,
-                                onRoleChanged: (id, role) =>
-                                    setState(() => _memberRoles[id] = role),
-                                onAddPeople: _openAddMemberDialog,
-                                onRemoveMember: (person) => setState(
-                                  () => _pendingMembers.removeWhere(
-                                    (member) => member.id == person.id,
+                          const SizedBox(height: 12),
+                          _validatedField(
+                            'problem',
+                            _ProjectSetupTextField(
+                              showError:
+                                  _showSetupValidation &&
+                                  _setupErrors.containsKey('problem'),
+                              controller: _problemController,
+                              height: AppMetrics.longResponseHeight,
+                              expands: true,
+                            ),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _SectionTitle('Subject'),
+                          const SizedBox(height: AppMetrics.helperGap),
+                          const _SectionHint(
+                            'Choose the main area your project belongs to.',
+                          ),
+                          const SizedBox(height: 12),
+                          _validatedField(
+                            'subject',
+                            Column(
+                              children: [
+                                for (final option in _subjectOptions) ...[
+                                  _SubjectCard(
+                                    option: option,
+                                    showError:
+                                        _showSetupValidation &&
+                                        _selectedSubject == null,
+                                    selected: _selectedSubject == option.value,
+                                    onTap: () => _selectSubject(option.value),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const _SectionTitle('Difficulty'),
+                          const SizedBox(height: AppMetrics.helperGap),
+                          const _SectionHint('How difficult is your project?'),
+                          const SizedBox(height: 12),
+                          _validatedField(
+                            'difficulty',
+                            _ThreeCardSelector(
+                              options: _difficultyOptions,
+                              showError:
+                                  _showSetupValidation &&
+                                  _selectedDifficulty == null,
+                              selectedValue: _selectedDifficulty,
+                              lockedValue: widget.lockedDifficulty,
+                              onSelected: (value) =>
+                                  setState(() => _selectedDifficulty = value),
+                            ),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _SectionTitle('Scale'),
+                          const SizedBox(height: AppMetrics.helperGap),
+                          const _SectionHint('How large is the project?'),
+                          const SizedBox(height: 12),
+                          _validatedField(
+                            'scale',
+                            _ThreeCardSelector(
+                              options: _scaleOptions,
+                              showError:
+                                  _showSetupValidation &&
+                                  _selectedScale == null,
+                              selectedValue: _selectedScale,
+                              lockedValue: widget.lockedScale,
+                              onSelected: (value) =>
+                                  setState(() => _selectedScale = value),
+                            ),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const _SectionTitle('Visibility'),
+                          const SizedBox(height: AppMetrics.helperGap),
+                          const _SectionHint(
+                            'Choose who can see and interact with your project.',
+                          ),
+                          const SizedBox(height: 12),
+                          _validatedField(
+                            'visibility',
+                            Column(
+                              children: [
+                                for (final option in _visibilityOptions) ...[
+                                  _VisibilityCard(
+                                    option: option,
+                                    showError:
+                                        _showSetupValidation &&
+                                        _selectedVisibility == null,
+                                    selected:
+                                        _selectedVisibility == option.value,
+                                    locked:
+                                        widget.challengeId != null &&
+                                        option.value != 'Friends',
+                                    onTap:
+                                        widget.challengeId != null &&
+                                            option.value != 'Friends'
+                                        ? null
+                                        : () => _chooseVisibility(option.value),
+                                  ),
+                                  const SizedBox(height: AppMetrics.labelGap),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _validatedField(
+                            'objectives',
+                            _LearningObjectivesSection(
+                              rows: _objectiveRows,
+                              showValidation: _showObjectiveValidation,
+                              onAdd: _addObjective,
+                              onDelete: _removeObjective,
+                              onChanged: () => setState(() {}),
+                            ),
+                          ),
+                          const SizedBox(height: AppMetrics.fieldGap),
+                          const SizedBox(height: AppMetrics.labelGap),
+                          SubmitButton(
+                            label: widget.existingProject == null
+                                ? 'Create'
+                                : 'Save Changes',
+                            isLoading: _isCreating,
+                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.primary,
+                            onPressed: _handleCreate,
+                          ),
+                          if (widget.onDelete != null) ...[
+                            const SizedBox(height: AppMetrics.labelGap),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: OutlinedButton.icon(
+                                onPressed: _isCreating
+                                    ? null
+                                    : () => widget.onDelete!(context),
+                                icon: const Icon(Icons.delete_outline),
+                                label: const Text('Delete Project'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  side: const BorderSide(color: Colors.red),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                               ),
                             ),
-                          const SizedBox(height: AppMetrics.fieldGap),
+                          ],
                         ],
-                        if (widget.existingProject == null)
-                          ProjectCommunitiesSection(
-                            links: _communityLinks,
-                            onAdd: _openCommunities,
-                            onRemove: (id) => setState(
-                              () => _communityLinks.removeWhere(
-                                (link) => link['id'] == id,
-                              ),
-                            ),
-                            onCollaborator: (id) => setState(() {
-                              for (final link in _communityLinks) {
-                                if (link['id'] == id) {
-                                  link['role'] = 'collaborator';
-                                }
-                              }
-                            }),
-                            onHome: (id) => setState(() {
-                              for (final link in _communityLinks) {
-                                link['role'] = link['id'] == id
-                                    ? 'home'
-                                    : 'collaborator';
-                              }
-                            }),
-                          ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _SectionTitle('Problem Statement'),
-                        const SizedBox(height: AppMetrics.helperGap),
-                        const _SectionHint(
-                          'What is the problem you are trying to solve?',
-                        ),
-                        const SizedBox(height: 12),
-                        _validatedField(
-                          'problem',
-                          _ProjectSetupTextField(
-                            showError:
-                                _showSetupValidation &&
-                                _setupErrors.containsKey('problem'),
-                            controller: _problemController,
-                            height: AppMetrics.longResponseHeight,
-                            expands: true,
-                          ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _SectionTitle('Subject'),
-                        const SizedBox(height: AppMetrics.helperGap),
-                        const _SectionHint(
-                          'Choose the main area your project belongs to.',
-                        ),
-                        const SizedBox(height: 12),
-                        _validatedField(
-                          'subject',
-                          Column(
-                            children: [
-                              for (final option in _subjectOptions) ...[
-                                _SubjectCard(
-                                  option: option,
-                                  showError:
-                                      _showSetupValidation &&
-                                      _selectedSubject == null,
-                                  selected: _selectedSubject == option.value,
-                                  onTap: () => _selectSubject(option.value),
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const _SectionTitle('Difficulty'),
-                        const SizedBox(height: AppMetrics.helperGap),
-                        const _SectionHint('How difficult is your project?'),
-                        const SizedBox(height: 12),
-                        _validatedField(
-                          'difficulty',
-                          _ThreeCardSelector(
-                            options: _difficultyOptions,
-                            showError:
-                                _showSetupValidation &&
-                                _selectedDifficulty == null,
-                            selectedValue: _selectedDifficulty,
-                            lockedValue: widget.lockedDifficulty,
-                            onSelected: (value) =>
-                                setState(() => _selectedDifficulty = value),
-                          ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _SectionTitle('Scale'),
-                        const SizedBox(height: AppMetrics.helperGap),
-                        const _SectionHint('How large is the project?'),
-                        const SizedBox(height: 12),
-                        _validatedField(
-                          'scale',
-                          _ThreeCardSelector(
-                            options: _scaleOptions,
-                            showError:
-                                _showSetupValidation && _selectedScale == null,
-                            selectedValue: _selectedScale,
-                            lockedValue: widget.lockedScale,
-                            onSelected: (value) =>
-                                setState(() => _selectedScale = value),
-                          ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const _SectionTitle('Visibility'),
-                        const SizedBox(height: AppMetrics.helperGap),
-                        const _SectionHint(
-                          'Choose who can see and interact with your project.',
-                        ),
-                        const SizedBox(height: 12),
-                        _validatedField(
-                          'visibility',
-                          Column(
-                            children: [
-                              for (final option in _visibilityOptions) ...[
-                                _VisibilityCard(
-                                  option: option,
-                                  showError:
-                                      _showSetupValidation &&
-                                      _selectedVisibility == null,
-                                  selected: _selectedVisibility == option.value,
-                                  locked:
-                                      widget.challengeId != null &&
-                                      option.value != 'Friends',
-                                  onTap:
-                                      widget.challengeId != null &&
-                                          option.value != 'Friends'
-                                      ? null
-                                      : () => _chooseVisibility(option.value),
-                                ),
-                                const SizedBox(height: AppMetrics.labelGap),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _validatedField(
-                          'objectives',
-                          _LearningObjectivesSection(
-                            rows: _objectiveRows,
-                            showValidation: _showObjectiveValidation,
-                            onAdd: _addObjective,
-                            onDelete: _removeObjective,
-                            onChanged: () => setState(() {}),
-                          ),
-                        ),
-                        const SizedBox(height: AppMetrics.fieldGap),
-                        const SizedBox(height: AppMetrics.labelGap),
-                        SubmitButton(
-                          label: widget.existingProject == null
-                              ? 'Create'
-                              : 'Save Changes',
-                          isLoading: _isCreating,
-                          foregroundColor: Colors.white,
-                          backgroundColor: AppColors.primary,
-                          onPressed: _handleCreate,
-                        ),
-                        if (widget.onDelete != null) ...[
-                          const SizedBox(height: AppMetrics.labelGap),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: OutlinedButton.icon(
-                              onPressed: _isCreating
-                                  ? null
-                                  : () => widget.onDelete!(context),
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('Delete Project'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red,
-                                side: const BorderSide(color: Colors.red),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

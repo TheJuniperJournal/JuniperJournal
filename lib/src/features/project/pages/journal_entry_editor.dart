@@ -26,17 +26,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:juniper_journal/src/backend/db/repositories/projects_repo.dart';
 import 'package:juniper_journal/src/services/media_service.dart';
 import 'package:juniper_journal/src/shared/styling/app_colors.dart';
-import 'package:juniper_journal/src/shared/widgets/pill_selector.dart';
 import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
-
-// ── Progress options ──────────────────────────────────────────────────────────
-
-const _progressOptions = [
-  'Discovery',
-  'Ideation',
-  'Prototyping',
-  'Implementation',
-];
 
 // ── Public screen ─────────────────────────────────────────────────────────────
 
@@ -111,7 +101,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   late final TextEditingController _titleController;
   final _titleFocus = FocusNode();
   String? _progress;
-  late final String? _startingPhase;
 
   final List<_Block> _blocks = [];
   int? _focusedIndex;
@@ -164,7 +153,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       'implementation' => 'Implementation',
       _ => widget.initialProgress,
     };
-    _startingPhase = _progress;
     _entryId = widget.entryId;
     _submitted = widget.initialContent.whereType<Map>().any(
       (row) => row['stage'] == 'free_notes' && row['submitted'] == true,
@@ -746,78 +734,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
         appBar: _buildAppBar(),
         body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: TextField(
-                controller: _titleController,
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  labelText: 'Entry Title (Optional)',
-                ),
-              ),
-            ),
-            // Progress selector
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Phase',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  PillSelector(
-                    value: _progress,
-                    placeholder: 'Select phase',
-                    items: _progressOptions,
-                    onChanged: (v) => setState(() {
-                      if (_isFreeNotes &&
-                          widget.initialTitle.endsWith(': Free Notes') &&
-                          (_titleController.text == widget.initialTitle ||
-                              _titleController.text ==
-                                  '$_progress: Free Notes')) {
-                        _titleController.text = '$v: Free Notes';
-                      }
-                      _progress = v;
-                      _hasChanges = true;
-                    }),
-                  ),
-                  if (_isFreeNotes && _progress != null) ...[
-                    const SizedBox(height: 8),
-                    Semantics(
-                      liveRegion: true,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 16,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              _startingPhase != null &&
-                                      _progress != _startingPhase
-                                  ? 'Saving moves this entry to the $_progress dashboard instead of $_startingPhase.'
-                                  : 'This entry appears in the $_progress dashboard.',
-                              style: AppTypography.helper,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
             if (!widget.readOnly)
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -831,15 +747,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'Who is involved?',
-                          style: AppTypography.fieldLabel,
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Selected participants can edit this journal entry.',
-                          style: AppTypography.helper,
-                        ),
                         JournalInvolvedPeopleField(
                           creatorId:
                               widget.entryAuthorId ??

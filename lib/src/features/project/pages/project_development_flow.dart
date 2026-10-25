@@ -19164,35 +19164,29 @@ class JournalInvolvedPeopleField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _ParticipantManagementGate(
     authorId: author,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            for (final person in members.where(
-              (p) => p.id == author || selectedIds.contains(p.id),
-            ))
-              person.id == author
-                  ? Chip(
-                      label: Text('${person.resolvedDisplayName} · Author'),
-                      avatar: const Icon(Icons.person_outline, size: 18),
-                    )
-                  : _MemberChip(
-                      member: person,
-                      selected: true,
-                      onTap: () => onToggle(person.id),
-                    ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton.icon(
-            onPressed: () => _open(context),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add People'),
-          ),
+        for (final person in members.where(
+          (p) => p.id == author || selectedIds.contains(p.id),
+        ))
+          person.id == author
+              ? Chip(
+                  label: Text('${person.resolvedDisplayName} · Author'),
+                  avatar: const Icon(Icons.person_outline, size: 18),
+                )
+              : _MemberChip(
+                  member: person,
+                  selected: true,
+                  onTap: () => onToggle(person.id),
+                ),
+        IconButton(
+          tooltip: 'Add People',
+          onPressed: () => _open(context),
+          icon: const Icon(Icons.add),
+          color: AppColors.primary,
         ),
       ],
     ),

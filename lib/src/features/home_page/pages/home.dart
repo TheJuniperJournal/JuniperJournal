@@ -1,3 +1,4 @@
+import '../../../shared/widgets/creation_navigation_guard.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:intl/intl.dart';
@@ -525,7 +526,16 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
-  void _showCreateOptions() {
+  bool _openingCreate = false;
+  Future<void> _showCreateOptions() async {
+    if (_openingCreate) return;
+    _openingCreate = true;
+    final navigator = Navigator.of(context);
+    final canLeave =
+        await JournalDraftGuard.leaveCurrent(navigator) &&
+        await CreationNavigationGuard.leaveCurrent(navigator);
+    _openingCreate = false;
+    if (!canLeave || !mounted) return;
     showGeneralDialog(
       context: context,
       barrierDismissible: false,

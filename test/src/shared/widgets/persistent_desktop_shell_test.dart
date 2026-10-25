@@ -4,39 +4,53 @@ import 'package:juniper_journal/src/shared/widgets/adaptive_app_shell.dart';
 import 'package:juniper_journal/src/shared/widgets/persistent_desktop_shell.dart';
 
 void main() {
-  testWidgets('project workspace hides Create and restores it after leaving', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1440, 900);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final navigator = GlobalKey<NavigatorState>();
-    await tester.pumpWidget(MaterialApp(
-      navigatorKey: navigator,
-      builder: (_, child) => PersistentDesktopShell(child: child!),
-      home: AdaptiveAppShell(
-        selectedIndex: 0, onSelect: (_) {}, onCreate: () {},
-        mobileNavigation: const SizedBox(), body: const Text('Home page'),
-      ),
-    ));
-    await tester.pumpAndSettle();
-    expect(find.text('Create'), findsOneWidget);
-    navigator.currentState!.push(MaterialPageRoute(builder: (_) =>
-      const ProjectWorkspaceChrome(child: Scaffold(body: Text('Project')))));
-    await tester.pumpAndSettle();
-    expect(find.text('Create'), findsNothing);
-    expect(find.text('Explore'), findsOneWidget);
-    navigator.currentState!.push(MaterialPageRoute(builder: (_) =>
-      const Scaffold(body: Text('Phase'))));
-    await tester.pumpAndSettle();
-    expect(find.text('Create'), findsNothing);
-    navigator.currentState!.pop();
-    await tester.pumpAndSettle();
-    expect(find.text('Create'), findsNothing);
-    navigator.currentState!.pop();
-    await tester.pumpAndSettle();
-    expect(find.text('Create'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'project workspace keeps global Create available across nested routes',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1440, 900);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final navigator = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigator,
+          builder: (_, child) => PersistentDesktopShell(child: child!),
+          home: AdaptiveAppShell(
+            selectedIndex: 0,
+            onSelect: (_) {},
+            onCreate: () {},
+            mobileNavigation: const SizedBox(),
+            body: const Text('Home page'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Create'), findsOneWidget);
+      navigator.currentState!.push(
+        MaterialPageRoute(
+          builder: (_) => const ProjectWorkspaceChrome(
+            child: Scaffold(body: Text('Project')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Create'), findsOneWidget);
+      expect(find.text('Explore'), findsOneWidget);
+      navigator.currentState!.push(
+        MaterialPageRoute(builder: (_) => const Scaffold(body: Text('Phase'))),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Create'), findsOneWidget);
+      navigator.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('Create'), findsOneWidget);
+      navigator.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('Create'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'desktop chrome stays mounted across creation routes and resize',
     (tester) async {
@@ -77,7 +91,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(NavigationRail), findsOneWidget);
-    expect(find.text('Mobile nav'), findsNothing);
+      expect(find.text('Mobile nav'), findsNothing);
       final rail = tester.element(find.byType(NavigationRail));
       await tester.tap(find.text('Open creation'));
       await tester.pumpAndSettle();

@@ -627,7 +627,7 @@ void main() {
     expect(editor.initialProgress, 'prototyping');
     expect(
       find.text('This entry appears in the Prototyping dashboard.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
   });
