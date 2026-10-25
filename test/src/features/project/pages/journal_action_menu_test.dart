@@ -693,14 +693,14 @@ void main() {
       await tester.ensureVisible(find.text('Add').last);
       await tester.tap(find.text('Add').last);
       await tester.pumpAndSettle();
-      expect(
-        find.widgetWithText(CheckboxListTile, 'Current Component'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(InkWell, 'Current Component'), findsOneWidget);
       expect(
         tester
-            .widget<CheckboxListTile>(
-              find.widgetWithText(CheckboxListTile, 'Current Component'),
+            .widget<Checkbox>(
+              find.descendant(
+                of: find.widgetWithText(InkWell, 'Current Component'),
+                matching: find.byType(Checkbox),
+              ),
             )
             .value,
         isTrue,
@@ -719,26 +719,27 @@ void main() {
       await tester.ensureVisible(find.text('Add').last);
       await tester.tap(find.text('Add').last);
       await tester.pumpAndSettle();
-      expect(
-        find.widgetWithText(CheckboxListTile, 'Current Component'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(InkWell, 'Current Component'), findsOneWidget);
       expect(
         tester
-            .widget<CheckboxListTile>(
-              find.widgetWithText(CheckboxListTile, 'Second Component'),
+            .widget<Checkbox>(
+              find.descendant(
+                of: find.widgetWithText(InkWell, 'Second Component'),
+                matching: find.byType(Checkbox),
+              ),
             )
             .value,
         isTrue,
       );
-      await tester.tap(
-        find.widgetWithText(CheckboxListTile, 'Current Component'),
-      );
+      await tester.tap(find.widgetWithText(InkWell, 'Current Component'));
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<CheckboxListTile>(
-              find.widgetWithText(CheckboxListTile, 'Second Component'),
+            .widget<Checkbox>(
+              find.descendant(
+                of: find.widgetWithText(InkWell, 'Second Component'),
+                matching: find.byType(Checkbox),
+              ),
             )
             .value,
         isFalse,
@@ -845,32 +846,20 @@ void main() {
       await tester.enterText(search, 'rain');
       await tester.pumpAndSettle();
 
-      final componentCheck = find.descendant(
-        of: find.widgetWithText(CheckboxListTile, 'Cover'),
-        matching: find.byType(Checkbox),
-      );
-      final noneCheck = find.descendant(
-        of: find.widgetWithText(CheckboxListTile, 'No component'),
-        matching: find.byType(Checkbox),
-      );
-      expect(
-        tester.getCenter(componentCheck).dx,
-        closeTo(tester.getCenter(noneCheck).dx, .01),
-      );
-      expect(
-        tester.getTopLeft(find.text('Cover')).dx,
-        closeTo(tester.getTopLeft(find.text('No component')).dx, .01),
-      );
+      expect(find.text('No component'), findsNothing);
       await tester.tap(find.text('Cover').last);
       await tester.enterText(search, '');
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(CheckboxListTile, 'Lid Panel'));
+      await tester.tap(find.byKey(const ValueKey('component-choice-lid')));
       await tester.pumpAndSettle();
       expect(find.text('Selected: Lid Panel'), findsOneWidget);
       expect(
         tester
-            .widget<CheckboxListTile>(
-              find.widgetWithText(CheckboxListTile, 'Cover'),
+            .widget<Checkbox>(
+              find.descendant(
+                of: find.byKey(const ValueKey('component-choice-cover')),
+                matching: find.byType(Checkbox),
+              ),
             )
             .value,
         isFalse,
@@ -886,24 +875,21 @@ void main() {
       await tester.tap(find.byTooltip('Delete component Cover'));
       await tester.pumpAndSettle();
       expect(find.text('Cover'), findsNothing);
-      await tester.ensureVisible(find.text('No component'));
-      await tester.tap(find.text('No component'));
-      await tester.pumpAndSettle();
-      expect(find.text('No component selected'), findsOneWidget);
-      expect(
-        tester
-            .widget<CheckboxListTile>(
-              find.widgetWithText(CheckboxListTile, 'Lid Panel'),
-            )
-            .value,
-        isFalse,
+      final lidCheck = find.descendant(
+        of: find.byKey(const ValueKey('component-choice-lid')),
+        matching: find.byType(Checkbox),
       );
+      await tester.ensureVisible(lidCheck);
+      await tester.tap(lidCheck);
+      await tester.pumpAndSettle();
+      expect(find.text('Selected: Lid Panel'), findsNothing);
+      expect(tester.widget<Checkbox>(lidCheck).value, isFalse);
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
       final data = repo.entries.last.content.whereType<Map>().firstWhere(
         (row) => row['stage'] == 'prototyping',
       );
-      expect(data['noComponent'], isTrue);
+      expect(data['noComponent'], isFalse);
       expect(data['component'], isNull);
       expect(data['deletedComponentIds'], contains('cover'));
       await tester.pumpWidget(const SizedBox());
@@ -917,7 +903,11 @@ void main() {
       );
       expect(find.text('Cover'), findsNothing);
       expect(find.text('Lid Panel'), findsOneWidget);
-      expect(find.text('No component selected'), findsOneWidget);
+      expect(find.text('No component'), findsNothing);
+      await tester.ensureVisible(find.text('Next'));
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('build-stage-heading')), findsOneWidget);
 
       expect(tester.takeException(), isNull);
     },

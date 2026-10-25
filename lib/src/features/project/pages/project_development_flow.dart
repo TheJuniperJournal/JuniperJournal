@@ -4035,12 +4035,9 @@ class _PrototypingJournalEntryPageState
     });
   }
 
-  Widget _componentChoice({_PrototypeComponentDraft? component}) {
-    final none = component == null;
-    final chosen = none
-        ? _draft.data['noComponent'] == true
-        : _selectedComponent?.id == component.id;
-    final title = component?.name ?? 'No component';
+  Widget _componentChoice({required _PrototypeComponentDraft component}) {
+    final chosen = _selectedComponent?.id == component.id;
+    final title = component.name;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -4053,55 +4050,72 @@ class _PrototypingJournalEntryPageState
             width: chosen ? 1.5 : 1,
           ),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: CheckboxListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+        child: InkWell(
+          key: ValueKey('component-choice-${component.id}'),
+          onTap: () => setState(() {
+            _setSelectedComponents(!chosen ? [component] : []);
+            _draft.data['noComponent'] = false;
+          }),
+          child: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.view_in_ar_outlined, color: _devGreen),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(title, style: AppTypography.fieldLabel),
+                            if (component.description.isNotEmpty)
+                              Text(
+                                component.description,
+                                style: AppTypography.helper,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Checkbox(
+                        value: chosen,
+                        onChanged: (value) => setState(() {
+                          _setSelectedComponents(
+                            value == true ? [component] : [],
+                          );
+                          _draft.data['noComponent'] = false;
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
-                secondary: none
-                    ? const SizedBox(width: 24, height: 24)
-                    : const Icon(Icons.view_in_ar_outlined, color: _devGreen),
-                title: Text(title, style: AppTypography.fieldLabel),
-                subtitle: none
-                    ? const Text(
-                        'Continue without linking a component.',
-                        style: AppTypography.helper,
-                      )
-                    : component.description.isEmpty
-                    ? null
-                    : Text(component.description, style: AppTypography.helper),
-                value: chosen,
-                onChanged: (value) => setState(() {
-                  _setSelectedComponents(
-                    value == true && !none ? [component] : [],
-                  );
-                  _draft.data['noComponent'] = value == true && none;
-                }),
               ),
-            ),
-            if (component != null) ...[
-              SizedBox(
-                width: 44,
-                child: IconButton(
-                  tooltip: 'Edit component ${component.name}',
-                  onPressed: () => _createComponent(existing: component),
-                  icon: const Icon(Icons.edit_outlined),
+              ...[
+                SizedBox(
+                  width: 44,
+                  child: IconButton(
+                    tooltip: 'Edit component ${component.name}',
+                    onPressed: () => _createComponent(existing: component),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
                 ),
-              ),
-              SizedBox(
-                width: 44,
-                child: IconButton(
-                  tooltip: 'Delete component ${component.name}',
-                  onPressed: () => _deleteComponent(component),
-                  icon: const Icon(Icons.delete_outline),
+                SizedBox(
+                  width: 44,
+                  child: IconButton(
+                    tooltip: 'Delete component ${component.name}',
+                    onPressed: () => _deleteComponent(component),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
                 ),
-              ),
-            ] else
-              const SizedBox(width: 88),
-          ],
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -4122,7 +4136,7 @@ class _PrototypingJournalEntryPageState
       children: [
         const JournalSectionHeader(title: 'Component'),
         const Text(
-          'Choose one component for this entry, or continue without one.',
+          'Optionally choose a component if this entry focuses on a specific part of your project.',
           style: AppTypography.helper,
         ),
         const SizedBox(height: 20),
@@ -4144,35 +4158,24 @@ class _PrototypingJournalEntryPageState
               style: AppTypography.helper,
             ),
           ),
-        if (_draft.data['noComponent'] == true)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 12),
-            child: Text('No component selected', style: AppTypography.helper),
-          ),
-        _RequiredJournalInteraction(
-          complete: () =>
-              _selectedComponent != null || _draft.data['noComponent'] == true,
-          message: 'Select or create a component, or choose No component.',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_loadingComponents)
-                const Center(child: CircularProgressIndicator()),
-              for (final component in filtered)
-                _componentChoice(component: component),
-              if (!_loadingComponents && filtered.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    _components.isEmpty
-                        ? 'Create a component to start your project list.'
-                        : 'No matching components.',
-                    style: AppTypography.helper,
-                  ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_loadingComponents)
+              const Center(child: CircularProgressIndicator()),
+            for (final component in filtered)
+              _componentChoice(component: component),
+            if (!_loadingComponents && filtered.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  _components.isEmpty
+                      ? 'No components yet.'
+                      : 'No matching components.',
+                  style: AppTypography.helper,
                 ),
-              _componentChoice(),
-            ],
-          ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -4199,14 +4202,7 @@ class _PrototypingJournalEntryPageState
         child: _SmallStageButton(
           label: 'Next',
           filled: true,
-          onTap: () {
-            if (_selectedComponent == null &&
-                _draft.data['noComponent'] != true) {
-              _validateStageTextInputs(context);
-              return;
-            }
-            _openStage(1);
-          },
+          onTap: () => _openStage(1),
         ),
       ),
     );

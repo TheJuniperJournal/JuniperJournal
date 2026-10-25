@@ -303,10 +303,8 @@ Set<int> completedJournalStageIndices(List<dynamic> content) {
       _ => false,
     };
     complete = [
-      if (type == 'building' || type == 'testing')
-        data['noComponent'] == true ||
-            (data['component'] is Map &&
-                fields(data['component'] as Map, ['id', 'name'])),
+      // Linking a component is optional, while retaining the stage position.
+      if (type == 'building' || type == 'testing') true,
       ready,
       if (type == 'building' && data['materialsWorkflow'] == true)
         data['noMaterials'] == true ||
