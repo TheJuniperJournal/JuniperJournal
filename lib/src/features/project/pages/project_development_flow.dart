@@ -9021,22 +9021,26 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                       for (final source in _analysisSources)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: CheckboxListTile(
+                          child: Material(
+                            color: Colors.white,
+                            clipBehavior: Clip.antiAlias,
                             shape: RoundedRectangleBorder(
                               side: const BorderSide(color: AppColors.divider),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            secondary: Icon(source.$3, color: _devGreen),
-                            title: Text(
-                              source.$1,
-                              style: AppTypography.fieldLabel,
+                            child: CheckboxListTile(
+                              secondary: Icon(source.$3, color: _devGreen),
+                              title: Text(
+                                source.$1,
+                                style: AppTypography.fieldLabel,
+                              ),
+                              subtitle: Text(
+                                source.$2,
+                                style: AppTypography.helper,
+                              ),
+                              value: selected.contains(source.$1),
+                              onChanged: (value) => toggle(source.$1, value),
                             ),
-                            subtitle: Text(
-                              source.$2,
-                              style: AppTypography.helper,
-                            ),
-                            value: selected.contains(source.$1),
-                            onChanged: (value) => toggle(source.$1, value),
                           ),
                         ),
                       const SizedBox(height: 20),
@@ -9048,43 +9052,56 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                       for (final source in custom)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: CheckboxListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
+                          child: Material(
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              side: const BorderSide(color: AppColors.divider),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: CheckboxListTile(
+                                    secondary: const Icon(
+                                      Icons.note_add_outlined,
+                                      color: _devGreen,
+                                    ),
+                                    subtitle: const Text(
+                                      'Custom data source',
+                                      style: AppTypography.helper,
+                                    ),
+                                    title: Text(
+                                      source,
+                                      style: AppTypography.fieldLabel,
+                                    ),
+                                    value: selected.contains(source),
+                                    onChanged: (value) => toggle(source, value),
                                   ),
-                                  title: Text(
-                                    source,
-                                    style: AppTypography.fieldLabel,
-                                  ),
-                                  value: selected.contains(source),
-                                  onChanged: (value) => toggle(source, value),
                                 ),
-                              ),
-                              IconButton(
-                                tooltip: 'Edit custom source $source',
-                                onPressed: () => setState(() {
-                                  editing = source;
-                                  name.text = source;
-                                  error = null;
-                                }),
-                                icon: const Icon(Icons.edit_outlined),
-                              ),
-                              IconButton(
-                                tooltip: 'Delete custom source $source',
-                                onPressed: () => setState(() {
-                                  custom.remove(source);
-                                  selected.remove(source);
-                                  if (editing == source) {
-                                    editing = null;
-                                    name.clear();
-                                  }
-                                }),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
-                            ],
+                                IconButton(
+                                  tooltip: 'Edit custom source $source',
+                                  onPressed: () => setState(() {
+                                    editing = source;
+                                    name.text = source;
+                                    error = null;
+                                  }),
+                                  icon: const Icon(Icons.edit_outlined),
+                                ),
+                                IconButton(
+                                  tooltip: 'Delete custom source $source',
+                                  onPressed: () => setState(() {
+                                    custom.remove(source);
+                                    selected.remove(source);
+                                    if (editing == source) {
+                                      editing = null;
+                                      name.clear();
+                                    }
+                                  }),
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       if (custom.isEmpty)
