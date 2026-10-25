@@ -177,11 +177,21 @@ void main() {
       );
       await tester.tap(find.byTooltip('Edit custom source Lab notebook'));
       await tester.pumpAndSettle();
-      final rename = find.widgetWithText(TextField, 'Rename source');
+      final rename = find.byKey(const ValueKey('custom-source-name-editor'));
+      expect(find.text('Cancel Rename'), findsNothing);
+      expect(find.text('Save Source'), findsNothing);
+      expect(find.text('Add Custom Source'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'Source name'))
+            .controller!
+            .text,
+        isEmpty,
+      );
       await tester.ensureVisible(rename);
       await tester.enterText(rename, 'Lab record');
-      await tester.ensureVisible(find.text('Save Source'));
-      await tester.tap(find.text('Save Source'));
+      await tester.ensureVisible(find.byTooltip('Finish editing source'));
+      await tester.tap(find.byTooltip('Finish editing source'));
       await tester.pumpAndSettle();
       expect(
         find.descendant(

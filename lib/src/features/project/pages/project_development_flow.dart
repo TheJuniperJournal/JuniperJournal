@@ -9012,10 +9012,12 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
   late final selected = {...widget.selected};
   late final custom = {...widget.custom};
   final name = TextEditingController();
-  String? editing, error;
+  final editName = TextEditingController();
+  String? editing, error, editError;
   @override
   void dispose() {
     name.dispose();
+    editName.dispose();
     super.dispose();
   }
 
@@ -9031,17 +9033,45 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
     );
     final canonical = matches.isEmpty ? value : matches.first;
     setState(() {
-      if (editing != null && editing != canonical) {
-        custom.remove(editing);
-        selected.remove(editing);
-      }
       if (!_analysisSources.any((source) => source.$1 == canonical))
         custom.add(canonical);
       selected.add(canonical);
-      editing = null;
       error = null;
       name.clear();
     });
+  }
+
+  bool finishRename() {
+    final original = editing;
+    if (original == null) return true;
+    final value = editName.text.trim();
+    if (value.isEmpty) {
+      setState(() => editError = 'Enter a source name.');
+      return false;
+    }
+    final matches = [
+      ..._analysisSources.map((source) => source.$1),
+      ...custom.where((source) => source != original),
+    ].where((source) => source.toLowerCase() == value.toLowerCase());
+    final canonical = matches.isEmpty ? value : matches.first;
+    final wasSelected = selected.remove(original);
+    final updated = [
+      for (final source in custom)
+        if (source == original) canonical else source,
+    ];
+    setState(() {
+      custom
+        ..clear()
+        ..addAll(
+          updated.where(
+            (source) => !_analysisSources.any((preset) => preset.$1 == source),
+          ),
+        );
+      if (wasSelected) selected.add(canonical);
+      editing = null;
+      editError = null;
+    });
+    return true;
   }
 
   void toggle(String label, bool? value) => setState(() {
@@ -9132,22 +9162,54 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                                 'Custom data source',
                                 style: AppTypography.helper,
                               ),
-                              title: Text(
-                                source,
-                                style: AppTypography.fieldLabel,
-                              ),
+                              title: editing == source
+                                  ? TextField(
+                                      key: const ValueKey(
+                                        'custom-source-name-editor',
+                                      ),
+                                      controller: editName,
+                                      autofocus: true,
+                                      style: AppTypography.fieldLabel,
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                              horizontal: 8,
+                                            ),
+                                        errorText: editError,
+                                      ),
+                                      onSubmitted: (_) => finishRename(),
+                                    )
+                                  : Text(
+                                      source,
+                                      style: AppTypography.fieldLabel,
+                                    ),
                               value: selected.contains(source),
                               onChanged: (value) => toggle(source, value),
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Edit custom source $source',
-                            onPressed: () => setState(() {
-                              editing = source;
-                              name.text = source;
-                              error = null;
-                            }),
-                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: editing == source
+                                ? 'Finish editing source'
+                                : 'Edit custom source $source',
+                            onPressed: () {
+                              if (editing == source) {
+                                finishRename();
+                                return;
+                              }
+                              if (!finishRename()) return;
+                              setState(() {
+                                editing = source;
+                                editName.text = source;
+                                editError = null;
+                              });
+                            },
+                            icon: Icon(
+                              editing == source
+                                  ? Icons.check
+                                  : Icons.edit_outlined,
+                            ),
                           ),
                           IconButton(
                             tooltip: 'Delete custom source $source',
@@ -9156,7 +9218,8 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                               selected.remove(source);
                               if (editing == source) {
                                 editing = null;
-                                name.clear();
+                                editName.clear();
+                                editError = null;
                               }
                             }),
                             icon: const Icon(Icons.delete_outline),
@@ -9174,9 +9237,7 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                 TextField(
                   controller: name,
                   decoration: InputDecoration(
-                    labelText: editing == null
-                        ? 'Source name'
-                        : 'Rename source',
+                    labelText: 'Source name',
                     errorText: error,
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -9187,33 +9248,22 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                   child: OutlinedButton.icon(
                     onPressed: add,
                     icon: const Icon(Icons.add),
-                    label: Text(
-                      editing == null ? 'Add Custom Source' : 'Save Source',
-                    ),
+                    label: const Text('Add Custom Source'),
                   ),
                 ),
-                if (editing != null)
-                  Center(
-                    child: TextButton(
-                      onPressed: () => setState(() {
-                        editing = null;
-                        name.clear();
-                        error = null;
-                      }),
-                      child: const Text('Cancel Rename'),
-                    ),
-                  ),
-
                 const SizedBox(height: 16),
                 FilledButton(
-                  onPressed: () => Navigator.pop(context, {
-                    'selected': [
-                      for (final label in selected) {'label': label},
-                    ],
-                    'custom': [
-                      for (final label in custom) {'label': label},
-                    ],
-                  }),
+                  onPressed: () {
+                    if (!finishRename()) return;
+                    Navigator.pop(context, {
+                      'selected': [
+                        for (final label in selected) {'label': label},
+                      ],
+                      'custom': [
+                        for (final label in custom) {'label': label},
+                      ],
+                    });
+                  },
                   child: Text('Add Selected (${selected.length})'),
                 ),
               ],
