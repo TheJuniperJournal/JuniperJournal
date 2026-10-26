@@ -623,6 +623,37 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                 )
               else ...[
                 if (_busy) const LinearProgressIndicator(minHeight: 2),
+                if (_section == CollaborationSection.bulletin &&
+                    _participant) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: 250,
+                      height: 44,
+                      child: FilledButton.icon(
+                        key: const ValueKey('create-forum-post'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _green,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _busy ? null : _openNewPost,
+                        icon: const Icon(Icons.add_circle_outline, size: 23),
+                        label: const Text(
+                          'Create Forum Post',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            fontSize: AppTypography.buttonSize,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Expanded(
                   child: AppContentTransition(
                     duration: const Duration(milliseconds: 280),
@@ -720,41 +751,6 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
             ],
           ),
         ),
-        if (_section == CollaborationSection.bulletin &&
-            _participant &&
-            !_loading &&
-            _error == null)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 24,
-            child: Center(
-              child: SizedBox(
-                width: 250,
-                height: 44,
-                child: FilledButton.icon(
-                  key: const ValueKey('create-forum-post'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _busy ? null : _openNewPost,
-                  icon: const Icon(Icons.add_circle_outline, size: 23),
-                  label: const Text(
-                    'Create Forum Post',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.buttonSize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -867,7 +863,7 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                           !_participant
                               ? 'The bulletin is available to project members.'
                               : _posts.isEmpty
-                              ? 'Nothing yet… Tap + to start a discussion.'
+                              ? 'Nothing yet… Create a forum post to start a discussion.'
                               : 'No posts match your filters.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(

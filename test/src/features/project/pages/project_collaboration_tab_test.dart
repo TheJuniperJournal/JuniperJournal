@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/features/site/pages/site_information_page.dart';
 import 'package:juniper_journal/src/shared/widgets/app_scroll_behavior.dart';
 import 'package:flutter/material.dart';
 import 'package:juniper_journal/src/features/project/pages/create_project.dart';
@@ -128,6 +129,7 @@ Future<void> _pump(
   WidgetTester tester, {
   bool solo = false,
   bool desktop = false,
+  bool withFooter = false,
   bool manage = true,
   _Bulletin? bulletin,
   ProjectsRepo? projects,
@@ -143,6 +145,7 @@ Future<void> _pump(
       theme: ThemeData(
         platform: desktop ? TargetPlatform.macOS : TargetPlatform.android,
       ),
+      builder: withFooter ? (_, child) => SiteFooterScope(child: child!) : null,
       home: Scaffold(
         body: ProjectCollaborationTab(
           projectId: 'p',
@@ -162,6 +165,33 @@ Future<void> _openCreate(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'create post stays above the feed and never overlays the footer',
+    (tester) async {
+      await _pump(tester, bulletin: _EmptyPosts(), withFooter: true);
+      final button = find.byKey(const ValueKey('create-forum-post'));
+      final filters = find.byKey(const ValueKey('forum-category-filters'));
+      final footer = find.byKey(const ValueKey('page-end-footer'));
+      expect(button.hitTestable(), findsOneWidget);
+      expect(footer, findsOneWidget);
+      expect(
+        tester.getRect(button).bottom,
+        lessThan(tester.getRect(filters).top),
+      );
+      expect(tester.getRect(button).overlaps(tester.getRect(footer)), isFalse);
+      expect(
+        find.ancestor(of: button, matching: find.byType(Positioned)),
+        findsNothing,
+      );
+      await _openCreate(tester);
+      expect(
+        find.byKey(const ValueKey('project-forum-editor')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('project filters use tags without checkboxes', (tester) async {
     await _pump(tester);
     expect(find.byType(Checkbox), findsNothing);
@@ -544,7 +574,7 @@ void main() {
         find.byKey(const ValueKey('forum-empty-space')),
       );
       final message = tester.getRect(
-        find.text('Nothing yet… Tap + to start a discussion.'),
+        find.text('Nothing yet… Create a forum post to start a discussion.'),
       );
       expect(message.center.dx, closeTo(feed.center.dx, .5));
       expect(message.center.dy, closeTo(feed.center.dy, .5));
@@ -585,12 +615,12 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-  testWidgets('empty feed offers plus button to open new-post editor', (
+  testWidgets('empty feed offers top action to open new-post editor', (
     tester,
   ) async {
     await _pump(tester, bulletin: _EmptyPosts());
     expect(
-      find.text('Nothing yet… Tap + to start a discussion.'),
+      find.text('Nothing yet… Create a forum post to start a discussion.'),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('project-forum-editor')), findsNothing);
