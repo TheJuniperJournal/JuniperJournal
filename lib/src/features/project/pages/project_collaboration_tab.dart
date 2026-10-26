@@ -628,7 +628,7 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                   Row(
                     key: const ValueKey('forum-heading-actions'),
                     children: [
-                      const Expanded(
+                      const Flexible(
                         child: Text(
                           'Discussions',
                           key: ValueKey('forum-heading'),
@@ -648,19 +648,21 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                           style: FilledButton.styleFrom(
                             backgroundColor: _green,
                             foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 40),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            minimumSize: const Size(0, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           onPressed: _busy ? null : _openNewPost,
-                          icon: const Icon(Icons.add, size: 20),
+                          icon: const Icon(Icons.add, size: 16),
                           label: const Text(
                             'New post',
                             style: TextStyle(
                               fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.buttonSize,
+                              fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

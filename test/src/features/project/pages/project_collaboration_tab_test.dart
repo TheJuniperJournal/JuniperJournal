@@ -178,6 +178,11 @@ void main() {
         closeTo(tester.getCenter(button).dy, 1),
       );
       expect(tester.getRect(button).width, lessThan(200));
+      expect(
+        tester.getRect(button).left - tester.getRect(heading).right,
+        closeTo(12, 1),
+      );
+      expect(tester.getRect(button).height, lessThanOrEqualTo(32));
       expect(button.hitTestable(), findsOneWidget);
       expect(footer, findsOneWidget);
       expect(
