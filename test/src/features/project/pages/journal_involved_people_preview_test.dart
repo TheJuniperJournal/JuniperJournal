@@ -30,6 +30,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(CircleAvatar), findsOneWidget);
+    expect(find.byIcon(Icons.person), findsOneWidget);
     await tester.tap(find.text('Amelia Yang'));
     await tester.pumpAndSettle();
     expect(find.text('Profile'), findsOneWidget);

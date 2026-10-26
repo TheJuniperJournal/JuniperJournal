@@ -76,10 +76,8 @@ void main() {
       );
       expect(find.text('What I learned'), findsOneWidget);
       expect(find.text('Water carefully'), findsOneWidget);
-      expect(find.text('DCI'), findsNothing);
-      await tester.ensureVisible(find.text('Learning connections'));
-      await tester.tap(find.text('Learning connections'));
-      await tester.pumpAndSettle();
+      // Connections are part of the preview without an expansion action.
+      expect(find.byType(ExpansionTile), findsNothing);
       expect(find.text('DCI'), findsOneWidget);
       expect(find.text('SEP'), findsOneWidget);
       expect(find.text('CCCs'), findsOneWidget);

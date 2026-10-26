@@ -1,3 +1,4 @@
+import '../../../../support/fake_backend.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:juniper_journal/src/backend/db/models/project.dart';
@@ -30,6 +31,12 @@ class _AccessRepo extends ProjectsRepo {
     visibility: 'public',
   );
   @override
+  Future<List<Map<String, String>>?> getTimeline(String id) async => [];
+  @override
+  Future<List<UserProfile>> getProjectCollaborators({
+    required String projectId,
+  }) async => [];
+  @override
   Future<List<Map<String, dynamic>>?> getMaterialsCost(String id) async => [];
   @override
   Future<List<JournalEntry>?> getJournalEntries({
@@ -58,9 +65,10 @@ class _AccessRepo extends ProjectsRepo {
 }
 
 void main() {
+  setUpAll(() => initializeFakeBackend(userId: 'viewer'));
   for (final viewer in [null, 'signed-in-nonmember']) {
     testWidgets(
-      'nonmember $viewer cannot gain timeline or settings from route flags',
+      'nonmember $viewer can view public timeline without gaining creation or settings access',
       (tester) async {
         tester.view.physicalSize = const Size(1440, 2200);
         tester.view.devicePixelRatio = 1;
@@ -81,12 +89,15 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Overview'), findsOneWidget);
-        expect(find.text('Timeline'), findsNothing);
+        expect(find.text('Timeline'), findsOneWidget);
+        expect(find.text('Add to timeline'), findsNothing);
         expect(
           find.byKey(const ValueKey('project-dashboard-settings')),
           findsNothing,
         );
         expect(find.text('Recent Activity'), findsNothing);
+        await tester.tap(find.text('Overview'));
+        await tester.pumpAndSettle();
         expect(
           find.text('Grow food while learning about soil.'),
           findsOneWidget,

@@ -235,11 +235,6 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
         _projectScale = project.projectScale;
 
         _participant = participant;
-        if (!participant && _selectedTab == ProjectDashboardSection.timeline) {
-          _selectedTab = ProjectDashboardSection.overview;
-          _visitedTabs.remove(ProjectDashboardSection.timeline);
-          _visitedTabs.add(ProjectDashboardSection.overview);
-        }
         _impacts = (results[3] as List<ImpactEntry>?) ?? const [];
         _updateMaterialsSummary(materials ?? const []);
         _developmentSummary = DevelopmentSummary.fromEntries(
@@ -709,10 +704,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
           height: 29,
           child: Row(
             children: [
-              for (final tab in ProjectDashboardSection.values.where(
-                (tab) =>
-                    _participant || tab != ProjectDashboardSection.timeline,
-              ))
+              for (final tab in ProjectDashboardSection.values)
                 Expanded(
                   child: AppTapTarget(
                     highlightInsets: const EdgeInsets.fromLTRB(24, 0, 24, 11),

@@ -39,7 +39,7 @@ class _JournalInvolvedPeoplePreviewState
 
   Widget _avatar(String? url, String name, double radius) => CircleAvatar(
     radius: radius,
-    backgroundColor: AppColors.primaryTint,
+    backgroundColor: AppColors.avatarBackground,
     child: ClipOval(
       child: url != null && url.isNotEmpty
           ? ProtectedImage.network(
@@ -47,18 +47,10 @@ class _JournalInvolvedPeoplePreviewState
               width: radius * 2,
               height: radius * 2,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.person_outline,
-                color: AppColors.primary,
-                size: radius,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  Icon(Icons.person, color: AppColors.avatarIcon, size: radius),
             )
-          : Text(
-              name.isEmpty ? '?' : name.characters.first.toUpperCase(),
-              style: AppTypography.fieldLabel.copyWith(
-                color: AppColors.primary,
-              ),
-            ),
+          : Icon(Icons.person, color: AppColors.avatarIcon, size: radius * .9),
     ),
   );
   Future<void> _open(Map person, UserProfile? profile) async {

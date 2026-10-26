@@ -101,6 +101,16 @@ void main() {
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
         expect(find.text('Link Journal Entry'), findsNothing);
+        expect(find.text('Project members only'), findsOneWidget);
+        if (child) {
+          await tester.ensureVisible(
+            find.byType(DropdownButtonFormField<String>),
+          );
+          await tester.tap(find.byType(DropdownButtonFormField<String>));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Public').last);
+          await tester.pumpAndSettle();
+        }
         final fields = find.byType(TextField);
         for (var i = 0; i < fields.evaluate().length; i++) {
           await tester.enterText(fields.at(i), 'Event details');
@@ -111,6 +121,7 @@ void main() {
         expect(result?.containsKey('journalEntryId'), isFalse);
         expect(result?.containsKey('journalEntryTitle'), isFalse);
         expect(result?['name'], 'Event details');
+        expect(result?['visibility'], child ? 'public' : 'members');
         expect(tester.takeException(), isNull);
       },
     );

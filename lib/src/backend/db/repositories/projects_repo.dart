@@ -913,7 +913,20 @@ class ProjectsRepo {
   }
 
   Future<List<Map<String, String>>?> getTimeline(String id) async {
-    if (!await canViewInternalProjectLogs(id)) return [];
+    if (!await canViewInternalProjectLogs(id)) {
+      try {
+        final rows = await _client.rpc(
+          'public_project_timeline',
+          params: {'p_project_id': id},
+        );
+        return (rows as List)
+            .map((row) => Map<String, String>.from(row as Map))
+            .toList();
+      } catch (e) {
+        debugPrint('Public timeline load: $e');
+        return null;
+      }
+    }
     try {
       final result = (await _projectRows([
         id.toString(),

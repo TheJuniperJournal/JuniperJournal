@@ -1,3 +1,4 @@
+import '../../../shared/widgets/timeline_visibility_field.dart';
 import '../../../shared/widgets/dialog_form_scroll.dart';
 import '../utils/journal_prompt_guidance.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
@@ -8851,13 +8852,13 @@ class _LearningPreviewContent extends StatelessWidget {
           const SizedBox(height: 24),
         ],
         if (connections.any((item) => item.$3.isNotEmpty))
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: const Text(
-              'Learning connections',
-              style: AppTypography.fieldLabel,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                'Learning connections',
+                style: AppTypography.fieldLabel,
+              ),
               for (final dimension in [
                 ('DCI', 'Disciplinary Core Ideas', 'dci', selectedDci),
                 (
@@ -8877,15 +8878,23 @@ class _LearningPreviewContent extends StatelessWidget {
                       height: 28,
                     ),
                     title: Text(dimension.$1, style: AppTypography.helper),
-                    subtitle: Text(
-                      dimension.$4.join(' · '),
-                      style: AppTypography.body,
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _learningDimensionContext(dimension.$1),
+                          style: AppTypography.helper,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          dimension.$4.join(' · '),
+                          style: AppTypography.body,
+                        ),
+                      ],
                     ),
                   ),
             ],
           ),
-        if (assessmentFeaturesEnabled && assessment.type != null)
-          _AssessmentPreviewCard(assessment: assessment),
       ],
     );
   }
@@ -14889,10 +14898,6 @@ class _LearningPreviewLens extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final focus = [
-      ...state.checkedFocusItems,
-      ...state.customFocusItems.where((item) => item.trim().isNotEmpty),
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -14931,14 +14936,6 @@ class _LearningPreviewLens extends StatelessWidget {
             height: 1.3,
           ),
         ),
-        if (focus.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _PreviewMutedText('Focus: ${focus.join(', ')}'),
-        ],
-        if (state.studentInstruction.trim().isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _PreviewMutedText(state.studentInstruction.trim()),
-        ],
       ],
     );
   }
@@ -15383,6 +15380,15 @@ class _CreatedTimelineEventPreview extends StatelessWidget {
                   event['name'] ?? event['event'] ?? 'Timeline event',
                   style: AppTypography.fieldLabel,
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    event['visibility'] == 'public'
+                        ? 'Public'
+                        : 'Project members only',
+                    style: AppTypography.helper,
+                  ),
+                ),
                 if (schedule.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -15673,6 +15679,7 @@ class CreateJournalTimelineEventSheetState
   DateTime _start = DateTime.now().add(const Duration(hours: 1));
   DateTime _end = DateTime.now().add(const Duration(hours: 2));
   bool _allDay = false;
+  String _visibility = 'members';
   @override
   void dispose() {
     _name.dispose();
@@ -15752,6 +15759,7 @@ class CreateJournalTimelineEventSheetState
       'startTime': _allDay ? 'All Day' : _timeWithAmPmLocal(_start),
       'endTime': _allDay ? '' : _timeWithAmPmLocal(_end),
       'allDay': _allDay.toString(),
+      'visibility': _visibility,
       'assigneeIds': assignees.map((member) => member.id).join('|'),
       'assigneeNames': assignees
           .map((member) => member.resolvedDisplayName)
@@ -15879,6 +15887,10 @@ class CreateJournalTimelineEventSheetState
                   ],
                 ),
                 const SizedBox(height: AppMetrics.labelGap),
+                TimelineVisibilityField(
+                  value: _visibility,
+                  onChanged: (value) => setState(() => _visibility = value),
+                ),
                 const Text(
                   'Assign To',
                   style: TextStyle(

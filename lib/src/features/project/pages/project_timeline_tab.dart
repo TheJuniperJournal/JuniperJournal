@@ -1,3 +1,4 @@
+import '../../../shared/widgets/timeline_visibility_field.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
@@ -70,14 +71,6 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
 
   Future<void> _load() async {
     try {
-      if (!await _projectsRepo.canViewInternalProjectLogs(widget.projectId)) {
-        if (mounted)
-          setState(() {
-            _isLoading = false;
-            _loadFailed = true;
-          });
-        return;
-      }
       final results = await Future.wait([
         _projectsRepo.getTimeline(widget.projectId),
         _projectsRepo.getProjectCollaborators(projectId: widget.projectId),
@@ -595,6 +588,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
   int _endMinute = 0;
   String _endAmPm = 'AM';
   bool _allDay = false;
+  String _visibility = 'members';
   final Set<String> _assigneeIds = {};
 
   @override
@@ -677,6 +671,7 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
         start: _combine(_startDate, _startHour, _startMinute, _startAmPm),
         end: _combine(_endDate, _endHour, _endMinute, _endAmPm),
         allDay: _allDay,
+        visibility: _visibility,
         assigneeIds: assignees.map((member) => member.id).toList(),
         assigneeNames: assignees
             .map((member) => member.resolvedDisplayName)
@@ -836,6 +831,10 @@ class _CreateTimelineEventSheetState extends State<_CreateTimelineEventSheet> {
                   ],
                 ),
                 const SizedBox(height: AppMetrics.labelGap),
+                TimelineVisibilityField(
+                  value: _visibility,
+                  onChanged: (value) => setState(() => _visibility = value),
+                ),
                 const _SheetLabel('Assign To'),
                 const SizedBox(height: 12),
                 Wrap(
@@ -965,6 +964,16 @@ class _TimelineEventDetailSheet extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    _EventPreviewField(
+                      icon: event.visibility == 'public'
+                          ? Icons.public
+                          : Icons.group_outlined,
+                      label: 'Visibility',
+                      value: event.visibility == 'public'
+                          ? 'Public'
+                          : 'Project members only',
+                    ),
+                    const SizedBox(height: 16),
                     _EventPreviewField(
                       icon: Icons.calendar_today_outlined,
                       label: 'Date',
@@ -1296,10 +1305,12 @@ class _TimelineEvent {
     required this.allDay,
     required this.assigneeIds,
     required this.assigneeNames,
+    this.visibility = 'members',
     this.journalEntryId,
     this.journalEntryTitle,
   });
 
+  final String visibility;
   final String id;
   final String name;
   final String description;
@@ -1338,6 +1349,7 @@ class _TimelineEvent {
             map['endTime']?.toString(),
           ),
       allDay: map['allDay']?.toString() == 'true',
+      visibility: map['visibility'] == 'public' ? 'public' : 'members',
       assigneeIds: _stringList(map['assigneeIds']),
       assigneeNames: _stringList(map['assigneeNames']),
       journalEntryId: map['journalEntryId']?.toString(),
@@ -1361,6 +1373,7 @@ class _TimelineEvent {
       'startTime': allDay ? 'All Day' : _timeWithAmPm(start),
       'endTime': allDay ? '' : _timeWithAmPm(end),
       'allDay': allDay.toString(),
+      'visibility': visibility,
       'assigneeIds': assigneeIds.join('|'),
       'assigneeNames': assigneeNames.join('|'),
       if (journalEntryId != null) 'journalEntryId': journalEntryId!,
