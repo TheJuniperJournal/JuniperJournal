@@ -207,7 +207,13 @@ class _JournalReadingPageState extends State<JournalReadingPage> {
     final children = <Widget>[];
     void fields(Map<String, String> mapping) {
       for (final field in mapping.entries) {
-        final value = _readingText(stage[field.key]);
+        final raw = _readingText(stage[field.key]);
+        final date = field.key == 'dateImplemented'
+            ? DateTime.tryParse(raw)
+            : null;
+        final value = date == null
+            ? raw
+            : DateFormat('MMMM d, yyyy').format(date);
         if (value.isNotEmpty) children.add(_ReadingField(field.value, value));
       }
     }
@@ -345,7 +351,7 @@ class _JournalReadingPageState extends State<JournalReadingPage> {
       case 'overview':
         fields({
           'summary': 'Summary',
-          'dateImplemented': 'Date',
+          'dateImplemented': 'Implementation Date',
           'location': 'Location',
         });
         children.addAll(_peopleAndEvidence(stage));
@@ -585,7 +591,7 @@ const _readingDescriptions = {
   'Observe':
       'What is happening in the project’s surroundings, and where might there be an opportunity for a more sustainable approach?',
   'Analyze':
-      'The observations begin to reveal possible causes and patterns worth exploring before deciding what to change.',
+      'Possible root causes and patterns help explain the observations and identify what to investigate before deciding what to change.',
   'Question':
       'These questions guide the next investigation into the sustainability challenge.',
   'Component':
@@ -1046,6 +1052,8 @@ class _ReadingImpact extends StatelessWidget {
         _ReadingField(
           'Impact Scale',
           impact.impactScale,
+          description:
+              'The estimated size of the project’s impact, ranging from Seed (very small) to Watershed (very large).',
           icon: svg(
             'assets/impact/scale_${impact.impactScale.split(' ').first.toLowerCase()}.svg',
           ),

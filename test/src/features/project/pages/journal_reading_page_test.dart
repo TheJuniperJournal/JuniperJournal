@@ -116,7 +116,11 @@ void main() {
     'Implementation': (
       'implementation',
       [
-        {'stage': 'overview', 'summary': 'Saved implementation'},
+        {
+          'stage': 'overview',
+          'summary': 'Saved implementation',
+          'dateImplemented': '2026-10-12T00:00:00.000',
+        },
         {'stage': 'assessment'},
         {'stage': 'reflection', 'keyTakeaways': 'Saved takeaway'},
       ],
@@ -182,6 +186,15 @@ void main() {
         expect(tester.takeException(), isNull);
         if (sample.key == 'Implementation') {
           expect(find.text('Saved water impact'), findsOneWidget);
+          expect(find.text('Implementation Date'), findsOneWidget);
+          expect(find.text('October 12, 2026'), findsOneWidget);
+          expect(find.text('2026-10-12T00:00:00.000'), findsNothing);
+          expect(
+            find.text(
+              'The estimated size of the project’s impact, ranging from Seed (very small) to Watershed (very large).',
+            ),
+            findsOneWidget,
+          );
           expect(find.text('Measurement'), findsNWidgets(2));
           expect(find.text('Assessment notes'), findsNothing);
         }

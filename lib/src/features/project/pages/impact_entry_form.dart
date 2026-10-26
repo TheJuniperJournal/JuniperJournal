@@ -380,7 +380,7 @@ class _ImpactEntryFormScreenState extends State<ImpactEntryFormScreen> {
                 _label('Impact Scale'),
                 const SizedBox(height: 4),
                 const Text(
-                  'How big was the impact of your project?',
+                  'The estimated size of the project’s impact, ranging from Seed (very small) to Watershed (very large).',
                   style: TextStyle(
                     fontFamily: AppTypography.bodyFamily,
                     fontSize: AppTypography.helperSize,

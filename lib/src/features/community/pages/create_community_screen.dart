@@ -215,6 +215,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                     imageUrl: _imageUrl,
                     onTap: _pickImage,
                     label: 'Update community image',
+                    iconOnlyTap: true,
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(

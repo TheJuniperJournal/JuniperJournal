@@ -7,6 +7,26 @@ import 'package:juniper_journal/src/shared/widgets/journal_section_header.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
 
 void main() {
+  testWidgets('community image chooser opens only from the photo icon', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: CreateCommunityScreen()));
+    await tester.pumpAndSettle();
+    final picker = find.byType(CreationImagePicker);
+    final bounds = tester.getRect(picker);
+    await tester.tapAt(bounds.topLeft + const Offset(16, 32));
+    await tester.pumpAndSettle();
+    expect(find.text('Community Image'), findsNothing);
+    await tester.tap(find.text('Tap Image to Update'));
+    await tester.pumpAndSettle();
+    expect(find.text('Community Image'), findsNothing);
+    await tester.tap(find.byIcon(Icons.camera_alt));
+    await tester.pumpAndSettle();
+    expect(find.text('Community Image'), findsOneWidget);
+    expect(find.text('Take Photo'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [360.0, 1000.0]) {
     testWidgets('project and community setup share geometry at width $width', (
       tester,
