@@ -1,3 +1,4 @@
+import '../../../shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/styling/app_metrics.dart';
 import 'package:juniper_journal/src/shared/styling/app_typography.dart';
@@ -122,6 +123,10 @@ class _HomeSearchScreenState extends State<HomeSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    PageRefreshState.remember(context, {
+      'kind': 'people-search',
+      'scope': _scope.name,
+    });
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

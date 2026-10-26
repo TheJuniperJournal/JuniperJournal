@@ -111,7 +111,12 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
     for (final parent in projectNavigationParents(page)) {
       nav.push(restoredDetailRoute(parent));
     }
-    nav.push(restoredDetailRoute(page));
+    nav.push(
+      restoredDetailRoute(
+        page,
+        settings: RouteSettings(arguments: PageUrl.decode(location)),
+      ),
+    );
     _history.write(location, replace: true);
     _opening = false;
   }
@@ -151,10 +156,19 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
       if (widget.parentPage != null)
         restoredDetailRoute(
           widget.initialPage,
-          settings: const RouteSettings(name: '/'),
+          settings: RouteSettings(
+            name: '/',
+            arguments: PageUrl.decode(widget.initialLocation),
+          ),
         )
       else
-        _route(const RouteSettings(name: '/')),
+        MaterialPageRoute(
+          builder: (_) => widget.initialPage,
+          settings: RouteSettings(
+            name: '/',
+            arguments: PageUrl.decode(widget.initialLocation),
+          ),
+        ),
     ],
   );
   @override

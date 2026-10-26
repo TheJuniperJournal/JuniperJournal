@@ -1,3 +1,4 @@
+import 'restored_navigation.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'journal_navigation.dart';
 import '../../features/project/services/journal_collaboration.dart';
@@ -455,11 +456,22 @@ class _JournalDraftGuardState extends State<JournalDraftGuard> {
   }
 
   ModalRoute<dynamic>? _route;
+  bool _restoredSection = false;
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _route = ModalRoute.of(context);
     if (_route != null) JournalDraftGuard._active[_route!] = this;
+    if (!_restoredSection) {
+      _restoredSection = true;
+      final args = _route?.settings.arguments;
+      final step = args is Map ? args['step'] : null;
+      if (step is String && widget.sections.containsKey(step)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onSectionSelected?.call(step);
+        });
+      }
+    }
   }
 
   @override
@@ -562,17 +574,16 @@ class _JournalDraftGuardState extends State<JournalDraftGuard> {
 
   @override
   Widget build(BuildContext context) {
-    final name = ModalRoute.of(context)?.settings.name ?? '';
-    final pageType = (ModalRoute.of(context) is MaterialPageRoute)
-        ? (ModalRoute.of(context) as MaterialPageRoute)
-              .builder(context)
-              .runtimeType
-              .toString()
-              .toLowerCase()
-        : name;
-    final routePage = ModalRoute.of(context) is MaterialPageRoute
-        ? (ModalRoute.of(context) as MaterialPageRoute).builder(context)
+    final route = ModalRoute.of(context);
+    final routePage = route is RestoredDetailRoute
+        ? route.page
+        : route is MaterialPageRoute
+        ? route.builder(context)
         : null;
+    final pageType =
+        routePage?.runtimeType.toString().toLowerCase() ??
+        route?.settings.name ??
+        '';
     final phase =
         widget.session.current?.progress ??
         (routePage is JournalEntryEditorScreen
@@ -587,6 +598,7 @@ class _JournalDraftGuardState extends State<JournalDraftGuard> {
             : 'prototyping');
     PageRefreshState.remember(context, {
       'kind': 'journal',
+      if (widget.section != null) 'step': widget.section,
       'project': widget.session.projectId,
       'phase': phase,
       'entry': widget.session.current?.id,

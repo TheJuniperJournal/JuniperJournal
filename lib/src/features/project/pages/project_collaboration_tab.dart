@@ -40,7 +40,9 @@ class ProjectCollaborationTab extends StatefulWidget {
     this.initialSection = CollaborationSection.bulletin,
     this.initialPostId,
     this.initialCommentId,
+    this.onSectionChanged,
   });
+  final ValueChanged<CollaborationSection>? onSectionChanged;
   final bool readOnly;
   final int refreshToken;
   final CollaborationSection initialSection;
@@ -588,7 +590,10 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                                 ? const Color(0xFF202124)
                                 : Colors.grey,
                           ),
-                          onPressed: () => setState(() => _section = section),
+                          onPressed: () {
+                            setState(() => _section = section);
+                            widget.onSectionChanged?.call(section);
+                          },
                           child: Text(
                             switch (section) {
                               CollaborationSection.bulletin => 'Bulletin',

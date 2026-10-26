@@ -36,8 +36,12 @@ class UserProfilePage extends StatefulWidget {
     this.onMessages,
     this.notificationCount = 0,
     this.unreadMessageCount = 0,
+    this.initialFriends = false,
+    this.onFriendsChanged,
   });
 
+  final bool initialFriends;
+  final ValueChanged<bool>? onFriendsChanged;
   final Future<void> Function()? onProfileUpdated;
   final ValueChanged<String>? onSubjectSelected;
   final bool compact;
@@ -66,7 +70,7 @@ class UserProfilePageState extends State<UserProfilePage> {
   double _totalPoints = 0;
   Map<String, double> _subjectPoints = {};
   String _friendQuery = '';
-  bool _showFriends = false;
+  late bool _showFriends = widget.initialFriends;
   bool _editingFriends = false;
 
   @override
@@ -492,7 +496,10 @@ class UserProfilePageState extends State<UserProfilePage> {
       ),
     },
     onValueChanged: (value) {
-      if (value != null) setState(() => _showFriends = value);
+      if (value != null) {
+        setState(() => _showFriends = value);
+        widget.onFriendsChanged?.call(value);
+      }
     },
   );
 

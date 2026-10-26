@@ -1,3 +1,4 @@
+import '../../../shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
 import 'package:juniper_journal/src/shared/widgets/app_navigation.dart';
@@ -17,8 +18,13 @@ import 'package:juniper_journal/src/shared/widgets/top_snack_bar.dart';
 
 class ChallengeCreatorDashboard extends StatefulWidget {
   final String challengeId;
+  final int initialTab;
 
-  const ChallengeCreatorDashboard({super.key, required this.challengeId});
+  const ChallengeCreatorDashboard({
+    super.key,
+    required this.challengeId,
+    this.initialTab = 0,
+  });
 
   @override
   State<ChallengeCreatorDashboard> createState() =>
@@ -37,7 +43,14 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl =
+        TabController(
+          length: 2,
+          vsync: this,
+          initialIndex: widget.initialTab.clamp(0, 1),
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _load();
     });
@@ -162,6 +175,11 @@ class _ChallengeCreatorDashboardState extends State<ChallengeCreatorDashboard>
 
   @override
   Widget build(BuildContext context) {
+    PageRefreshState.remember(context, {
+      'kind': 'challenge-dashboard',
+      'challenge': widget.challengeId,
+      'tab': _tabCtrl?.index ?? 0,
+    });
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

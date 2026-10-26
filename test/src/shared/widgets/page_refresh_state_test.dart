@@ -1,3 +1,7 @@
+import 'package:juniper_journal/src/features/home_page/pages/public_user_profile.dart';
+import 'package:juniper_journal/src/features/home_page/pages/search.dart';
+import 'package:juniper_journal/src/features/home_page/pages/explore_page.dart';
+import 'package:juniper_journal/src/features/project/pages/project_collaboration_tab.dart';
 import 'package:juniper_journal/src/features/site/pages/site_information_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,6 +30,66 @@ class RefreshRepo extends ProjectsRepo {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  test('restores dashboard collaboration subtab and linked post', () async {
+    final page =
+        await PageRefreshState.restore({
+              'kind': 'project',
+              'project': 'p',
+              'section': 2,
+              'collaboration': 'members',
+              'post': 'post-id',
+            }, RefreshRepo())
+            as ProjectDashboard;
+    expect(page.initialSection, ProjectDashboardSection.collaboration);
+    expect(page.initialCollaborationSection, CollaborationSection.members);
+    expect(page.initialPostId, 'post-id');
+  });
+  test('profile, search and subject URLs restore the selected view', () async {
+    final profile =
+        await PageRefreshState.restore({
+              'kind': 'profile',
+              'user': 'u',
+              'tab': 2,
+              'subject': 'Energy & Systems',
+            }, RefreshRepo())
+            as PublicUserProfilePage;
+    expect(profile.initialSection, 2);
+    expect(profile.initialSubject, 'Energy & Systems');
+    final search =
+        await PageRefreshState.restore({
+              'kind': 'people-search',
+              'scope': 'friends',
+            }, RefreshRepo())
+            as HomeSearchScreen;
+    expect(search.initialScope, SearchScope.friends);
+    final subject =
+        await PageRefreshState.restore({
+              'kind': 'subject-projects',
+              'subject': 'Energy & Systems',
+              'public': true,
+            }, RefreshRepo())
+            as SubjectProjectsPage;
+    expect(subject.subject, 'Energy & Systems');
+  });
+  test(
+    'restores home subtabs without reopening an interrupted journal',
+    () async {
+      final home =
+          await PageRefreshState.restore({
+                'kind': 'home',
+                'section': 2,
+                'profileTab': 'friends',
+                'exploreTab': 'communities',
+                'subject': 'Energy & Systems',
+              }, RefreshRepo())
+              as HomeShellScreen;
+      expect(home.initialProfileFriends, true);
+      expect(home.initialExploreCommunities, true);
+      expect(home.initialLibrarySubject, 'Energy & Systems');
+      expect(home.restoreJournal, false);
+    },
+  );
+
   test('root refresh keeps Explore instead of sending the user Home', () async {
     final page = await PageRefreshState.restore({
       'kind': 'home',

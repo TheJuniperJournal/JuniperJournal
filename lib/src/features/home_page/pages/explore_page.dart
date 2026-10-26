@@ -1,3 +1,4 @@
+import '../../../shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../../site/pages/site_information_page.dart';
 import '../../../shared/widgets/explore_project_card.dart';
@@ -881,21 +882,10 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
     pushAppRoute(
       context,
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.white,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            title: Text(subject, style: AppTypography.pageTitle),
-            centerTitle: true,
-            leading: BackButton(onPressed: () => Navigator.of(context).pop()),
-          ),
-          body: ProjectBrowsePage(
-            initialSubject: subject,
-            publicLanding: widget.publicLanding,
-            onSignIn: widget.onSignIn,
-            projectsRepo: _repo,
-          ),
+        builder: (_) => SubjectProjectsPage(
+          subject: subject,
+          publicLanding: widget.publicLanding,
+          projectsRepo: _repo,
         ),
       ),
     );
@@ -1026,4 +1016,34 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
     saving: _saving.contains(project.id),
     entryCount: _counts[project.id],
   );
+}
+
+/// A named subject collection can be refreshed or shared without losing context.
+class SubjectProjectsPage extends StatelessWidget {
+  const SubjectProjectsPage({
+    super.key,
+    required this.subject,
+    this.publicLanding = true,
+    this.projectsRepo,
+  });
+  final String subject;
+  final bool publicLanding;
+  final ProjectsRepo? projectsRepo;
+  @override
+  Widget build(BuildContext context) {
+    PageRefreshState.remember(context, {
+      'kind': 'subject-projects',
+      'subject': subject,
+      'public': publicLanding,
+    });
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: Text(subject, style: AppTypography.pageTitle)),
+      body: ProjectBrowsePage(
+        initialSubject: subject,
+        publicLanding: publicLanding,
+        projectsRepo: projectsRepo,
+      ),
+    );
+  }
 }

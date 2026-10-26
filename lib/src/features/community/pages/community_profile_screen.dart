@@ -1,3 +1,4 @@
+import '../../../shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import '../../../shared/styling/app_metrics.dart';
@@ -36,7 +37,9 @@ class CommunityProfileScreen extends StatefulWidget {
     this.communitiesRepo,
     this.projectsRepo,
     this.currentUserId,
+    this.initialMembers = false,
   });
+  final bool initialMembers;
   final Community community;
   final CommunitiesRepo? communitiesRepo;
   final ProjectsRepo? projectsRepo;
@@ -67,7 +70,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen> {
   bool _loading = true;
   bool _loadError = false;
   bool _editing = false;
-  bool _membersTab = false;
+  late bool _membersTab = widget.initialMembers;
   final Set<String> _removing = {};
   bool get _isOwner => _userId != null && _userId == _community.createdBy;
 
@@ -237,136 +240,144 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen> {
       );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
-    appBar: AppBar(
-      backgroundColor: _community.bannerColor,
-      foregroundColor: Colors.white,
-      title: Text(
-        'Profile',
-        style: AppTypography.pageTitle.copyWith(color: Colors.white),
-      ),
-      centerTitle: true,
-    ),
-    body: Stack(
-      children: [
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 120,
-          child: ColoredBox(color: _community.bannerColor),
+  Widget build(BuildContext context) {
+    PageRefreshState.remember(context, {
+      'kind': 'community-profile',
+      'community': widget.community.id,
+      'tab': _membersTab ? 'members' : 'projects',
+    });
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: _community.bannerColor,
+        foregroundColor: Colors.white,
+        title: Text(
+          'Profile',
+          style: AppTypography.pageTitle.copyWith(color: Colors.white),
         ),
-        RefreshIndicator(
-          onRefresh: _load,
-          child: PageScrollWithFooter(
-            child: ListView(
-              padding: const EdgeInsets.only(
-                bottom: AppMetrics.pageBottomPadding,
-              ),
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                const SizedBox(height: 28),
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 48),
-                      constraints: BoxConstraints(
-                        minHeight: MediaQuery.sizeOf(context).height - 160,
-                      ),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(32),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: ColoredBox(color: _community.bannerColor),
+          ),
+          RefreshIndicator(
+            onRefresh: _load,
+            child: PageScrollWithFooter(
+              child: ListView(
+                padding: const EdgeInsets.only(
+                  bottom: AppMetrics.pageBottomPadding,
+                ),
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  const SizedBox(height: 28),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 48),
+                        constraints: BoxConstraints(
+                          minHeight: MediaQuery.sizeOf(context).height - 160,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(32),
+                          ),
+                        ),
+                        padding: const EdgeInsets.fromLTRB(24, 68, 24, 40),
+                        child: Column(
+                          children: [
+                            Text(
+                              _community.name,
+                              style: AppTypography.pageTitle,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            if (!_loading && !_loadError)
+                              ProfileEcoPointsCard(
+                                points: _restricted
+                                    ? (_publicSummary?['eco_points'] as num? ??
+                                              0)
+                                          .toDouble()
+                                    : _records.fold<double>(
+                                        0,
+                                        (sum, record) => sum + record.ecoPoints,
+                                      ),
+                              ),
+                            const SizedBox(height: 28),
+                            SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<bool>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: false,
+                                    label: Text('Progress'),
+                                  ),
+                                  ButtonSegment(
+                                    value: true,
+                                    label: Text('Members'),
+                                  ),
+                                ],
+                                selected: {_membersTab},
+                                showSelectedIcon: false,
+                                onSelectionChanged: (value) =>
+                                    setState(() => _membersTab = value.first),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            if (_loading)
+                              const Padding(
+                                padding: EdgeInsets.all(40),
+                                child: CircularProgressIndicator(),
+                              )
+                            else if (_loadError)
+                              TextButton(
+                                onPressed: _load,
+                                child: const Text(
+                                  'Could not load community activity. Tap to retry.',
+                                ),
+                              )
+                            else
+                              AppContentTransition(
+                                index: _membersTab,
+                                child: Column(
+                                  children: _membersTab
+                                      ? _memberWidgets()
+                                      : [..._progressWidgets()],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      padding: const EdgeInsets.fromLTRB(24, 68, 24, 40),
-                      child: Column(
-                        children: [
-                          Text(
-                            _community.name,
-                            style: AppTypography.pageTitle,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 20),
-                          if (!_loading && !_loadError)
-                            ProfileEcoPointsCard(
-                              points: _restricted
-                                  ? (_publicSummary?['eco_points'] as num? ?? 0)
-                                        .toDouble()
-                                  : _records.fold<double>(
-                                      0,
-                                      (sum, record) => sum + record.ecoPoints,
-                                    ),
-                            ),
-                          const SizedBox(height: 28),
-                          SizedBox(
-                            width: double.infinity,
-                            child: SegmentedButton<bool>(
-                              segments: const [
-                                ButtonSegment(
-                                  value: false,
-                                  label: Text('Progress'),
-                                ),
-                                ButtonSegment(
-                                  value: true,
-                                  label: Text('Members'),
-                                ),
-                              ],
-                              selected: {_membersTab},
-                              showSelectedIcon: false,
-                              onSelectionChanged: (value) =>
-                                  setState(() => _membersTab = value.first),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          if (_loading)
-                            const Padding(
-                              padding: EdgeInsets.all(40),
-                              child: CircularProgressIndicator(),
-                            )
-                          else if (_loadError)
-                            TextButton(
-                              onPressed: _load,
-                              child: const Text(
-                                'Could not load community activity. Tap to retry.',
-                              ),
-                            )
-                          else
-                            AppContentTransition(
-                              index: _membersTab,
-                              child: Column(
-                                children: _membersTab
-                                    ? _memberWidgets()
-                                    : [..._progressWidgets()],
-                              ),
-                            ),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                        child: _avatar(
+                          _community.imageUrl,
+                          radius: 52,
+                          community: true,
+                        ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                      ),
-                      child: _avatar(
-                        _community.imageUrl,
-                        radius: 52,
-                        community: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   List<Widget> _memberWidgets() => [
     Row(

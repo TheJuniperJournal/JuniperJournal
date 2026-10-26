@@ -59,7 +59,10 @@ class HomeShellScreen extends StatefulWidget {
     this.restoreJournal = true,
     this.informationPage,
     this.initialLibrarySubject,
+    this.initialProfileFriends = false,
+    this.initialExploreCommunities = false,
   });
+  final bool initialProfileFriends, initialExploreCommunities;
   final int initialSection;
   final bool restoreJournal;
   final String? informationPage;
@@ -72,6 +75,9 @@ class HomeShellScreen extends StatefulWidget {
 class _HomeShellScreenState extends State<HomeShellScreen> {
   Timer? _notificationRefresh;
   late int _selectedIndex = widget.initialSection;
+  late bool _profileFriends = widget.initialProfileFriends;
+  late bool _exploreCommunities = widget.initialExploreCommunities;
+  String? _librarySubject;
   int _feedRevision = 0;
   final _exploreKey = GlobalKey<ProjectBrowsePageState>();
   final _libraryKey = GlobalKey<ProjectBrowsePageState>();
@@ -98,6 +104,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   @override
   void initState() {
     super.initState();
+    _librarySubject = widget.initialLibrarySubject;
     _visitedSections.add(widget.initialSection);
     JournalPublication.onPublished = _journalPublished;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -422,11 +429,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           icon: icon,
           iconSize: index == 3 ? 34 : 28,
           isActive: _selectedIndex == index,
-          onTap:
-              onTapOverride ??
-              () {
-                _selectSection(index);
-              },
+          onTap: onTapOverride ?? () => _selectSection(index),
         );
 
     Widget profileIcon() => InkWell(
@@ -636,6 +639,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       if (desktopRouteObserver.current == route) return;
     }
     if (mounted) {
+      _librarySubject = subject;
       _selectSection(index);
       if (subject != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -650,6 +654,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     PageRefreshState.remember(context, {
       'kind': widget.informationPage ?? 'home',
       if (widget.informationPage == null) 'section': _selectedIndex,
+      if (_selectedIndex == 2 && _profileFriends) 'profileTab': 'friends',
+      if (_selectedIndex == 3 && _exploreCommunities)
+        'exploreTab': 'communities',
+      if (_selectedIndex == 1 && _librarySubject != null)
+        'subject': _librarySubject,
     });
     return AdaptiveAppShell(
       selectedIndex: widget.informationPage == null ? _selectedIndex : -1,
@@ -877,13 +886,22 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                         _visitedSections.contains(2)
                             ? UserProfilePage(
                                 key: _profileKey,
+                                initialFriends: widget.initialProfileFriends,
+                                onFriendsChanged: (value) =>
+                                    setState(() => _profileFriends = value),
                                 onSubjectSelected: (subject) =>
                                     _navigateSection(1, subject: subject),
                                 onProfileUpdated: _refreshProjects,
                               )
                             : const SizedBox.shrink(),
                         _visitedSections.contains(3)
-                            ? ProjectBrowsePage(key: _exploreKey)
+                            ? ProjectBrowsePage(
+                                key: _exploreKey,
+                                initialCommunities:
+                                    widget.initialExploreCommunities,
+                                onCommunitiesChanged: (value) =>
+                                    setState(() => _exploreCommunities = value),
+                              )
                             : const SizedBox.shrink(),
                       ],
                     ),

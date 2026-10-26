@@ -1,3 +1,16 @@
+import '../../features/home_page/pages/change_password.dart';
+import '../../features/project/pages/impact_entry_form.dart';
+import '../../features/home_page/pages/search.dart';
+import '../../features/home_page/pages/explore_page.dart';
+import '../../features/home_page/pages/friend_projects.dart';
+import '../../features/community/pages/create_community_screen.dart';
+import '../../features/community/pages/community_project_invitations.dart';
+import '../../features/community/pages/challenge_detail_screen.dart';
+import '../../features/community/pages/challenge_creator_dashboard.dart';
+import '../../features/community/pages/challenge_settings_form.dart';
+import '../../features/community/pages/challenge_funding_form.dart';
+import '../../backend/db/repositories/challenges_repo.dart';
+import '../../features/project/pages/project_collaboration_tab.dart';
 import 'restored_navigation.dart';
 import '../../features/site/pages/site_information_page.dart';
 import '../../features/home_page/pages/landing.dart';
@@ -115,11 +128,22 @@ class PageRefreshState extends NavigatorObserver {
       LoginScreen _ => {'kind': 'login'},
       JuniperAuthScreen _ => {'kind': 'login'},
       SignupScreen _ => {'kind': 'signup'},
-      HomeShellScreen p => {'kind': 'home', 'section': p.initialSection},
+      HomeShellScreen p => {
+        'kind': 'home',
+        'section': p.initialSection,
+        if (p.initialProfileFriends) 'profileTab': 'friends',
+        if (p.initialExploreCommunities) 'exploreTab': 'communities',
+        if (p.initialLibrarySubject != null) 'subject': p.initialLibrarySubject,
+      },
       ProjectDashboard p => {
         'kind': 'project',
         'project': p.projectId,
         'section': p.initialSection.index,
+        if (p.initialSection == ProjectDashboardSection.collaboration)
+          'collaboration': p.initialCollaborationSection.name,
+        if (p.initialPostId != null) 'post': p.initialPostId,
+        if (p.initialCommentId != null) 'comment': p.initialCommentId,
+        if (p.initialEventId != null) 'event': p.initialEventId,
       },
       DiscoveryDashboardPage p => {
         'kind': 'phase',
@@ -146,6 +170,14 @@ class PageRefreshState extends NavigatorObserver {
         'project': p.existingProject?.id,
       },
       SettingsScreen _ => {'kind': 'settings'},
+      ChangePasswordScreen _ => {'kind': 'change-password'},
+      ImpactEntryFormScreen p => {
+        'kind': 'impact-entry',
+        'project': p.projectId,
+        if (p.existing != null) 'impact': p.existing!.id,
+        if (p.lockedJournalEntryId != null) 'entry': p.lockedJournalEntryId,
+        'readOnly': p.readOnly,
+      },
       ChatsListScreen _ => {'kind': 'chats'},
       ChatScreen p => {
         'kind': 'chat',
@@ -154,7 +186,43 @@ class PageRefreshState extends NavigatorObserver {
         'avatar': p.otherAvatarUrl,
         'group': p.isGroup,
       },
-      PublicUserProfilePage p => {'kind': 'profile', 'user': p.userId},
+      PublicUserProfilePage p => {
+        'kind': 'profile',
+        'user': p.userId,
+        if (p.initialSection != 0) 'tab': p.initialSection,
+        if (p.initialSubject != null) 'subject': p.initialSubject,
+      },
+      HomeSearchScreen p => {
+        'kind': 'people-search',
+        'scope': p.initialScope.name,
+      },
+      SubjectProjectsPage p => {
+        'kind': 'subject-projects',
+        'subject': p.subject,
+        'public': p.publicLanding,
+      },
+      FriendProjectsPage p => {'kind': 'profile', 'user': p.userId, 'tab': 2},
+      CreateCommunityScreen _ => {'kind': 'create-community'},
+      CommunityProjectInvitationsPage p => {
+        'kind': 'community-invitations',
+        'community': p.communityId,
+      },
+      ChallengeDetailScreen p => {
+        'kind': 'challenge',
+        'challenge': p.challenge.id,
+      },
+      ChallengeCreatorDashboard p => {
+        'kind': 'challenge-dashboard',
+        'challenge': p.challengeId,
+      },
+      ChallengeSettingsForm p => {
+        'kind': 'challenge-settings',
+        'challenge': p.challenge.id,
+      },
+      ChallengeFundingForm p => {
+        'kind': 'challenge-funding',
+        'challenge': p.challenge.id,
+      },
       CommunityHomeScreen p => {
         'kind': 'community',
         'community': p.community.id,
@@ -238,9 +306,13 @@ class PageRefreshState extends NavigatorObserver {
       return HomeShellScreen(
         initialSection: (page['section'] as int? ?? 0).clamp(0, 3),
         restoreJournal: false,
+        initialProfileFriends: page['profileTab'] == 'friends',
+        initialExploreCommunities: page['exploreTab'] == 'communities',
+        initialLibrarySubject: page['subject'] as String?,
       );
     if (kind == 'create') return const CreateProjectScreen();
     if (kind == 'settings') return const SettingsScreen();
+    if (kind == 'change-password') return const ChangePasswordScreen();
     if (kind == 'chats') return const ChatsListScreen();
     if (kind == 'chat')
       return ChatScreen(
@@ -249,8 +321,44 @@ class PageRefreshState extends NavigatorObserver {
         otherAvatarUrl: page['avatar'] as String?,
         isGroup: page['group'] == true,
       );
+    if (kind == 'people-search')
+      return HomeSearchScreen(
+        initialScope: page['scope'] == 'friends'
+            ? SearchScope.friends
+            : SearchScope.users,
+      );
+    if (kind == 'subject-projects')
+      return SubjectProjectsPage(
+        subject: page['subject'] as String,
+        publicLanding: page['public'] != false,
+        projectsRepo: repo,
+      );
+    if (kind == 'create-community') return const CreateCommunityScreen();
     if (kind == 'profile')
-      return PublicUserProfilePage(userId: page['user'] as String);
+      return PublicUserProfilePage(
+        userId: page['user'] as String,
+        initialSection: page['tab'] as int? ?? 0,
+        initialSubject: page['subject'] as String?,
+      );
+    if (kind is String && kind.startsWith('challenge')) {
+      final challenge = await ChallengesRepo().getChallengeById(
+        page['challenge'] as String,
+      );
+      if (challenge == null) return null;
+      return switch (kind) {
+        'challenge-dashboard' => ChallengeCreatorDashboard(
+          challengeId: challenge.id,
+        ),
+        'challenge-settings' => ChallengeSettingsForm(challenge: challenge),
+        'challenge-funding' => ChallengeFundingForm(challenge: challenge),
+        _ => ChallengeDetailScreen(challenge: challenge),
+      };
+    }
+    if (kind == 'community-invitations')
+      return CommunityProjectInvitationsPage(
+        communityId: page['community'] as String,
+        repo: repo,
+      );
     if ((kind as String).startsWith('community')) {
       final community = await CommunitiesRepo().getCommunityById(
         page['community'] as String,
@@ -259,7 +367,10 @@ class PageRefreshState extends NavigatorObserver {
       if (kind == 'community-settings')
         return CommunitySettingsScreen(community: community);
       if (kind == 'community-profile')
-        return CommunityProfileScreen(community: community);
+        return CommunityProfileScreen(
+          community: community,
+          initialMembers: page['tab'] == 'members',
+        );
       return CommunityHomeScreen(
         community: community,
         initialTab: page['tab'] as int? ?? 0,
@@ -270,6 +381,20 @@ class PageRefreshState extends NavigatorObserver {
     final project = await repo.getProjectById(id);
     if (project == null) return null;
     final owner = await repo.canManageProject(id);
+    if (kind == 'impact-entry') {
+      final impacts = await repo.getImpactEntries(projectId: id) ?? [];
+      final existing = impacts
+          .where((impact) => impact.id == page['impact'])
+          .firstOrNull;
+      if (page['impact'] != null && existing == null) return null;
+      return ImpactEntryFormScreen(
+        projectId: id,
+        projectName: project.projectName,
+        existing: existing,
+        lockedJournalEntryId: page['entry'] as String?,
+        readOnly: page['readOnly'] == true || !owner,
+      );
+    }
     if (kind == 'materials')
       return MaterialsCostPage(
         projectId: id,
@@ -370,6 +495,7 @@ class PageRefreshState extends NavigatorObserver {
         };
     }
     if (kind == 'journal-view') return null;
+    if (kind != 'project') return null;
     return ProjectDashboard(
       projectId: id,
       projectName: project.projectName,
@@ -378,6 +504,14 @@ class PageRefreshState extends NavigatorObserver {
       isOwner: owner,
       initialSection: ProjectDashboardSection
           .values[(page['section'] as int? ?? 0).clamp(0, 3)],
+      initialCollaborationSection:
+          CollaborationSection.values
+              .where((s) => s.name == page['collaboration'])
+              .firstOrNull ??
+          CollaborationSection.bulletin,
+      initialPostId: page['post'] as String?,
+      initialCommentId: page['comment'] as String?,
+      initialEventId: page['event'] as String?,
     );
   }
 }

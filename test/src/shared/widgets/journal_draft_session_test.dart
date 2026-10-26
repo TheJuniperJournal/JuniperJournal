@@ -54,6 +54,44 @@ Future<JournalEntry> _write(JournalDraftSession session) async =>
     ))!;
 
 void main() {
+  testWidgets(
+    'copied journal URL restores its explicit step without creating data',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = _Repo();
+      final session = JournalDraftSession(repo, 'p');
+      var section = 'observe';
+      await tester.pumpWidget(
+        MaterialApp(
+          routes: {'/': (_) => const SizedBox()},
+          onGenerateInitialRoutes: (_) => [
+            MaterialPageRoute(
+              settings: const RouteSettings(arguments: {'step': 'learning'}),
+              builder: (_) => StatefulBuilder(
+                builder: (context, update) => JournalDraftGuard(
+                  session: session,
+                  flush: () async => true,
+                  section: section,
+                  sections: const {
+                    'observe': 'Observe',
+                    'learning': 'Learning',
+                  },
+                  onSectionSelected: (value) => update(() => section = value),
+                  child: Scaffold(body: Text('Current step: $section')),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Current step: learning'), findsOneWidget);
+      expect(repo.creates, 0);
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+    },
+  );
+
   test(
     'a failed cloud update still protects current edits for refresh',
     () async {

@@ -135,6 +135,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
   int _collaborationRevision = 0;
   String? _activityEventId, _activityPostId;
   CollaborationSection? _activityCollaborationSection;
+  late CollaborationSection _urlCollaborationSection =
+      widget.initialCollaborationSection;
   int _activityNavigationRevision = 0;
   bool _openingSettings = false;
   bool _projectDeleted = false;
@@ -334,6 +336,15 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
       'kind': 'project',
       'project': widget.projectId,
       'section': _selectedTab.index,
+      if (_selectedTab == ProjectDashboardSection.collaboration)
+        'collaboration':
+            (_activityCollaborationSection ?? _urlCollaborationSection).name,
+      if (_selectedTab == ProjectDashboardSection.collaboration &&
+          (_activityPostId ?? widget.initialPostId) != null)
+        'post': _activityPostId ?? widget.initialPostId,
+      if (_selectedTab == ProjectDashboardSection.timeline &&
+          (_activityEventId ?? widget.initialEventId) != null)
+        'event': _activityEventId ?? widget.initialEventId,
     });
     return Scaffold(
       backgroundColor: Colors.white,
@@ -503,7 +514,11 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                       refreshToken: _collaborationRevision,
                       initialSection:
                           _activityCollaborationSection ??
-                          widget.initialCollaborationSection,
+                          _urlCollaborationSection,
+                      onSectionChanged: (section) => setState(() {
+                        _activityCollaborationSection = null;
+                        _urlCollaborationSection = section;
+                      }),
                       initialPostId: _activityPostId ?? widget.initialPostId,
                       initialCommentId: widget.initialCommentId,
                       bulletinRepo: widget.bulletinRepo,
