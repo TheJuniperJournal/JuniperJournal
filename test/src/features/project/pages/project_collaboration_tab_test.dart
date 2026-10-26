@@ -172,6 +172,12 @@ void main() {
       final button = find.byKey(const ValueKey('create-forum-post'));
       final filters = find.byKey(const ValueKey('forum-category-filters'));
       final footer = find.byKey(const ValueKey('page-end-footer'));
+      final heading = find.byKey(const ValueKey('forum-heading'));
+      expect(
+        tester.getCenter(heading).dy,
+        closeTo(tester.getCenter(button).dy, 1),
+      );
+      expect(tester.getRect(button).width, lessThan(200));
       expect(button.hitTestable(), findsOneWidget);
       expect(footer, findsOneWidget);
       expect(
@@ -574,7 +580,7 @@ void main() {
         find.byKey(const ValueKey('forum-empty-space')),
       );
       final message = tester.getRect(
-        find.text('Nothing yet… Create a forum post to start a discussion.'),
+        find.text('No discussions yet. Start one with “New post”.'),
       );
       expect(message.center.dx, closeTo(feed.center.dx, .5));
       expect(message.center.dy, closeTo(feed.center.dy, .5));
@@ -620,12 +626,12 @@ void main() {
   ) async {
     await _pump(tester, bulletin: _EmptyPosts());
     expect(
-      find.text('Nothing yet… Create a forum post to start a discussion.'),
+      find.text('No discussions yet. Start one with “New post”.'),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('project-forum-editor')), findsNothing);
     await _openCreate(tester);
-    expect(find.text('Create Forum Post'), findsNWidgets(2));
+    expect(find.text('Create Forum Post'), findsOneWidget);
     expect(find.byKey(const ValueKey('project-forum-editor')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

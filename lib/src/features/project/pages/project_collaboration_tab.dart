@@ -625,32 +625,48 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                 if (_busy) const LinearProgressIndicator(minHeight: 2),
                 if (_section == CollaborationSection.bulletin &&
                     _participant) ...[
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      width: 250,
-                      height: 44,
-                      child: FilledButton.icon(
-                        key: const ValueKey('create-forum-post'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: _green,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: _busy ? null : _openNewPost,
-                        icon: const Icon(Icons.add_circle_outline, size: 23),
-                        label: const Text(
-                          'Create Forum Post',
+                  Row(
+                    key: const ValueKey('forum-heading-actions'),
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Discussions',
+                          key: ValueKey('forum-heading'),
                           style: TextStyle(
-                            fontFamily: AppTypography.bodyFamily,
-                            fontSize: AppTypography.buttonSize,
-                            fontWeight: FontWeight.w500,
+                            fontFamily: AppTypography.headingFamily,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF202124),
                           ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Tooltip(
+                        message: 'Create Forum Post',
+                        child: FilledButton.icon(
+                          key: const ValueKey('create-forum-post'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: _green,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 40),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: _busy ? null : _openNewPost,
+                          icon: const Icon(Icons.add, size: 20),
+                          label: const Text(
+                            'New post',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFamily,
+                              fontSize: AppTypography.buttonSize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -863,7 +879,7 @@ class _ProjectCollaborationTabState extends State<ProjectCollaborationTab> {
                           !_participant
                               ? 'The bulletin is available to project members.'
                               : _posts.isEmpty
-                              ? 'Nothing yet… Create a forum post to start a discussion.'
+                              ? 'No discussions yet. Start one with “New post”.'
                               : 'No posts match your filters.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
