@@ -85,6 +85,55 @@ class _JournalReadingPageState extends State<JournalReadingPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.white,
+    appBar: AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      toolbarHeight: 100,
+      titleSpacing: 16,
+      title: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 828),
+          child: Row(
+            children: [
+              ContentAlignedBackButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.entry.title,
+                      key: const ValueKey('journal-reading-title'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 20,
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                        color: _readingInk,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      _canvas ? 'Free Notes' : '$_type · Guided Journal',
+                      style: _readingHelp.copyWith(
+                        fontSize: 12,
+                        color: _readingGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              JournalEntryMenu(entry: widget.entry, repo: _repo),
+            ],
+          ),
+        ),
+      ),
+    ),
     body: SafeArea(
       child: Align(
         alignment: Alignment.topCenter,
@@ -95,26 +144,6 @@ class _JournalReadingPageState extends State<JournalReadingPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        ContentAlignedBackButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        const Spacer(),
-                        JournalEntryMenu(entry: widget.entry, repo: _repo),
-                        IconButton(
-                          tooltip: 'Close preview',
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close, size: 20),
-                        ),
-                      ],
-                    ),
-                  ),
                   LayoutBuilder(
                     builder: (context, constraints) => Container(
                       key: const ValueKey('journal-reading-paper'),
@@ -128,29 +157,6 @@ class _JournalReadingPageState extends State<JournalReadingPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${_type.toUpperCase()}${_canvas ? '' : ' · GUIDED JOURNAL'}',
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              letterSpacing: 1.2,
-                              color: _readingGreen,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            widget.entry.title,
-                            key: const ValueKey('journal-reading-title'),
-                            style: const TextStyle(
-                              fontFamily: 'Manrope',
-                              fontSize: 30,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -.9,
-                              color: _readingInk,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
                           if (widget.entry.createdAt != null ||
                               widget.entry.authorDisplayName?.isNotEmpty ==
                                   true)

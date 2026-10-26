@@ -313,6 +313,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
           final ctrl = existing!.textController!;
           final text = row['text']?.toString() ?? '';
           ctrl.value = remoteJournalTextValue(ctrl.value, text);
+          existing.readFormatting(row);
           next.add(existing);
         } else {
           final block = _Block.fromJson(Map<String, dynamic>.from(row))
@@ -468,6 +469,9 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       focused.focusNode?.requestFocus();
       return;
     }
+    if (focused != null && newBlock.textController != null) {
+      newBlock.readFormatting(focused.toJson());
+    }
     _listenToBlock(newBlock);
     final insertAt = (_focusedIndex ?? _blocks.length - 1) + 1;
     setState(() {
@@ -540,20 +544,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     });
   }
 
-  void _toggleHeaderBody() {
-    final idx = _focusedIndex;
-    if (idx == null || idx >= _blocks.length) return;
-    final block = _blocks[idx];
-    if (block.type != _BlockType.header && block.type != _BlockType.body)
-      return;
-    setState(() {
-      block.type = block.type == _BlockType.header
-          ? _BlockType.body
-          : _BlockType.header;
-      _hasChanges = true;
-    });
-  }
-
   // Split the line at the cursor: text before cursor stays in this line, text
   // after moves to a new body line inserted directly below.
   // Uses indexOf(block) instead of the closure-captured index so it stays
@@ -574,7 +564,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       selection: TextSelection.collapsed(offset: before.length),
     );
 
-    final newBlock = _Block.body(after);
+    final newBlock = _Block.body(after)..readFormatting(block.toJson());
     _listenToBlock(newBlock);
     setState(() {
       _blocks.insert(idx + 1, newBlock);
@@ -612,12 +602,15 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   }
 
   Future<void> _showInsertTableDialog() async {
-    final result = await showAppDialog<({int rows, int cols})>(
+    final result = await showAppDialog<({int rows, int cols, bool headerRow})>(
       context: context,
       builder: (_) => const _TableSizeDialog(),
     );
     if (result == null || !mounted) return;
-    _insertAfterFocused(_Block.table(rows: result.rows, cols: result.cols));
+    _insertAfterFocused(
+      _Block.table(rows: result.rows, cols: result.cols)
+        ..headerRow = result.headerRow,
+    );
   }
 
   Future<void> _showInsertMathDialog() async {
@@ -805,79 +798,84 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
             // Block content
             Expanded(
-              child: PageScrollWithFooter(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (int i = 0; i < _blocks.length; i++)
-                        _buildBlock(i, _blocks[i]),
-                      // Tap empty space to focus last text block
-                      AppTapTarget(
-                        onTap: () {
-                          final lastText = _blocks.lastWhere(
-                            (b) => b.focusNode != null,
-                            orElse: () => _blocks.last,
-                          );
-                          lastText.focusNode?.requestFocus();
-                        },
-                        behavior: HitTestBehavior.translucent,
-                        child: const SizedBox(
-                          height: 80,
-                          width: double.infinity,
+              child: ColoredBox(
+                color: const Color(0xFFFCFCF8),
+                child: PageScrollWithFooter(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (int i = 0; i < _blocks.length; i++)
+                          _buildBlock(i, _blocks[i]),
+                        // Tap empty space to focus last text block
+                        AppTapTarget(
+                          onTap: () {
+                            final lastText = _blocks.lastWhere(
+                              (b) => b.focusNode != null,
+                              orElse: () => _blocks.last,
+                            );
+                            lastText.focusNode?.requestFocus();
+                          },
+                          behavior: HitTestBehavior.translucent,
+                          child: const SizedBox(
+                            height: 80,
+                            width: double.infinity,
+                          ),
                         ),
-                      ),
-                      JournalActionFooter(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                OutlinedButton(
-                                  onPressed: _isSaving
-                                      ? null
-                                      : () => Navigator.of(context).maybePop(),
-                                  child: const Text('Back'),
-                                ),
-                                const SizedBox(width: 16),
-                                FilledButton(
-                                  onPressed: _isSaving
-                                      ? null
-                                      : () => _saveAndPop(submit: !_submitted),
-                                  child: Text(
-                                    _isSaving
-                                        ? 'Saving...'
-                                        : _submitted
-                                        ? 'Done'
-                                        : 'Submit',
+                        JournalActionFooter(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  OutlinedButton(
+                                    onPressed: _isSaving
+                                        ? null
+                                        : () =>
+                                              Navigator.of(context).maybePop(),
+                                    child: const Text('Back'),
                                   ),
-                                ),
-                              ],
-                            ),
-                            if (!widget.readOnly && _savedLabel != null)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: Text(
-                                    _savedLabel!,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontFamily: AppTypography.bodyFamily,
-                                      fontSize: AppTypography.helperSize,
-                                      color: AppColors.textSecondary,
+                                  const SizedBox(width: 16),
+                                  FilledButton(
+                                    onPressed: _isSaving
+                                        ? null
+                                        : () =>
+                                              _saveAndPop(submit: !_submitted),
+                                    child: Text(
+                                      _isSaving
+                                          ? 'Saving...'
+                                          : _submitted
+                                          ? 'Done'
+                                          : 'Submit',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (!widget.readOnly && _savedLabel != null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: Text(
+                                      _savedLabel!,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontFamily: AppTypography.bodyFamily,
+                                        fontSize: AppTypography.helperSize,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -994,67 +992,302 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     );
   }
 
+  Future<void> _editFormula(_Block block) async {
+    final latex = await showAppDialog<String>(
+      context: context,
+      builder: (_) => _MathInputDialog(initialLatex: block.latex),
+    );
+    if (latex == null || !mounted) return;
+    setState(() {
+      block.latex = latex;
+      _hasChanges = true;
+    });
+  }
+
+  void _formatBlock(void Function(_Block) change) {
+    if (_focusedIndex == null || _focusedIndex! >= _blocks.length) return;
+    setState(() {
+      change(_blocks[_focusedIndex!]);
+      _hasChanges = true;
+    });
+  }
+
+  void _changeTable(String action) {
+    _formatBlock((block) {
+      final cells = block.cells!;
+      if (action == 'row' && cells.length < 20) {
+        cells.add(
+          List.generate(cells.first.length, (_) => TextEditingController()),
+        );
+      } else if (action == 'column' && cells.first.length < 8) {
+        for (final row in cells) {
+          row.add(TextEditingController());
+        }
+      } else if (action == 'header') {
+        block.headerRow = !block.headerRow;
+      } else if (action == 'remove-row' && cells.length > 1) {
+        if (cells.last.any((c) => c.text.isNotEmpty)) {
+          showTopSnackBar(context, 'Clear the last row before removing it.');
+          return;
+        }
+        for (final c in cells.removeLast()) {
+          c.dispose();
+        }
+      } else if (action == 'remove-column' && cells.first.length > 1) {
+        if (cells.any((row) => row.last.text.isNotEmpty)) {
+          showTopSnackBar(context, 'Clear the last column before removing it.');
+          return;
+        }
+        for (final row in cells) {
+          row.removeLast().dispose();
+        }
+      }
+    });
+  }
+
   Widget _buildToolbar() {
-    final focusedBlock =
-        _focusedIndex != null && _focusedIndex! < _blocks.length
+    final focused = _focusedIndex != null && _focusedIndex! < _blocks.length
         ? _blocks[_focusedIndex!]
         : null;
-    final isTextBlock =
-        focusedBlock?.type == _BlockType.header ||
-        focusedBlock?.type == _BlockType.body;
-    final isHeader = focusedBlock?.type == _BlockType.header;
-
-    return PageScrollWithFooter(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // TT — toggle header/body
-            _ToolbarBtn(
-              child: _TtIcon(active: isHeader, enabled: isTextBlock),
-              active: isHeader,
-              onTap: isTextBlock ? _toggleHeaderBody : null,
-              tooltip: 'Toggle header / body',
-            ),
-            _ToolbarBtn(
-              icon: Icons.notes_outlined,
-              onTap: () => _insertAfterFocused(_Block.body('')),
-              tooltip: 'Add text',
-            ),
-            _ToolbarBtn(
-              icon: Icons.more_vert,
-              onTap: _showBlockActions,
-              tooltip: 'Move or remove block',
-            ),
-            Container(width: 1, height: 28, color: AppColors.divider),
-            // Camera
-            _ToolbarBtn(
-              icon: Icons.camera_alt_outlined,
-              onTap: () => _insertImage(ImageSource.camera),
-              tooltip: 'Take photo',
-            ),
-            // Gallery image
-            _ToolbarBtn(
-              icon: Icons.image_outlined,
-              onTap: () => _insertImage(ImageSource.gallery),
-              tooltip: 'Add image from gallery',
-            ),
-            // Table
-            _ToolbarBtn(
-              icon: Icons.table_chart_outlined,
-              onTap: _showInsertTableDialog,
-              tooltip: 'Insert table',
-            ),
-            // Math / π
-            _ToolbarBtn(
-              icon: Icons.functions_outlined,
-              onTap: _showInsertMathDialog,
-              tooltip: 'Insert formula',
-            ),
-          ],
+    final isText = focused?.textController != null;
+    Widget divider() => Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      color: AppColors.divider,
+    );
+    Widget select<T>(
+      String label,
+      T value,
+      List<T> choices,
+      void Function(T) changed, {
+      bool enabled = true,
+      Map<T, String>? labels,
+    }) => Tooltip(
+      message: label,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          key: ValueKey('notes-$label'),
+          value: value,
+          isDense: true,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            color: Colors.black87,
+          ),
+          borderRadius: BorderRadius.circular(10),
+          items: choices
+              .map(
+                (v) => DropdownMenuItem(
+                  value: v,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(labels?[v] ?? '$v'),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: enabled
+              ? (v) {
+                  if (v != null) changed(v);
+                }
+              : null,
         ),
+      ),
+    );
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              select<String>(
+                'Text style',
+                focused?.type == _BlockType.header ? 'Heading' : 'Normal text',
+                ['Normal text', 'Heading'],
+                (v) => _formatBlock((b) {
+                  b.type = v == 'Heading' ? _BlockType.header : _BlockType.body;
+                }),
+                enabled: isText,
+              ),
+              select<String>(
+                'Font',
+                focused?.fontFamily ??
+                    (focused?.type == _BlockType.header ? 'Manrope' : 'Inter'),
+                ['Inter', 'Manrope'],
+                (v) => _formatBlock((b) => b.fontFamily = v),
+                enabled: isText || focused?.cells != null,
+              ),
+              select<double>(
+                'Font size',
+                focused?.fontSize ??
+                    (focused?.type == _BlockType.header ? 24 : 16),
+                {
+                  ...[
+                    10.0,
+                    12.0,
+                    14.0,
+                    16.0,
+                    18.0,
+                    20.0,
+                    24.0,
+                    28.0,
+                    32.0,
+                    36.0,
+                    48.0,
+                  ],
+                  if (focused?.fontSize != null) focused!.fontSize!,
+                }.toList()..sort(),
+                (v) => _formatBlock((b) => b.fontSize = v),
+                labels: {
+                  for (final v in [
+                    10.0,
+                    12.0,
+                    14.0,
+                    16.0,
+                    18.0,
+                    20.0,
+                    24.0,
+                    28.0,
+                    32.0,
+                    36.0,
+                    48.0,
+                  ])
+                    v: v.toInt().toString(),
+                },
+                enabled: isText || focused?.cells != null,
+              ),
+              _ToolbarBtn(
+                icon: Icons.format_bold,
+                tooltip: 'Bold',
+                active: focused?.bold ?? false,
+                onTap: isText
+                    ? () => _formatBlock((b) => b.bold = !b.bold)
+                    : null,
+              ),
+              _ToolbarBtn(
+                icon: Icons.format_italic,
+                tooltip: 'Italic',
+                active: focused?.italic ?? false,
+                onTap: isText
+                    ? () => _formatBlock((b) => b.italic = !b.italic)
+                    : null,
+              ),
+              _ToolbarBtn(
+                icon: Icons.format_underlined,
+                tooltip: 'Underline',
+                active: focused?.underline ?? false,
+                onTap: isText
+                    ? () => _formatBlock((b) => b.underline = !b.underline)
+                    : null,
+              ),
+              divider(),
+              for (final item in [
+                ('left', Icons.format_align_left),
+                ('center', Icons.format_align_center),
+                ('right', Icons.format_align_right),
+              ])
+                _ToolbarBtn(
+                  icon: item.$2,
+                  tooltip: 'Align ${item.$1}',
+                  active: focused?.alignment == item.$1,
+                  onTap: focused == null
+                      ? null
+                      : () => _formatBlock((b) => b.alignment = item.$1),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _ToolbarBtn(
+                icon: Icons.notes_outlined,
+                tooltip: 'Add text',
+                onTap: () => _insertAfterFocused(_Block.body('')),
+              ),
+              _ToolbarBtn(
+                icon: Icons.image_outlined,
+                tooltip: 'Add image from gallery',
+                onTap: () => _insertImage(ImageSource.gallery),
+              ),
+              _ToolbarBtn(
+                icon: Icons.camera_alt_outlined,
+                tooltip: 'Take photo',
+                onTap: () => _insertImage(ImageSource.camera),
+              ),
+              _ToolbarBtn(
+                icon: Icons.table_chart_outlined,
+                tooltip: 'Insert table',
+                onTap: _showInsertTableDialog,
+              ),
+              _ToolbarBtn(
+                icon: Icons.functions_outlined,
+                tooltip: 'Insert formula',
+                onTap: _showInsertMathDialog,
+              ),
+              divider(),
+              _ToolbarBtn(
+                icon: Icons.more_vert,
+                tooltip: 'Move or remove block',
+                onTap: focused == null ? null : _showBlockActions,
+              ),
+              if (focused?.type == _BlockType.math)
+                TextButton.icon(
+                  onPressed: () => _editFormula(focused!),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit formula'),
+                ),
+              if (focused?.cells != null)
+                PopupMenuButton<String>(
+                  tooltip: 'Table options',
+                  onSelected: _changeTable,
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'row', child: Text('Add row')),
+                    const PopupMenuItem(
+                      value: 'column',
+                      child: Text('Add column'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'remove-row',
+                      child: Text('Remove last empty row'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'remove-column',
+                      child: Text('Remove last empty column'),
+                    ),
+                    PopupMenuItem(
+                      value: 'header',
+                      child: Text(
+                        focused!.headerRow
+                            ? 'Remove header row style'
+                            : 'Use first row as header',
+                      ),
+                    ),
+                  ],
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Text('Table options'),
+                  ),
+                ),
+              Text(
+                isText
+                    ? 'Formatting applies to this paragraph'
+                    : focused == null
+                    ? 'Select text or an element to format'
+                    : 'Selected element',
+                style: AppTypography.helper.copyWith(fontSize: 11),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1062,6 +1295,17 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   // ── Block builders ──────────────────────────────────────────────────────────
 
   Widget _buildBlock(int index, _Block block) {
+    final child = _buildBlockContent(index, block);
+    if (widget.readOnly) return child;
+    return Listener(
+      onPointerDown: (_) {
+        if (_focusedIndex != index) setState(() => _focusedIndex = index);
+      },
+      child: child,
+    );
+  }
+
+  Widget _buildBlockContent(int index, _Block block) {
     switch (block.type) {
       case _BlockType.header:
       case _BlockType.body:
@@ -1076,63 +1320,35 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   }
 
   Widget _buildTextBlock(int index, _Block block) {
-    final isHeader = block.type == _BlockType.header;
     return Padding(
-      padding: EdgeInsets.only(bottom: isHeader ? 6 : 2),
+      padding: const EdgeInsets.only(bottom: 8),
       child: widget.readOnly
           ? SelectableText(
               block.textController?.text ?? '',
-              style: isHeader
-                  ? const TextStyle(
-                      fontFamily: AppTypography.headingFamily,
-                      fontSize: AppTypography.displaySize,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    )
-                  : const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: 16,
-                      color: Color(0xFF293D31),
-                      height: 1.65,
-                    ),
+              textAlign: block.textAlign,
+              style: block.textStyle,
             )
           : TextField(
               key: ValueKey('free-notes-body-$index'),
               controller: block.textController,
               focusNode: block.focusNode,
-              minLines: isHeader ? 1 : 5,
-              maxLines: isHeader ? 1 : null,
-              textInputAction: isHeader
-                  ? TextInputAction.newline
-                  : TextInputAction.newline,
-              onSubmitted: isHeader ? (_) => _splitLineAtCursor(block) : null,
+              minLines: 1,
+              maxLines: null,
+              textAlign: block.textAlign,
+              style: block.textStyle,
+              textInputAction: TextInputAction.newline,
+              onSubmitted: block.type == _BlockType.header
+                  ? (_) => _splitLineAtCursor(block)
+                  : null,
               onChanged: (_) => setState(() => _hasChanges = true),
-              style: isHeader
-                  ? const TextStyle(
-                      fontFamily: AppTypography.headingFamily,
-                      fontSize: AppTypography.sectionTitleSize,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    )
-                  : const TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      color: Colors.black87,
-                      height: 1.55,
-                    ),
               decoration: InputDecoration(
                 hintText:
                     index == 0 &&
                         _blocks.every(
-                          (b) =>
-                              (b.type == _BlockType.body ||
-                                  b.type == _BlockType.header) &&
-                              b.textController!.text.isEmpty,
+                          (b) => (b.textController?.text ?? '').isEmpty,
                         )
                     ? 'Write something…'
                     : null,
-                filled: true,
-                fillColor: Colors.white,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -1162,98 +1378,105 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     final cells = block.cells!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: PageScrollWithFooter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: cells.asMap().entries.map((rowEntry) {
-                    final r = rowEntry.key;
-                    final row = rowEntry.value;
-                    return Row(
-                      children: row.asMap().entries.map((colEntry) {
-                        final c = colEntry.key;
-                        final isFirstRow = r == 0;
-                        return Container(
-                          width: 110,
-                          decoration: BoxDecoration(
-                            color: isFirstRow
-                                ? AppColors.primary.withValues(alpha: 0.06)
-                                : Colors.white,
-                            border: Border(
-                              right: c < row.length - 1
-                                  ? BorderSide(color: Colors.grey.shade300)
-                                  : BorderSide.none,
-                              bottom: r < cells.length - 1
-                                  ? BorderSide(color: Colors.grey.shade300)
-                                  : BorderSide.none,
-                            ),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          child: widget.readOnly
-                              ? Text(
-                                  colEntry.value.text,
-                                  style: AppTypography.body.copyWith(
-                                    fontSize: 16,
-                                    fontWeight: isFirstRow
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cellWidth = (constraints.maxWidth / cells.first.length).clamp(
+            120.0,
+            double.infinity,
+          );
+          return Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: !widget.readOnly && _focusedIndex == index
+                        ? AppColors.primary
+                        : Colors.grey.shade300,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Align(
+                  alignment: block.elementAlignment,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: cells.asMap().entries.map((rowEntry) {
+                        final r = rowEntry.key;
+                        final row = rowEntry.value;
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: row.asMap().entries.map((colEntry) {
+                              final c = colEntry.key;
+                              final isFirstRow = r == 0 && block.headerRow;
+                              return Container(
+                                width: cellWidth,
+                                decoration: BoxDecoration(
+                                  color: isFirstRow
+                                      ? AppColors.primary.withValues(
+                                          alpha: 0.06,
+                                        )
+                                      : Colors.white,
+                                  border: Border(
+                                    right: c < row.length - 1
+                                        ? BorderSide(
+                                            color: Colors.grey.shade300,
+                                          )
+                                        : BorderSide.none,
+                                    bottom: r < cells.length - 1
+                                        ? BorderSide(
+                                            color: Colors.grey.shade300,
+                                          )
+                                        : BorderSide.none,
                                   ),
-                                )
-                              : TextField(
-                                  controller: colEntry.value,
-                                  readOnly: widget.readOnly,
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.bodyFamily,
-                                    fontSize: AppTypography.bodySize,
-                                    fontWeight: isFirstRow
-                                        ? FontWeight.w500
-                                        : FontWeight.w400,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                  onChanged: widget.readOnly
-                                      ? null
-                                      : (_) => _hasChanges = true,
                                 ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 10,
+                                ),
+                                child: widget.readOnly
+                                    ? Text(
+                                        colEntry.value.text,
+                                        textAlign: block.textAlign,
+                                        style: block.textStyle.copyWith(
+                                          fontWeight: isFirstRow
+                                              ? FontWeight.w600
+                                              : null,
+                                        ),
+                                      )
+                                    : TextField(
+                                        key: ValueKey(
+                                          'notes-cell-$index-$r-$c',
+                                        ),
+                                        controller: colEntry.value,
+                                        minLines: 1,
+                                        maxLines: null,
+                                        textAlign: block.textAlign,
+                                        style: block.textStyle.copyWith(
+                                          fontWeight: isFirstRow
+                                              ? FontWeight.w600
+                                              : null,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                        onChanged: (_) => _hasChanges = true,
+                                      ),
+                              );
+                            }).toList(),
+                          ),
                         );
                       }).toList(),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-          ),
-          if (!widget.readOnly)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: AppTapTarget(
-                onTap: () => _removeBlock(index),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black38,
-                    borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
-                  padding: const EdgeInsets.all(3),
-                  child: const Icon(Icons.close, color: Colors.white, size: 14),
                 ),
               ),
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -1266,19 +1489,8 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
           AppTapTarget(
             onTap: widget.readOnly
                 ? null
-                : () async {
-                    final newLatex = await showAppDialog<String>(
-                      context: context,
-                      builder: (_) =>
-                          _MathInputDialog(initialLatex: block.latex),
-                    );
-                    if (newLatex != null && mounted) {
-                      setState(() {
-                        block.latex = newLatex;
-                        _hasChanges = true;
-                      });
-                    }
-                  },
+                : () => setState(() => _focusedIndex = index),
+            onDoubleTap: widget.readOnly ? null : () => _editFormula(block),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -1286,44 +1498,34 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 color: AppColors.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: !widget.readOnly && _focusedIndex == index
+                      ? AppColors.primary
+                      : AppColors.primary.withValues(alpha: 0.2),
                 ),
               ),
-              child: Center(
-                child: Math.tex(
-                  block.latex ?? '',
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.headingFamily,
-                    fontSize: AppTypography.sectionTitleSize,
-                    color: Colors.black87,
-                  ),
-                  onErrorFallback: (err) => Text(
+              child: Align(
+                alignment: block.elementAlignment,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Math.tex(
                     block.latex ?? '',
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      color: Colors.red,
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.headingFamily,
+                      fontSize: AppTypography.sectionTitleSize,
+                      color: Colors.black87,
+                    ),
+                    onErrorFallback: (err) => Text(
+                      block.latex ?? '',
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        color: Colors.red,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-          if (!widget.readOnly)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: AppTapTarget(
-                onTap: () => _removeBlock(index),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black38,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  padding: const EdgeInsets.all(3),
-                  child: const Icon(Icons.close, color: Colors.white, size: 14),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -1362,113 +1564,121 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
           maxW,
         );
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppTapTarget(
-              onTap: widget.onSelect,
-              child: ImageResizeFrame(
-                width: imgW,
-                maxWidth: maxW,
-                selected: widget.isSelected,
-                onResize: widget.onMarkChanged == null
-                    ? null
-                    : (fraction) {
-                        setState(() => widget.block.widthFraction = fraction);
-                        widget.onMarkChanged?.call();
-                      },
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: ProtectedImage.network(
-                        widget.block.imageUrl!,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox(
-                          height: 160,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined),
+        return SizedBox(
+          width: maxW,
+          child: Column(
+            crossAxisAlignment: switch (widget.block.alignment) {
+              'center' => CrossAxisAlignment.center,
+              'right' => CrossAxisAlignment.end,
+              _ => CrossAxisAlignment.start,
+            },
+            children: [
+              AppTapTarget(
+                onTap: widget.onSelect,
+                child: ImageResizeFrame(
+                  width: imgW,
+                  maxWidth: maxW,
+                  selected: widget.isSelected,
+                  onResize: widget.onMarkChanged == null
+                      ? null
+                      : (fraction) {
+                          setState(() => widget.block.widthFraction = fraction);
+                          widget.onMarkChanged?.call();
+                        },
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: ProtectedImage.network(
+                          widget.block.imageUrl!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const SizedBox(
+                            height: 160,
+                            child: Center(
+                              child: Icon(Icons.broken_image_outlined),
+                            ),
                           ),
-                        ),
-                        loadingBuilder: (_, child, progress) => progress == null
-                            ? child
-                            : AspectRatio(
-                                aspectRatio: 16 / 9,
-                                child: Container(
-                                  color: Colors.grey.shade100,
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                          loadingBuilder: (_, child, progress) =>
+                              progress == null
+                              ? child
+                              : AspectRatio(
+                                  aspectRatio: 16 / 9,
+                                  child: Container(
+                                    color: Colors.grey.shade100,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
+                        ),
                       ),
-                    ),
-                    if (widget.onRemove != null)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: AppTapTarget(
-                          onTap: widget.onRemove,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 16,
+                      if (widget.onRemove != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: AppTapTarget(
+                            onTap: widget.onRemove,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 6),
+              const SizedBox(height: 6),
 
-            SizedBox(
-              width: imgW,
-              child: widget.onMarkChanged == null
-                  ? Text(
-                      widget.block.captionController?.text ?? '',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.helper,
-                    )
-                  : TextField(
-                      controller: widget.block.captionController,
-                      readOnly: widget.onMarkChanged == null,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.bodySize,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: '',
-                        hintStyle: TextStyle(
+              SizedBox(
+                width: imgW,
+                child: widget.onMarkChanged == null
+                    ? Text(
+                        widget.block.captionController?.text ?? '',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.helper,
+                      )
+                    : TextField(
+                        controller: widget.block.captionController,
+                        readOnly: widget.onMarkChanged == null,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
                           fontFamily: AppTypography.bodyFamily,
-                          color: Colors.grey.shade400,
-                          fontSize: AppTypography.helperSize,
-                          fontWeight: FontWeight.w400,
+                          fontSize: AppTypography.bodySize,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
+                        decoration: InputDecoration(
+                          hintText: '',
+                          hintStyle: TextStyle(
+                            fontFamily: AppTypography.bodyFamily,
+                            color: Colors.grey.shade400,
+                            fontSize: AppTypography.helperSize,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         );
       },
     );
@@ -1478,16 +1688,9 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
 // ── Toolbar button ────────────────────────────────────────────────────────────
 
 class _ToolbarBtn extends StatelessWidget {
-  const _ToolbarBtn({
-    this.icon,
-    this.child,
-    this.onTap,
-    this.active = false,
-    this.tooltip,
-  });
+  const _ToolbarBtn({this.icon, this.onTap, this.active = false, this.tooltip});
 
   final IconData? icon;
-  final Widget? child;
   final VoidCallback? onTap;
   final bool active;
   final String? tooltip;
@@ -1496,7 +1699,7 @@ class _ToolbarBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = onTap == null ? Colors.black26 : AppColors.primary;
 
-    Widget inner = child ?? Icon(icon, size: 24, color: color);
+    Widget inner = Icon(icon, size: 24, color: color);
 
     Widget content = active
         ? Container(
@@ -1520,142 +1723,153 @@ class _ToolbarBtn extends StatelessWidget {
   }
 }
 
-// ── TT icon — mimics the typography toggle in the reference ──────────────────
-
-class _TtIcon extends StatelessWidget {
-  const _TtIcon({required this.active, required this.enabled});
-
-  final bool active;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final activeColor = AppColors.primary;
-    final inactiveColor = enabled ? AppColors.primary : Colors.black26;
-
-    // Big "T" on the left, small "T" on the right, baseline-aligned
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          'T',
-          style: TextStyle(
-            fontSize: active ? 22 : 18,
-            fontWeight: FontWeight.w500,
-            color: active ? activeColor : inactiveColor,
-            height: 1,
-          ),
-        ),
-        Text(
-          'T',
-          style: TextStyle(
-            fontSize: active ? 13 : 11,
-            fontWeight: FontWeight.w500,
-            color: active ? activeColor : inactiveColor,
-            height: 1,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Table size dialog ─────────────────────────────────────────────────────────
-
+// ── Table creator ────────────────────────────────────────────────────────────
 class _TableSizeDialog extends StatefulWidget {
   const _TableSizeDialog();
-
   @override
   State<_TableSizeDialog> createState() => _TableSizeDialogState();
 }
 
 class _TableSizeDialogState extends State<_TableSizeDialog> {
-  int _rows = 3;
-  int _cols = 3;
-
+  int _rows = 3, _cols = 3;
+  bool _header = true;
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Insert Table'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _counter('Rows', _rows, (v) => setState(() => _rows = v), 2, 8),
-          const SizedBox(height: 16),
-          _counter('Columns', _cols, (v) => setState(() => _cols = v), 2, 6),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, (rows: _rows, cols: _cols)),
-          style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-          child: const Text('Insert'),
-        ),
-      ],
-    );
-  }
-
-  Widget _counter(
-    String label,
-    int value,
-    ValueChanged<int> onChanged,
-    int min,
-    int max,
-  ) {
-    return Row(
-      children: [
-        SizedBox(width: 64, child: Text(label)),
-        IconButton(
-          onPressed: value > min ? () => onChanged(value - 1) : null,
-          icon: const Icon(Icons.remove),
-        ),
-        SizedBox(
-          width: 32,
-          child: Text(
-            '$value',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppTypography.bodyFamily,
-              fontSize: AppTypography.bodySize,
-              fontWeight: FontWeight.w500,
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Insert Table'),
+    content: SingleChildScrollView(
+      child: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Choose a grid size. You can add rows and columns later.',
+              style: AppTypography.helper,
             ),
-          ),
+            const SizedBox(height: 16),
+            Text('$_rows rows × $_cols columns', style: AppTypography.body),
+            const SizedBox(height: 10),
+            for (var row = 1; row <= 6; row++)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var col = 1; col <= 6; col++)
+                    Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Tooltip(
+                        message: '$row rows, $col columns',
+                        child: InkWell(
+                          key: ValueKey('table-grid-$row-$col'),
+                          onTap: () => setState(() {
+                            _rows = row;
+                            _cols = col;
+                          }),
+                          child: Container(
+                            width: 32,
+                            height: 25,
+                            decoration: BoxDecoration(
+                              color: row <= _rows && col <= _cols
+                                  ? AppColors.primary.withValues(alpha: .18)
+                                  : Colors.white,
+                              border: Border.all(
+                                color: row <= _rows && col <= _cols
+                                    ? AppColors.primary
+                                    : AppColors.divider,
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _rows,
+                    key: ValueKey('table-rows-$_rows'),
+                    decoration: const InputDecoration(labelText: 'Rows'),
+                    items: [
+                      for (var n = 1; n <= 20; n++)
+                        DropdownMenuItem(value: n, child: Text('$n')),
+                    ],
+                    onChanged: (v) => setState(() => _rows = v!),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _cols,
+                    key: ValueKey('table-cols-$_cols'),
+                    decoration: const InputDecoration(labelText: 'Columns'),
+                    items: [
+                      for (var n = 1; n <= 8; n++)
+                        DropdownMenuItem(value: n, child: Text('$n')),
+                    ],
+                    onChanged: (v) => setState(() => _cols = v!),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Use first row as header'),
+              value: _header,
+              onChanged: (v) => setState(() => _header = v!),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ],
         ),
-        IconButton(
-          onPressed: value < max ? () => onChanged(value + 1) : null,
-          icon: const Icon(Icons.add),
-        ),
-      ],
-    );
-  }
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, (
+          rows: _rows,
+          cols: _cols,
+          headerRow: _header,
+        )),
+        child: const Text('Insert'),
+      ),
+    ],
+  );
 }
 
-// ── Math input dialog ─────────────────────────────────────────────────────────
-
+// ── Formula creator and editor ───────────────────────────────────────────────
 class _MathInputDialog extends StatefulWidget {
   const _MathInputDialog({this.initialLatex});
-
   final String? initialLatex;
-
   @override
   State<_MathInputDialog> createState() => _MathInputDialogState();
 }
 
 class _MathInputDialogState extends State<_MathInputDialog> {
-  late final TextEditingController _controller;
+  late final _controller = TextEditingController(
+    text: widget.initialLatex ?? '',
+  )..addListener(_refresh);
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialLatex ?? '');
-    _controller.addListener(() => setState(() {}));
+  void _insert(String snippet) {
+    final value = _controller.value;
+    final start = value.selection.isValid
+        ? value.selection.start
+        : value.text.length;
+    final end = value.selection.isValid ? value.selection.end : start;
+    _controller.value = TextEditingValue(
+      text: value.text.replaceRange(start, end, snippet),
+      selection: TextSelection.collapsed(offset: start + snippet.length),
+    );
   }
 
   @override
@@ -1666,77 +1880,87 @@ class _MathInputDialogState extends State<_MathInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final latex = _controller.text;
+    final latex = _controller.text.trim();
+    final formula = Math.tex(
+      latex,
+      textStyle: const TextStyle(fontSize: 22),
+      onErrorFallback: (_) => const Text(
+        'Check the formula syntax.',
+        style: TextStyle(color: Colors.red),
+      ),
+    );
+    final valid = latex.isNotEmpty && formula.parseError == null;
     return AlertDialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Insert Formula'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: '',
-              labelText: 'LaTeX',
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 9,
-                vertical: 14,
+      title: Text(
+        widget.initialLatex == null ? 'Insert Formula' : 'Edit Formula',
+      ),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Start with a template or type a formula using LaTeX.',
+                style: AppTypography.helper,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.borderLight),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.borderLight),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.borderLight),
-              ),
-            ),
-          ),
-          if (latex.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Text(
-              'Preview',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFamily,
-                fontSize: AppTypography.helperSize,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Math.tex(
-                  latex,
-                  textStyle: const TextStyle(
-                    fontFamily: AppTypography.headingFamily,
-                    fontSize: AppTypography.pageTitleSize,
-                  ),
-                  onErrorFallback: (err) => Text(
-                    'Invalid formula',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFamily,
-                      color: AppColors.error,
-                      fontSize: AppTypography.bodySize,
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final template in [
+                    ('Fraction', r'\frac{a}{b}'),
+                    ('Power', r'x^{2}'),
+                    ('Square root', r'\sqrt{x}'),
+                    ('Sum', r'\sum_{i=1}^{n} x_i'),
+                    ('Percent', r'\times 100\%'),
+                    ('Subscript', r'x_{1}'),
+                  ])
+                    ActionChip(
+                      label: Text(template.$1),
+                      onPressed: () => _insert(template.$2),
                     ),
-                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('notes-formula-input'),
+                controller: _controller,
+                autofocus: true,
+                minLines: 2,
+                maxLines: 4,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 15),
+                decoration: const InputDecoration(
+                  labelText: 'Formula (LaTeX)',
+                  hintText: r'E = mc^{2}',
+                  border: OutlineInputBorder(),
                 ),
               ),
-            ),
-          ],
-        ],
+              const SizedBox(height: 16),
+              const Text('Preview', style: AppTypography.helper),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F7F2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: latex.isEmpty
+                      ? const Text(
+                          'Your formula will appear here',
+                          style: AppTypography.helper,
+                        )
+                      : formula,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       actions: [
         TextButton(
@@ -1744,11 +1968,8 @@ class _MathInputDialogState extends State<_MathInputDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: latex.isNotEmpty
-              ? () => Navigator.pop(context, latex)
-              : null,
-          style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-          child: const Text('Insert'),
+          onPressed: valid ? () => Navigator.pop(context, latex) : null,
+          child: Text(widget.initialLatex == null ? 'Insert' : 'Save'),
         ),
       ],
     );
@@ -1777,6 +1998,52 @@ class _Block {
 
   // math
   String? latex;
+
+  String alignment = 'left';
+  String? fontFamily;
+  double? fontSize;
+  bool bold = false, italic = false, underline = false;
+  bool headerRow = true;
+  TextAlign get textAlign => switch (alignment) {
+    'center' => TextAlign.center,
+    'right' => TextAlign.right,
+    _ => TextAlign.left,
+  };
+  Alignment get elementAlignment => switch (alignment) {
+    'center' => Alignment.topCenter,
+    'right' => Alignment.topRight,
+    _ => Alignment.topLeft,
+  };
+  TextStyle get textStyle => TextStyle(
+    fontFamily:
+        fontFamily ??
+        (type == _BlockType.header
+            ? AppTypography.headingFamily
+            : AppTypography.bodyFamily),
+    fontSize: fontSize ?? (type == _BlockType.header ? 24 : 16),
+    fontWeight: bold || type == _BlockType.header
+        ? FontWeight.w600
+        : FontWeight.w400,
+    fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+    decoration: underline ? TextDecoration.underline : TextDecoration.none,
+    color: const Color(0xFF293D31),
+    height: 1.6,
+  );
+  void readFormatting(Map json) {
+    alignment = ['left', 'center', 'right'].contains(json['alignment'])
+        ? json['alignment'] as String
+        : 'left';
+    fontFamily = ['Inter', 'Manrope'].contains(json['fontFamily'])
+        ? json['fontFamily'] as String
+        : null;
+    fontSize = json['fontSize'] is num
+        ? (json['fontSize'] as num).toDouble().clamp(10, 48)
+        : null;
+    bold = json['bold'] == true;
+    italic = json['italic'] == true;
+    underline = json['underline'] == true;
+    headerRow = json['headerRow'] != false;
+  }
 
   _Block({required this.type});
 
@@ -1823,7 +2090,17 @@ class _Block {
     cells?.forEach((row) => row.forEach((c) => c.dispose()));
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJson() => {
+    ..._contentJson(),
+    'alignment': alignment,
+    if (fontFamily != null) 'fontFamily': fontFamily,
+    if (fontSize != null) 'fontSize': fontSize,
+    'bold': bold,
+    'italic': italic,
+    'underline': underline,
+    if (type == _BlockType.table) 'headerRow': headerRow,
+  };
+  Map<String, dynamic> _contentJson() {
     switch (type) {
       case _BlockType.header:
         return {'type': 'header', 'text': textController?.text ?? ''};
@@ -1848,7 +2125,9 @@ class _Block {
     }
   }
 
-  static _Block fromJson(Map<String, dynamic> json) {
+  static _Block fromJson(Map<String, dynamic> json) =>
+      _fromContentJson(json)..readFormatting(json);
+  static _Block _fromContentJson(Map<String, dynamic> json) {
     switch (json['type'] as String?) {
       case 'header':
         return _Block.header((json['text'] as String?) ?? '');

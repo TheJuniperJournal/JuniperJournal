@@ -177,6 +177,14 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Actual saved title'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(AppBar),
+            matching: find.text('Actual saved title'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.byTooltip('Close preview'), findsNothing);
         expect(find.text('Learning lens'), findsOneWidget);
         expect(find.text('Natural Resources & Conservation'), findsOneWidget);
         expect(find.byType(TextField), findsNothing);

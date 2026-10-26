@@ -508,4 +508,245 @@ void main() {
     expect(repo.creates, 1);
     expect(tester.takeException(), isNull);
   });
+  testWidgets(
+    'paragraph formatting saves and renders identically in read-only canvas',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = _Repo();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: JournalEntryEditorScreen(
+            projectId: 'p',
+            projectName: 'Project',
+            tags: const [],
+            entryId: 'e',
+            initialTitle: 'Formatting',
+            freeNotes: true,
+            projectsRepo: repo,
+            initialContent: const [
+              {'stage': 'free_notes', 'submitted': false},
+              {'type': 'body', 'text': 'A formatted paragraph'},
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('free-notes-body-0')));
+      await tester.tap(find.byKey(const ValueKey('notes-Font')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manrope').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('notes-Font size')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('24').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Bold'));
+      await tester.tap(find.byTooltip('Italic'));
+      await tester.tap(find.byTooltip('Underline'));
+      await tester.tap(find.byTooltip('Align center'));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      final saved = repo.saved!.whereType<Map>().firstWhere(
+        (r) => r['type'] == 'body',
+      );
+      expect(saved['fontFamily'], 'Manrope');
+      expect(saved['fontSize'], 24);
+      expect(saved['alignment'], 'center');
+      expect(saved['bold'], true);
+      expect(saved['italic'], true);
+      expect(saved['underline'], true);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: JournalEntryEditorScreen(
+            projectId: 'p',
+            projectName: 'Project',
+            tags: const [],
+            entryId: 'e',
+            initialTitle: 'Formatting',
+            initialContent: repo.saved!,
+            freeNotes: true,
+            readOnly: true,
+            canvasOnly: true,
+            projectsRepo: repo,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final text = tester.widget<SelectableText>(
+        find.byWidgetPredicate(
+          (w) => w is SelectableText && w.data == 'A formatted paragraph',
+        ),
+      );
+      expect(text.textAlign, TextAlign.center);
+      expect(text.style!.fontFamily, 'Manrope');
+      expect(text.style!.fontSize, 24);
+      expect(text.style!.fontStyle, FontStyle.italic);
+      expect(text.style!.decoration, TextDecoration.underline);
+      expect(find.byType(TextField), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'table grid creates editable cells and preserves values when adding rows',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = _Repo();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: JournalEntryEditorScreen(
+            projectId: 'p',
+            projectName: 'Project',
+            tags: const [],
+            entryId: 'e',
+            initialTitle: 'Table',
+            freeNotes: true,
+            projectsRepo: repo,
+            initialContent: const [
+              {'stage': 'free_notes'},
+              {'type': 'body', 'text': 'Table example'},
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Insert table'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('table-grid-2-2')));
+      await tester.tap(find.text('Insert'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('notes-cell-1-0-0')),
+        'Trial',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('notes-cell-1-1-1')),
+        '78 mL',
+      );
+      await tester.tap(find.byTooltip('Table options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add row'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('notes-cell-1-2-1')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      final table = repo.saved!.whereType<Map>().firstWhere(
+        (r) => r['type'] == 'table',
+      );
+      expect(table['rows'], [
+        ['Trial', ''],
+        ['', '78 mL'],
+        ['', ''],
+      ]);
+      expect(table['headerRow'], true);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'formula templates preview and reject invalid input before insertion',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = _Repo();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: JournalEntryEditorScreen(
+            projectId: 'p',
+            projectName: 'Project',
+            tags: const [],
+            entryId: 'e',
+            initialTitle: 'Formula',
+            freeNotes: true,
+            projectsRepo: repo,
+            initialContent: const [
+              {'stage': 'free_notes'},
+              {'type': 'body', 'text': 'Formula example'},
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Insert formula'));
+      await tester.pumpAndSettle();
+      final input = find.byKey(const ValueKey('notes-formula-input'));
+      await tester.enterText(input, r'\frac{');
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Insert'))
+            .onPressed,
+        isNull,
+      );
+      await tester.enterText(input, '');
+      await tester.tap(find.text('Fraction'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(input).controller!.text, r'\frac{a}{b}');
+      await tester.tap(find.text('Insert'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(
+        repo.saved!.whereType<Map>().firstWhere(
+          (r) => r['type'] == 'math',
+        )['latex'],
+        r'\frac{a}{b}',
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('basic toolbar and creation dialogs fit a narrow phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: JournalEntryEditorScreen(
+          projectId: 'p',
+          projectName: 'Project',
+          tags: const [],
+          entryId: 'e',
+          initialTitle: 'Mobile notes',
+          freeNotes: true,
+          projectsRepo: _Repo(),
+          initialContent: const [
+            {'stage': 'free_notes'},
+            {'type': 'body', 'text': 'A mobile paragraph'},
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byTooltip('Insert table'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('table-grid-6-6')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Insert formula'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Square root'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('notes-formula-input')))
+          .controller!
+          .text,
+      r'\sqrt{x}',
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+  });
 }

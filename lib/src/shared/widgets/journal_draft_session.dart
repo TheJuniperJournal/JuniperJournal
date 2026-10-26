@@ -43,6 +43,14 @@ bool journalHasUserInput(
       'buildingWorkflow',
       'currency',
       'assessment_id',
+      'alignment',
+      'fontFamily',
+      'fontSize',
+      'bold',
+      'italic',
+      'underline',
+      'headerRow',
+      'widthFraction',
     };
     if (metadata.contains(key)) return false;
     if (value is Map) {
