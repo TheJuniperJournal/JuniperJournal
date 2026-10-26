@@ -1,3 +1,4 @@
+import 'popup_route_observer.dart';
 import 'package:flutter/services.dart';
 import 'persistent_desktop_shell.dart' show desktopRouteObserver;
 import 'package:flutter/gestures.dart';
@@ -127,7 +128,8 @@ class DesktopPageScrollState extends State<DesktopPageScroll> {
   }
 
   void _wheel(PointerSignalEvent event) {
-    if (event is! PointerScrollEvent ||
+    if (PopupRouteObserver.hasOpenPopup ||
+        event is! PointerScrollEvent ||
         event.scrollDelta.dy == 0 ||
         event.scrollDelta.dx.abs() > event.scrollDelta.dy.abs())
       return;
@@ -157,6 +159,7 @@ class DesktopPageScrollState extends State<DesktopPageScroll> {
   }
 
   KeyEventResult _keyboardScroll(FocusNode node, KeyEvent event) {
+    if (PopupRouteObserver.hasOpenPopup) return KeyEventResult.ignored;
     if (event is! KeyDownEvent && event is! KeyRepeatEvent)
       return KeyEventResult.ignored;
     final focused = FocusManager.instance.primaryFocus?.context;

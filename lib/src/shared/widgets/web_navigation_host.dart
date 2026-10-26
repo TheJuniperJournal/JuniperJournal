@@ -10,6 +10,7 @@ import 'browser_history_stub.dart'
 import 'page_refresh_state.dart';
 import 'page_url.dart';
 import 'journal_draft_session.dart';
+import 'popup_route_observer.dart';
 
 /// Owns browser history separately from Navigator's temporary popup routes.
 class WebNavigationHost extends StatefulWidget {
@@ -21,8 +22,10 @@ class WebNavigationHost extends StatefulWidget {
     required this.observers,
     this.parentPage,
     this.appParentPage,
+    this.history,
   });
   final String initialLocation;
+  final BrowserHistory? history;
   final Widget? parentPage;
 
   /// Stable signed-in shell for later browser-history navigation, even when
@@ -36,8 +39,9 @@ class WebNavigationHost extends StatefulWidget {
 }
 
 class _WebNavigationHostState extends State<WebNavigationHost> {
-  final _history = BrowserHistory();
+  late final _history = widget.history ?? BrowserHistory();
   late final _observer = _PageObserver(this);
+  final _popups = PopupRouteObserver();
   bool _opening = false;
   bool _pendingDestination = false;
   int _request = 0;
@@ -63,13 +67,14 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
 
   void _remember(Map<String, dynamic> data) {
     final path = PageUrl.encode(data);
-    // Builds can register the next page before Navigator reports its push.
-    // Only section changes within the current destination may replace history.
+    // remember() only reports the current route. A wrapper can reveal a new
+    // destination without a Navigator push (for example public/auth shells).
+    // Keep that destination in the URL even when its path differs.
     if (_opening) return;
     if (_pendingDestination) {
       _pendingDestination = false;
       _history.write(path);
-    } else if (Uri.parse(path).path == Uri.parse(_history.location).path) {
+    } else {
       _history.write(path, replace: true);
     }
   }
@@ -135,7 +140,7 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
   Widget build(BuildContext context) => Navigator(
     key: widget.navigatorKey,
     reportsRouteUpdateToEngine: false,
-    observers: [...widget.observers, _observer],
+    observers: [...widget.observers, _observer, _popups],
     onGenerateRoute: _route,
     onGenerateInitialRoutes: (_, __) => [
       if (widget.parentPage != null)
@@ -156,6 +161,7 @@ class _WebNavigationHostState extends State<WebNavigationHost> {
   void dispose() {
     PageRefreshState.onDestinationChanged = null;
     _history.dispose();
+    _popups.dispose();
     super.dispose();
   }
 }

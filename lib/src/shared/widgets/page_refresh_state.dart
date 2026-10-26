@@ -102,7 +102,10 @@ class PageRefreshState extends NavigatorObserver {
       return null;
     }
     final data = switch (page) {
-      PublicExploreScreen _ => {'kind': 'explore'},
+      PublicExploreScreen p => {
+        'kind': 'explore',
+        if (p.initialCommunities) 'tab': 'communities',
+      },
       SiteInformationPage p => {'kind': p.page},
       PublicCommunityScreen p => {
         'kind': 'community',
@@ -225,7 +228,10 @@ class PageRefreshState extends NavigatorObserver {
     final kind = page['kind'];
     if (sitePageTitles.containsKey(kind))
       return SiteInformationPage(page: kind as String);
-    if (kind == 'explore') return const PublicExploreScreen();
+    if (kind == 'explore')
+      return PublicExploreScreen(
+        initialCommunities: page['tab'] == 'communities',
+      );
     if (kind == 'login') return const LoginScreen();
     if (kind == 'signup') return const SignupScreen();
     if (kind == 'home')

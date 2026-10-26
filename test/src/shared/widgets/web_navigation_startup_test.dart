@@ -1,3 +1,5 @@
+import 'package:juniper_journal/src/shared/widgets/browser_history_stub.dart';
+import 'package:juniper_journal/src/shared/widgets/page_refresh_state.dart';
 import 'package:juniper_journal/src/shared/widgets/adaptive_app_shell.dart';
 import 'package:juniper_journal/src/shared/widgets/persistent_desktop_shell.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +8,68 @@ import 'package:juniper_journal/src/shared/widgets/journal_navigation.dart';
 import 'package:juniper_journal/src/shared/widgets/journal_publication.dart';
 import 'package:juniper_journal/src/shared/widgets/web_navigation_host.dart';
 
+class _History extends BrowserHistory {
+  String path = '/explore';
+  final writes = <String>[];
+  @override
+  String get location => path;
+  @override
+  void write(String value, {bool replace = false}) {
+    path = value;
+    writes.add(value);
+  }
+}
+
 void main() {
+  testWidgets('public navigation and wrapper changes update the actual URL', (
+    tester,
+  ) async {
+    final history = _History();
+    final nav = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WebNavigationHost(
+          history: history,
+          initialLocation: '/explore',
+          navigatorKey: nav,
+          initialPage: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () =>
+                    PageRefreshState.remember(context, {'kind': 'login'}),
+                child: const Text('Change wrapper destination'),
+              ),
+            ),
+          ),
+          observers: [PageRefreshState.instance],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change wrapper destination'));
+    await tester.pumpAndSettle();
+    expect(history.path, '/login');
+    nav.currentState!.push(
+      MaterialPageRoute(
+        builder: (_) => Builder(
+          builder: (context) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted)
+                PageRefreshState.remember(context, {'kind': 'about'});
+            });
+            return const Scaffold(body: Text('Public About'));
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(history.path, '/about');
+    nav.currentState!.pop();
+    await tester.pumpAndSettle();
+    expect(history.path, '/login');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('cold chat links build the parent shell before any navigation', (
     tester,
   ) async {

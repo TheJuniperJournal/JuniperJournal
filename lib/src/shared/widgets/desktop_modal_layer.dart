@@ -1,3 +1,4 @@
+import 'popup_route_observer.dart';
 import 'app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'eco_reward_notice_host.dart' show ecoRewardNavigatorKey;
@@ -14,6 +15,14 @@ class DesktopModalLayer extends StatefulWidget {
 
 class _DesktopModalLayerState extends State<DesktopModalLayer> {
   bool _desktopEnabled = false;
+  final _popups = PopupRouteObserver();
+
+  @override
+  void dispose() {
+    _popups.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     _desktopEnabled =
@@ -21,6 +30,8 @@ class _DesktopModalLayerState extends State<DesktopModalLayer> {
     if (!_desktopEnabled) return widget.child;
     return Navigator(
       key: desktopModalNavigatorKey,
+      reportsRouteUpdateToEngine: false,
+      observers: [_popups],
       onGenerateRoute: (_) => PageRouteBuilder<void>(
         pageBuilder: (_, __, ___) => widget.child,
         transitionDuration: Duration.zero,

@@ -6,7 +6,8 @@ abstract final class PageUrl {
     final kind = page['kind'];
     final project = page['project'];
     return switch (kind) {
-      'explore' => '/explore',
+      'explore' =>
+        page['tab'] == 'communities' ? '/explore?tab=communities' : '/explore',
       'about' || 'support' || 'privacy' || 'safety' => '/$kind',
       'login' => '/login',
       'signup' => '/signup',
@@ -30,8 +31,12 @@ abstract final class PageUrl {
       final uri = Uri.parse(location);
       final p = uri.pathSegments;
       if (p.isEmpty) return null;
+      if (p.first == 'explore')
+        return {
+          'kind': 'explore',
+          if (uri.queryParameters['tab'] == 'communities') 'tab': 'communities',
+        };
       if ([
-        'explore',
         'login',
         'signup',
         'about',

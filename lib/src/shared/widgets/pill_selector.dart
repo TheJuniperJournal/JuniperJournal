@@ -93,15 +93,12 @@ class PillSelector extends StatelessWidget {
     final box = context.findRenderObject()! as RenderBox;
     final overlay =
         Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
-    final pillTopLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
-    final pillBottomRight = box.localToGlobal(
-      box.size.bottomRight(Offset.zero),
-      ancestor: overlay,
-    );
-    final rect = RelativeRect.fromRect(
-      Rect.fromPoints(pillTopLeft, pillBottomRight),
+    Offset anchorTopLeft() => box.localToGlobal(Offset.zero, ancestor: overlay);
+    RelativeRect anchorPosition() => RelativeRect.fromRect(
+      box.localToGlobal(Offset.zero, ancestor: overlay) & box.size,
       Offset.zero & overlay.size,
     );
+    final pillTopLeft = anchorTopLeft();
 
     // Cap menu width so it never extends beyond the right edge of the screen,
     // preventing Flutter from shifting it left and covering adjacent widgets.
@@ -113,7 +110,8 @@ class PillSelector extends StatelessWidget {
     showMenu<String>(
       clipBehavior: Clip.antiAlias,
       context: context,
-      position: rect,
+      // Recompute the anchor when the viewport or surrounding layout changes.
+      positionBuilder: (_, __) => anchorPosition(),
       constraints: BoxConstraints(minWidth: box.size.width, maxWidth: maxWidth),
       color: Colors.white,
       elevation: 2,

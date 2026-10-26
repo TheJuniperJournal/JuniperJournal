@@ -1,3 +1,4 @@
+import 'package:juniper_journal/src/shared/widgets/popup_route_observer.dart';
 import 'package:flutter/services.dart';
 import 'package:juniper_journal/src/shared/widgets/persistent_desktop_shell.dart';
 import 'package:flutter/gestures.dart';
@@ -204,10 +205,12 @@ void main() {
     (tester) async {
       final page = ScrollController();
       addTearDown(page.dispose);
+      final popups = PopupRouteObserver();
+      addTearDown(popups.dispose);
       var selection = 0;
       await tester.pumpWidget(
         MaterialApp(
-          navigatorObservers: [desktopRouteObserver],
+          navigatorObservers: [desktopRouteObserver, popups],
           builder: (_, child) => DesktopPageScroll(child: child!),
           home: StatefulBuilder(
             builder: (context, update) => Scaffold(
@@ -258,9 +261,20 @@ void main() {
         find.byKey(const ValueKey('desktop-page-scrollbar')),
       );
       expect(bar.controller!.position, same(page.position));
+      // Wheel input outside the menu must not move its page anchor.
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: const Offset(700, 500),
+          scrollDelta: const Offset(0, 160),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(page.offset, 250);
+      expect(PopupRouteObserver.hasOpenPopup, isTrue);
       await tester.tap(find.text('Option 2').last);
       await tester.pumpAndSettle();
       expect(selection, 2);
+      expect(PopupRouteObserver.hasOpenPopup, isFalse);
       expect(side.position.pixels, offset);
       expect(page.offset, 250);
       expect(desktopRouteObserver.current, same(route));

@@ -13,7 +13,9 @@ class PublicExploreScreen extends StatefulWidget {
     super.key,
     this.projectsRepo,
     this.communitiesRepo,
+    this.initialCommunities = false,
   });
+  final bool initialCommunities;
   final ProjectsRepo? projectsRepo;
   final CommunitiesRepo? communitiesRepo;
   @override
@@ -30,7 +32,10 @@ class _PublicExploreScreenState extends State<PublicExploreScreen> {
     _route = route;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && route != null) {
-        PageRefreshState.remember(context, {'kind': 'explore'});
+        PageRefreshState.remember(context, {
+          'kind': 'explore',
+          if (widget.initialCommunities) 'tab': 'communities',
+        });
         DesktopShellScope.of(context)?.clear();
         desktopRouteObserver.registerStandalone(route, true);
       }
@@ -64,6 +69,11 @@ class _PublicExploreScreenState extends State<PublicExploreScreen> {
               Expanded(
                 child: ProjectBrowsePage(
                   publicLanding: true,
+                  initialCommunities: widget.initialCommunities,
+                  onCommunitiesChanged: (value) => PageRefreshState.remember(
+                    context,
+                    {'kind': 'explore', if (value) 'tab': 'communities'},
+                  ),
                   projectsRepo: widget.projectsRepo,
                   communitiesRepo: widget.communitiesRepo,
                   onSignIn: _authenticate,

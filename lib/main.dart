@@ -66,16 +66,11 @@ Future<Widget> _initializeApp() async {
     return const MyApp(initialPage: PasswordRecoveryScreen());
   }
   var requested = kIsWeb ? PageUrl.decode(_launchLocation) : null;
-  // Older browser sessions can retain /login after signing in. Restore the
-  // account's last actual destination instead of reopening authentication.
+  // Authentication is a fresh entry to Home; refreshes of actual destination
+  // URLs still restore those destinations above the signed-in shell.
   if (SupabaseDatabase.instance.client.auth.currentSession != null &&
       const {'login', 'signup'}.contains(requested?['kind'])) {
-    final remembered = await PageRefreshState.read();
-    requested =
-        remembered != null &&
-            !const {'login', 'signup'}.contains(remembered['kind'])
-        ? remembered
-        : <String, dynamic>{'kind': 'home', 'section': 0};
+    requested = <String, dynamic>{'kind': 'home', 'section': 0};
     _launchLocation = PageUrl.encode(requested);
   }
   if (requested != null) {

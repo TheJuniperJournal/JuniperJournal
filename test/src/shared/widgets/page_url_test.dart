@@ -13,6 +13,7 @@ void main() {
       {'kind': 'login'},
       {'kind': 'signup'},
       {'kind': 'explore'},
+      {'kind': 'explore', 'tab': 'communities'},
       {'kind': 'about'},
       {'kind': 'support'},
       {'kind': 'privacy'},

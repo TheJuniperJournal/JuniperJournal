@@ -91,7 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
         await _usersRepo.ensureProfileExists();
         if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeShellScreen()),
+          MaterialPageRoute(
+            builder: (context) => const HomeShellScreen(restoreJournal: false),
+          ),
           (route) => false,
         );
       }

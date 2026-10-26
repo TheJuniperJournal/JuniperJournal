@@ -82,8 +82,12 @@ class ProjectBrowsePage extends StatefulWidget {
     this.initialSubject,
     this.communitiesRepo,
     this.communityId,
+    this.initialCommunities = false,
+    this.onCommunitiesChanged,
   });
   final String? communityId;
+  final bool initialCommunities;
+  final ValueChanged<bool>? onCommunitiesChanged;
   final CommunitiesRepo? communitiesRepo;
   final bool library;
   final bool publicLanding;
@@ -113,7 +117,7 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
   Map<String, int> _counts = {};
   Map<String, Map<String, Set<String>>> _impactValues = {};
   final Set<String> _saving = {};
-  bool _communitiesMode = false;
+  late bool _communitiesMode = widget.initialCommunities;
   Future<List<Community>>? _communities;
   bool _onlyBookmarks = false;
   bool _loading = true;
@@ -133,6 +137,10 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
   @override
   void initState() {
     super.initState();
+    if (_communitiesMode) {
+      _communities = (widget.communitiesRepo ?? CommunitiesRepo())
+          .getAllCommunities();
+    }
     reload();
   }
 
@@ -604,6 +612,7 @@ class ProjectBrowsePageState extends State<ProjectBrowsePage> {
                           (widget.communitiesRepo ?? CommunitiesRepo())
                               .getAllCommunities();
                   });
+                  widget.onCommunitiesChanged?.call(value);
                 },
               ),
             ),

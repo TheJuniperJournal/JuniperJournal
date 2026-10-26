@@ -202,7 +202,9 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeShellScreen()),
+      MaterialPageRoute(
+        builder: (_) => const HomeShellScreen(restoreJournal: false),
+      ),
       (route) => false,
     );
   }
