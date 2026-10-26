@@ -27,12 +27,16 @@ class ProjectTimelineTab extends StatefulWidget {
     required this.isOwner,
     this.projectsRepo,
     this.initialEventId,
+    this.initialDate,
+    this.onDateChanged,
   });
 
   final String projectId;
   final bool isOwner;
   final ProjectsRepo? projectsRepo;
   final String? initialEventId;
+  final DateTime? initialDate;
+  final ValueChanged<DateTime>? onDateChanged;
 
   @override
   State<ProjectTimelineTab> createState() => _ProjectTimelineTabState();
@@ -55,7 +59,7 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
   void initState() {
     super.initState();
     _projectsRepo = widget.projectsRepo ?? ProjectsRepo();
-    final now = DateTime.now();
+    final now = widget.initialDate ?? DateTime.now();
     _selectedDate = DateUtils.dateOnly(now);
     _baseWeekStart = _startOfWeek(_selectedDate);
     _load();
@@ -242,6 +246,7 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
                     _selectedDate = currentWeek;
                   }
                 });
+                widget.onDateChanged?.call(_selectedDate);
               },
               itemBuilder: (context, page) {
                 final weekStart = _baseWeekStart.add(
@@ -250,7 +255,10 @@ class _ProjectTimelineTabState extends State<ProjectTimelineTab> {
                 return _WeekCalendar(
                   weekStart: weekStart,
                   selectedDate: _selectedDate,
-                  onSelected: (date) => setState(() => _selectedDate = date),
+                  onSelected: (date) {
+                    setState(() => _selectedDate = date);
+                    widget.onDateChanged?.call(date);
+                  },
                 );
               },
             ),

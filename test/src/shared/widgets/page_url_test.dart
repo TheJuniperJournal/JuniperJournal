@@ -37,6 +37,7 @@ void main() {
         'phase': 'discover',
         'step': 'analyze',
       },
+      {'kind': 'project', 'project': 'p', 'section': 3, 'date': '2026-10-19'},
       {'kind': 'chats'},
       {'kind': 'chat', 'conversation': 'c', 'group': true},
       {'kind': 'create-community'},

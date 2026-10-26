@@ -48,6 +48,7 @@ class ProjectDashboard extends StatefulWidget {
   final JournalEntry? initialJournalEntry;
   final String? initialPostId, initialCommentId, initialEventId;
   final CollaborationSection initialCollaborationSection;
+  final DateTime? initialTimelineDate;
   final ProjectBulletinRepo? bulletinRepo;
   final bool openMaterialsOnLoad;
   final String projectId;
@@ -66,6 +67,7 @@ class ProjectDashboard extends StatefulWidget {
     this.initialPostId,
     this.initialCommentId,
     this.initialEventId,
+    this.initialTimelineDate,
     this.initialCollaborationSection = CollaborationSection.bulletin,
     this.bulletinRepo,
     this.openMaterialsOnLoad = false,
@@ -134,6 +136,7 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
   int _settingsRevision = 0;
   int _collaborationRevision = 0;
   String? _activityEventId, _activityPostId;
+  late DateTime? _urlTimelineDate = widget.initialTimelineDate;
   CollaborationSection? _activityCollaborationSection;
   late CollaborationSection _urlCollaborationSection =
       widget.initialCollaborationSection;
@@ -336,6 +339,9 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
       'kind': 'project',
       'project': widget.projectId,
       'section': _selectedTab.index,
+      if (_selectedTab == ProjectDashboardSection.timeline &&
+          _urlTimelineDate != null)
+        'date': _urlTimelineDate!.toIso8601String().substring(0, 10),
       if (_selectedTab == ProjectDashboardSection.collaboration)
         'collaboration':
             (_activityCollaborationSection ?? _urlCollaborationSection).name,
@@ -389,6 +395,9 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
                                   _buildHeader(context),
                                   _buildTabs(),
                                   ProjectTimelineTab(
+                                    initialDate: _urlTimelineDate,
+                                    onDateChanged: (date) =>
+                                        setState(() => _urlTimelineDate = date),
                                     key: ValueKey(
                                       'timeline-$_settingsRevision-$_activityNavigationRevision',
                                     ),

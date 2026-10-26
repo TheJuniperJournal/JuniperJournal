@@ -144,6 +144,8 @@ class PageRefreshState extends NavigatorObserver {
         if (p.initialPostId != null) 'post': p.initialPostId,
         if (p.initialCommentId != null) 'comment': p.initialCommentId,
         if (p.initialEventId != null) 'event': p.initialEventId,
+        if (p.initialTimelineDate != null)
+          'date': p.initialTimelineDate!.toIso8601String().substring(0, 10),
       },
       DiscoveryDashboardPage p => {
         'kind': 'phase',
@@ -512,6 +514,7 @@ class PageRefreshState extends NavigatorObserver {
       initialPostId: page['post'] as String?,
       initialCommentId: page['comment'] as String?,
       initialEventId: page['event'] as String?,
+      initialTimelineDate: DateTime.tryParse(page['date'] as String? ?? ''),
     );
   }
 }

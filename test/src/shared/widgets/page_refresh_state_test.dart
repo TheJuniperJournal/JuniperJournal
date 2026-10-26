@@ -116,11 +116,13 @@ void main() {
       'kind': 'project',
       'project': 'p',
       'section': 3,
+      'date': '2026-10-19',
     }, RefreshRepo());
     expect(
       (page as ProjectDashboard).initialSection,
       ProjectDashboardSection.timeline,
     );
+    expect(page.initialTimelineDate, DateTime(2026, 10, 19));
   });
   test('phase refresh reopens that phase', () async {
     final page = await PageRefreshState.restore({

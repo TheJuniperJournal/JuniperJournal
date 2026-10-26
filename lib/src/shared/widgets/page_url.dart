@@ -28,6 +28,7 @@ abstract final class PageUrl {
           if (page['post'] != null) 'post': '${page['post']}',
           if (page['comment'] != null) 'comment': '${page['comment']}',
           if (page['event'] != null) 'event': '${page['event']}',
+          if (page['date'] != null) 'date': '${page['date']}',
         },
       ).toString(),
       'phase' => '/projects/$project/phases/${page['phase']}',
@@ -97,7 +98,13 @@ abstract final class PageUrl {
             'kind': 'project',
             'project': p[1],
             'section': int.tryParse(uri.queryParameters['tab'] ?? '') ?? 0,
-            for (final key in ['collaboration', 'post', 'comment', 'event'])
+            for (final key in [
+              'collaboration',
+              'post',
+              'comment',
+              'event',
+              'date',
+            ])
               if (uri.queryParameters[key] != null)
                 key: uri.queryParameters[key],
           };
