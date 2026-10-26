@@ -4187,7 +4187,6 @@ class _PrototypingJournalEntryPageState
                       decoration: const InputDecoration(
                         hintText: 'Search and select a component',
                         prefixIcon: Icon(Icons.search),
-                        suffixIcon: Icon(Icons.expand_more),
                       ),
                     ),
                 optionsViewBuilder: (context, onSelected, options) => Align(
@@ -4229,6 +4228,15 @@ class _PrototypingJournalEntryPageState
               ),
         ),
         const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _createComponent(),
+            icon: const Icon(Icons.add),
+            label: const Text('Create New Component'),
+          ),
+        ),
+        const SizedBox(height: 24),
         if (selected != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -4279,22 +4287,13 @@ class _PrototypingJournalEntryPageState
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      'Search for an existing component or create a new one below.',
+                      'No component selected.',
                       style: AppTypography.helper,
                     ),
                   ),
               ],
             );
           },
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _createComponent(),
-            icon: const Icon(Icons.add),
-            label: const Text('Create New Component'),
-          ),
         ),
         const SizedBox(height: 24),
         const Text('Who is involved?', style: AppTypography.fieldLabel),

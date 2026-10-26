@@ -694,6 +694,30 @@ void main() {
       await tester.tap(find.text('Add').last);
       await tester.pumpAndSettle();
       expect(find.widgetWithText(InkWell, 'Current Component'), findsOneWidget);
+      final searchField = find.byKey(
+        const ValueKey('project-component-search'),
+      );
+      final createButton = find.widgetWithText(
+        OutlinedButton,
+        'Create New Component',
+      );
+      expect(
+        tester.widget<TextField>(searchField).decoration!.suffixIcon,
+        isNull,
+      );
+      expect(
+        tester.getBottomRight(searchField).dy,
+        lessThan(tester.getTopLeft(createButton).dy),
+      );
+      expect(
+        tester.getBottomRight(createButton).dy,
+        lessThan(
+          tester
+              .getTopLeft(find.widgetWithText(InkWell, 'Current Component'))
+              .dy,
+        ),
+      );
+
       expect(
         tester
             .widget<Radio<String>>(
