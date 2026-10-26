@@ -1124,113 +1124,103 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     );
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              select<double>(
-                'Font size',
-                format?.fontSize ??
-                    (focused?.type == _BlockType.header ? 24 : 16),
-                {
-                  ...[
-                    10.0,
-                    12.0,
-                    14.0,
-                    16.0,
-                    18.0,
-                    20.0,
-                    24.0,
-                    28.0,
-                    32.0,
-                    36.0,
-                    48.0,
-                  ],
-                  if (format?.fontSize != null) format!.fontSize!,
-                }.toList()..sort(),
-                (v) => _formatBlock((b) => b.fontSize = v),
-                labels: {
-                  for (final v in [
-                    10.0,
-                    12.0,
-                    14.0,
-                    16.0,
-                    18.0,
-                    20.0,
-                    24.0,
-                    28.0,
-                    32.0,
-                    36.0,
-                    48.0,
-                  ])
-                    v: v.toInt().toString(),
-                },
-                enabled: isText || focused?.cells != null,
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          key: const ValueKey('free-notes-toolbar-row'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            select<double>(
+              'Font size',
+              format?.fontSize ??
+                  (focused?.type == _BlockType.header ? 24 : 16),
+              {
+                ...[
+                  10.0,
+                  12.0,
+                  14.0,
+                  16.0,
+                  18.0,
+                  20.0,
+                  24.0,
+                  28.0,
+                  32.0,
+                  36.0,
+                  48.0,
+                ],
+                if (format?.fontSize != null) format!.fontSize!,
+              }.toList()..sort(),
+              (v) => _formatBlock((b) => b.fontSize = v),
+              labels: {
+                for (final v in [
+                  10.0,
+                  12.0,
+                  14.0,
+                  16.0,
+                  18.0,
+                  20.0,
+                  24.0,
+                  28.0,
+                  32.0,
+                  36.0,
+                  48.0,
+                ])
+                  v: v.toInt().toString(),
+              },
+              enabled: isText || focused?.cells != null,
+            ),
+            _ToolbarBtn(
+              icon: Icons.format_bold,
+              tooltip: 'Bold',
+              active: format?.bold ?? false,
+              onTap: isText
+                  ? () => _formatBlock((b) => b.bold = !b.bold)
+                  : null,
+            ),
+            _ToolbarBtn(
+              icon: Icons.format_italic,
+              tooltip: 'Italic',
+              active: format?.italic ?? false,
+              onTap: isText
+                  ? () => _formatBlock((b) => b.italic = !b.italic)
+                  : null,
+            ),
+            _ToolbarBtn(
+              icon: Icons.format_underlined,
+              tooltip: 'Underline',
+              active: format?.underline ?? false,
+              onTap: isText
+                  ? () => _formatBlock((b) => b.underline = !b.underline)
+                  : null,
+            ),
+            divider(),
+            for (final item in [
+              ('left', Icons.format_align_left),
+              ('center', Icons.format_align_center),
+              ('right', Icons.format_align_right),
+            ])
               _ToolbarBtn(
-                icon: Icons.format_bold,
-                tooltip: 'Bold',
-                active: format?.bold ?? false,
-                onTap: isText
-                    ? () => _formatBlock((b) => b.bold = !b.bold)
-                    : null,
+                icon: item.$2,
+                tooltip: 'Align ${item.$1}',
+                active: format?.alignment == item.$1,
+                onTap: focused == null
+                    ? null
+                    : () => _formatBlock((b) => b.alignment = item.$1),
               ),
-              _ToolbarBtn(
-                icon: Icons.format_italic,
-                tooltip: 'Italic',
-                active: format?.italic ?? false,
-                onTap: isText
-                    ? () => _formatBlock((b) => b.italic = !b.italic)
-                    : null,
-              ),
-              _ToolbarBtn(
-                icon: Icons.format_underlined,
-                tooltip: 'Underline',
-                active: format?.underline ?? false,
-                onTap: isText
-                    ? () => _formatBlock((b) => b.underline = !b.underline)
-                    : null,
-              ),
-              divider(),
-              for (final item in [
-                ('left', Icons.format_align_left),
-                ('center', Icons.format_align_center),
-                ('right', Icons.format_align_right),
-              ])
-                _ToolbarBtn(
-                  icon: item.$2,
-                  tooltip: 'Align ${item.$1}',
-                  active: format?.alignment == item.$1,
-                  onTap: focused == null
-                      ? null
-                      : () => _formatBlock((b) => b.alignment = item.$1),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _ToolbarBtn(
-                icon: Icons.image_outlined,
-                tooltip: 'Add image from gallery',
-                onTap: () => _insertImage(ImageSource.gallery),
-              ),
-              _ToolbarBtn(
-                icon: Icons.camera_alt_outlined,
-                tooltip: 'Take photo',
-                onTap: () => _insertImage(ImageSource.camera),
-              ),
-            ],
-          ),
-        ],
+            divider(),
+            _ToolbarBtn(
+              icon: Icons.image_outlined,
+              tooltip: 'Add image from gallery',
+              onTap: () => _insertImage(ImageSource.gallery),
+            ),
+            _ToolbarBtn(
+              icon: Icons.camera_alt_outlined,
+              tooltip: 'Take photo',
+              onTap: () => _insertImage(ImageSource.camera),
+            ),
+          ],
+        ),
       ),
     );
   }
