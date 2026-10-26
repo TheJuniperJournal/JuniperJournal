@@ -1,3 +1,5 @@
+import 'home.dart';
+import 'explore_page.dart' show projectMatchesBrowse;
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import '../../../shared/widgets/explore_project_card.dart';
 import '../../../shared/widgets/account_required_prompt.dart';
@@ -69,6 +71,7 @@ class _PublicUserProfilePageState extends State<PublicUserProfilePage> {
   }
 
   int _section = 0;
+  String? _selectedSubject;
   Future<List<UserProfile>?>? _friends;
   bool get _own {
     try {
@@ -148,6 +151,13 @@ class _PublicUserProfilePageState extends State<PublicUserProfilePage> {
         if (person == null)
           return const Center(child: Text('This profile is unavailable.'));
         final own = _own;
+        final visibleProjects = data!.projects
+            .where(
+              (project) =>
+                  _selectedSubject == null ||
+                  projectMatchesBrowse(project, subjects: {_selectedSubject!}),
+            )
+            .toList();
         final total = (data!.progress['total'] as num? ?? 0).toDouble();
         final subjects = Map<String, dynamic>.from(
           data.progress['subjects'] as Map? ?? {},
@@ -255,6 +265,25 @@ class _PublicUserProfilePageState extends State<PublicUserProfilePage> {
                     const SizedBox(height: 24),
                     if (_section == 0) ...[
                       ProfileSubjectProgress(
+                        onSubjectSelected: (subject) {
+                          if (own) {
+                            pushAppRoute(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => HomeShellScreen(
+                                  initialSection: 1,
+                                  initialLibrarySubject: subject,
+                                  restoreJournal: false,
+                                ),
+                              ),
+                            );
+                          } else {
+                            setState(() {
+                              _selectedSubject = subject;
+                              _section = 2;
+                            });
+                          }
+                        },
                         total: total,
                         points: subjects.map(
                           (k, v) => MapEntry(k, (v as num).toDouble()),
@@ -323,11 +352,24 @@ class _PublicUserProfilePageState extends State<PublicUserProfilePage> {
                         style: AppTypography.sectionTitle,
                       ),
                       const SizedBox(height: 12),
-                      if (data.projects.isEmpty)
-                        const Padding(
+                      if (_selectedSubject != null)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: InputChip(
+                            deleteIcon: const Icon(Icons.close),
+                            deleteButtonTooltipMessage: 'Clear subject filter',
+                            label: Text(_selectedSubject!),
+                            onDeleted: () =>
+                                setState(() => _selectedSubject = null),
+                          ),
+                        ),
+                      if (visibleProjects.isEmpty)
+                        Padding(
                           padding: EdgeInsets.all(24),
                           child: Text(
-                            'No projects to show yet.',
+                            _selectedSubject == null
+                                ? 'No projects to show yet.'
+                                : 'No visible projects for this subject yet.',
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -340,7 +382,7 @@ class _PublicUserProfilePageState extends State<PublicUserProfilePage> {
                           return Wrap(
                             spacing: 16,
                             children: [
-                              for (final project in data.projects)
+                              for (final project in visibleProjects)
                                 SizedBox(
                                   width: width,
                                   child: ExploreProjectCard(

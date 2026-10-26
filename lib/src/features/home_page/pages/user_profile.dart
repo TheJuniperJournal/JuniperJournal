@@ -517,22 +517,24 @@ class UserProfilePageState extends State<UserProfilePage> {
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    if (widget.onSubjectSelected != null) {
-                      widget.onSubjectSelected!(subject.$1);
-                    } else {
-                      pushAppRoute(
-                        _navigationContext,
-                        MaterialPageRoute(
-                          builder: (_) => HomeShellScreen(
-                            initialSection: 1,
-                            initialLibrarySubject: subject.$1,
-                            restoreJournal: false,
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onTap: widget.compact
+                      ? null
+                      : () {
+                          if (widget.onSubjectSelected != null) {
+                            widget.onSubjectSelected!(subject.$1);
+                          } else {
+                            pushAppRoute(
+                              _navigationContext,
+                              MaterialPageRoute(
+                                builder: (_) => HomeShellScreen(
+                                  initialSection: 1,
+                                  initialLibrarySubject: subject.$1,
+                                  restoreJournal: false,
+                                ),
+                              ),
+                            );
+                          }
+                        },
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -579,10 +581,11 @@ class UserProfilePageState extends State<UserProfilePage> {
                             ],
                           ),
                         ),
-                        const Icon(
-                          Icons.chevron_right,
-                          color: AppColors.primary,
-                        ),
+                        if (!widget.compact)
+                          const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.primary,
+                          ),
                       ],
                     ),
                   ),
