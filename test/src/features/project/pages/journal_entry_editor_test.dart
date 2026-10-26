@@ -38,7 +38,7 @@ void main() {
     expect(
       find.ancestor(
         of: find.text('Submit'),
-        matching: find.byType(SingleChildScrollView),
+        matching: find.byType(CustomScrollView),
       ),
       findsOneWidget,
     );
@@ -48,12 +48,6 @@ void main() {
     );
     final title = find.byType(TextField).first;
     expect(tester.getCenter(title).dx, closeTo(400, 1));
-    expect(
-      tester.getCenter(find.widgetWithText(FilledButton, 'Submit')).dy,
-      closeTo(
-        tester.getCenter(find.widgetWithText(OutlinedButton, 'Back')).dy,
-        1,
-      ),
-    );
+    expect(find.widgetWithText(OutlinedButton, 'Back'), findsNothing);
   });
 }

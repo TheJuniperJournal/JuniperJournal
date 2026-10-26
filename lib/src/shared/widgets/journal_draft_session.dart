@@ -50,6 +50,7 @@ bool journalHasUserInput(
       'italic',
       'underline',
       'headerRow',
+      'cellFormatting',
       'widthFraction',
     };
     if (metadata.contains(key)) return false;

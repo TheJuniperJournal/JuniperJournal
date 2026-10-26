@@ -1,3 +1,5 @@
+import '../../site/pages/site_information_page.dart';
+import '../../../shared/widgets/evidence_cell_field.dart';
 import '../../../shared/widgets/image_resize_frame.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
@@ -107,6 +109,8 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
   final List<_Block> _blocks = [];
   int? _focusedIndex;
+  final _canvasFocus = FocusNode(debugLabel: 'Free Notes canvas');
+  (int, int)? _selectedCell;
 
   bool _applyingRemote = false;
   bool _isSaving = false;
@@ -223,7 +227,10 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               final idx = _blocks.indexOf(block);
               if (idx > 0) {
                 final prev = _blocks[idx - 1];
-                if (prev.focusNode != null && prev.textController != null) {
+                if (prev.textController == null) {
+                  _selectElement(idx - 1);
+                } else if (prev.focusNode != null &&
+                    prev.textController != null) {
                   prev.focusNode!.requestFocus();
                   // Defer selection so it runs after the focus-in handler
                   // (which would otherwise select-all the newly focused field).
@@ -250,6 +257,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   void dispose() {
     _autoSaveTimer?.cancel();
     _titleFocus.dispose();
+    _canvasFocus.dispose();
     _titleController.dispose();
     for (final b in _blocks) {
       b.dispose();
@@ -486,60 +494,50 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   }
 
   void _removeBlock(int index) {
-    if (_blocks.length <= 1) return; // always keep at least one block
     setState(() {
-      _blocks[index].dispose();
-      _blocks.removeAt(index);
-      _focusedIndex = null;
+      final removed = _blocks.removeAt(index);
+      // Controllers may still be attached until this frame has rebuilt.
+      WidgetsBinding.instance.addPostFrameCallback((_) => removed.dispose());
+      if (_blocks.isEmpty) {
+        final blank = _Block.body('');
+        _listenToBlock(blank);
+        _blocks.add(blank);
+      }
+      _focusedIndex = index.clamp(0, _blocks.length - 1);
+      _selectedCell = null;
       _hasChanges = true;
     });
   }
 
-  Future<void> _showBlockActions() async {
-    final index = _focusedIndex;
-    if (index == null || index >= _blocks.length) return;
-    final action = await showAppModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (index > 0)
-              ListTile(
-                leading: const Icon(Icons.arrow_upward),
-                title: const Text('Move up'),
-                onTap: () => Navigator.pop(context, 'up'),
-              ),
-            if (index < _blocks.length - 1)
-              ListTile(
-                leading: const Icon(Icons.arrow_downward),
-                title: const Text('Move down'),
-                onTap: () => Navigator.pop(context, 'down'),
-              ),
-            if (_blocks.length > 1)
-              ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: const Text('Remove block'),
-                onTap: () => Navigator.pop(context, 'remove'),
-              ),
-            ListTile(
-              title: const Text('Cancel'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || action == null) return;
-    if (action == 'remove') {
-      _removeBlock(index);
-      return;
-    }
+  void _selectElement(int index) {
     setState(() {
-      final destination = action == 'up' ? index - 1 : index + 1;
+      _focusedIndex = index;
+      _selectedCell = null;
+    });
+    _canvasFocus.requestFocus();
+  }
+
+  void _focusCanvasEnd() {
+    final last = _blocks.last;
+    if (last.textController != null) {
+      last.focusNode!.requestFocus();
+      last.textController!.selection = TextSelection.collapsed(
+        offset: last.textController!.text.length,
+      );
+    } else {
+      _focusedIndex = _blocks.length - 1;
+      _insertAfterFocused(_Block.body(''));
+    }
+  }
+
+  void _moveBlock(int index, int offset) {
+    final target = index + offset;
+    if (target < 0 || target >= _blocks.length) return;
+    setState(() {
       final block = _blocks.removeAt(index);
-      _blocks.insert(destination, block);
-      _focusedIndex = destination;
+      _blocks.insert(target, block);
+      _focusedIndex = target;
+      _selectedCell = null;
       _hasChanges = true;
     });
   }
@@ -599,27 +597,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
           isError: true,
         );
     }
-  }
-
-  Future<void> _showInsertTableDialog() async {
-    final result = await showAppDialog<({int rows, int cols, bool headerRow})>(
-      context: context,
-      builder: (_) => const _TableSizeDialog(),
-    );
-    if (result == null || !mounted) return;
-    _insertAfterFocused(
-      _Block.table(rows: result.rows, cols: result.cols)
-        ..headerRow = result.headerRow,
-    );
-  }
-
-  Future<void> _showInsertMathDialog() async {
-    final latex = await showAppDialog<String>(
-      context: context,
-      builder: (_) => const _MathInputDialog(),
-    );
-    if (latex == null || latex.isEmpty || !mounted) return;
-    _insertAfterFocused(_Block.math(latex));
   }
 
   // ── Build ───────────────────────────────────────────────────────────────────
@@ -796,87 +773,124 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
             _buildToolbar(),
             const Divider(height: 1, color: AppColors.divider),
 
-            // Block content
             Expanded(
-              child: ColoredBox(
-                color: const Color(0xFFFCFCF8),
-                child: PageScrollWithFooter(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (int i = 0; i < _blocks.length; i++)
-                          _buildBlock(i, _blocks[i]),
-                        // Tap empty space to focus last text block
-                        AppTapTarget(
-                          onTap: () {
-                            final lastText = _blocks.lastWhere(
-                              (b) => b.focusNode != null,
-                              orElse: () => _blocks.last,
-                            );
-                            lastText.focusNode?.requestFocus();
-                          },
-                          behavior: HitTestBehavior.translucent,
-                          child: const SizedBox(
-                            height: 80,
-                            width: double.infinity,
-                          ),
-                        ),
-                        JournalActionFooter(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  OutlinedButton(
-                                    onPressed: _isSaving
-                                        ? null
-                                        : () =>
-                                              Navigator.of(context).maybePop(),
-                                    child: const Text('Back'),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  FilledButton(
-                                    onPressed: _isSaving
-                                        ? null
-                                        : () =>
-                                              _saveAndPop(submit: !_submitted),
-                                    child: Text(
-                                      _isSaving
-                                          ? 'Saving...'
-                                          : _submitted
-                                          ? 'Done'
-                                          : 'Submit',
-                                    ),
-                                  ),
-                                ],
+              child: Focus(
+                focusNode: _canvasFocus,
+                onKeyEvent: (_, event) {
+                  if (event is KeyDownEvent &&
+                      _canvasFocus.hasPrimaryFocus &&
+                      (event.logicalKey == LogicalKeyboardKey.backspace ||
+                          event.logicalKey == LogicalKeyboardKey.delete) &&
+                      _focusedIndex != null &&
+                      _blocks[_focusedIndex!].textController == null) {
+                    _removeBlock(_focusedIndex!);
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: CustomScrollView(
+                  key: const ValueKey('free-notes-scroll'),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (var i = 0; i < _blocks.length; i++)
+                              _buildBlock(i, _blocks[i]),
+                            AppTapTarget(
+                              key: const ValueKey('free-notes-write-area'),
+                              onTap: _focusCanvasEnd,
+                              behavior: HitTestBehavior.opaque,
+                              child: const SizedBox(
+                                height: 36,
+                                width: double.infinity,
                               ),
-                              if (!widget.readOnly && _savedLabel != null)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: AppTapTarget(
+                              onTap: _focusCanvasEnd,
+                              behavior: HitTestBehavior.opaque,
+                              child: const ColoredBox(color: Colors.white),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ValueListenableBuilder<
+                                  List<JournalValidationIssue>
+                                >(
+                                  valueListenable: journalValidationIssues(
+                                    context,
                                   ),
-                                  child: SizedBox(
-                                    width: double.infinity,
+                                  builder: (_, issues, __) => Column(
+                                    children: [
+                                      for (final issue in issues)
+                                        if (issue.isMissing())
+                                          Padding(
+                                            padding: const EdgeInsets.all(8),
+                                            child: Text(
+                                              issue.message,
+                                              style: const TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                    ],
+                                  ),
+                                ),
+                                if (_savedLabel != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
                                     child: Text(
                                       _savedLabel!,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontFamily: AppTypography.bodyFamily,
-                                        fontSize: AppTypography.helperSize,
-                                        color: AppColors.textSecondary,
-                                      ),
+                                      style: AppTypography.helper,
+                                    ),
+                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: FilledButton(
+                                    onPressed: _isSaving
+                                        ? null
+                                        : () => _saveAndPop(submit: true),
+                                    child: Text(
+                                      _isSaving ? 'Saving...' : 'Submit',
                                     ),
                                   ),
                                 ),
-                            ],
+                                if (context
+                                        .dependOnInheritedWidgetOfExactType<
+                                          SiteFooterScope
+                                        >() !=
+                                    null)
+                                  SiteFooter(
+                                    compact: true,
+                                    onNavigate: (page) =>
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                SiteInformationPage(page: page),
+                                          ),
+                                        ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -1004,10 +1018,18 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     });
   }
 
-  void _formatBlock(void Function(_Block) change) {
+  void _formatBlock(void Function(_Block) change, {bool formatCell = true}) {
     if (_focusedIndex == null || _focusedIndex! >= _blocks.length) return;
     setState(() {
-      change(_blocks[_focusedIndex!]);
+      final block = _blocks[_focusedIndex!];
+      if (formatCell && block.cells != null && _selectedCell != null) {
+        final cell = block.cellAppearance(_selectedCell!.$1, _selectedCell!.$2);
+        change(cell);
+        block.cellFormatting['${_selectedCell!.$1}:${_selectedCell!.$2}'] =
+            cell.formattingJson;
+      } else {
+        change(block);
+      }
       _hasChanges = true;
     });
   }
@@ -1042,14 +1064,19 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
           row.removeLast().dispose();
         }
       }
-    });
+    }, formatCell: false);
   }
 
   Widget _buildToolbar() {
     final focused = _focusedIndex != null && _focusedIndex! < _blocks.length
         ? _blocks[_focusedIndex!]
         : null;
-    final isText = focused?.textController != null;
+    final isText =
+        focused?.textController != null ||
+        (focused?.cells != null && _selectedCell != null);
+    final format = focused?.cells != null && _selectedCell != null
+        ? focused!.cellAppearance(_selectedCell!.$1, _selectedCell!.$2)
+        : focused;
     Widget divider() => Container(
       width: 1,
       height: 24,
@@ -1106,26 +1133,9 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              select<String>(
-                'Text style',
-                focused?.type == _BlockType.header ? 'Heading' : 'Normal text',
-                ['Normal text', 'Heading'],
-                (v) => _formatBlock((b) {
-                  b.type = v == 'Heading' ? _BlockType.header : _BlockType.body;
-                }),
-                enabled: isText,
-              ),
-              select<String>(
-                'Font',
-                focused?.fontFamily ??
-                    (focused?.type == _BlockType.header ? 'Manrope' : 'Inter'),
-                ['Inter', 'Manrope'],
-                (v) => _formatBlock((b) => b.fontFamily = v),
-                enabled: isText || focused?.cells != null,
-              ),
               select<double>(
                 'Font size',
-                focused?.fontSize ??
+                format?.fontSize ??
                     (focused?.type == _BlockType.header ? 24 : 16),
                 {
                   ...[
@@ -1141,7 +1151,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                     36.0,
                     48.0,
                   ],
-                  if (focused?.fontSize != null) focused!.fontSize!,
+                  if (format?.fontSize != null) format!.fontSize!,
                 }.toList()..sort(),
                 (v) => _formatBlock((b) => b.fontSize = v),
                 labels: {
@@ -1165,7 +1175,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               _ToolbarBtn(
                 icon: Icons.format_bold,
                 tooltip: 'Bold',
-                active: focused?.bold ?? false,
+                active: format?.bold ?? false,
                 onTap: isText
                     ? () => _formatBlock((b) => b.bold = !b.bold)
                     : null,
@@ -1173,7 +1183,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               _ToolbarBtn(
                 icon: Icons.format_italic,
                 tooltip: 'Italic',
-                active: focused?.italic ?? false,
+                active: format?.italic ?? false,
                 onTap: isText
                     ? () => _formatBlock((b) => b.italic = !b.italic)
                     : null,
@@ -1181,7 +1191,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
               _ToolbarBtn(
                 icon: Icons.format_underlined,
                 tooltip: 'Underline',
-                active: focused?.underline ?? false,
+                active: format?.underline ?? false,
                 onTap: isText
                     ? () => _formatBlock((b) => b.underline = !b.underline)
                     : null,
@@ -1195,7 +1205,7 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 _ToolbarBtn(
                   icon: item.$2,
                   tooltip: 'Align ${item.$1}',
-                  active: focused?.alignment == item.$1,
+                  active: format?.alignment == item.$1,
                   onTap: focused == null
                       ? null
                       : () => _formatBlock((b) => b.alignment = item.$1),
@@ -1209,11 +1219,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _ToolbarBtn(
-                icon: Icons.notes_outlined,
-                tooltip: 'Add text',
-                onTap: () => _insertAfterFocused(_Block.body('')),
-              ),
-              _ToolbarBtn(
                 icon: Icons.image_outlined,
                 tooltip: 'Add image from gallery',
                 onTap: () => _insertImage(ImageSource.gallery),
@@ -1222,68 +1227,6 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                 icon: Icons.camera_alt_outlined,
                 tooltip: 'Take photo',
                 onTap: () => _insertImage(ImageSource.camera),
-              ),
-              _ToolbarBtn(
-                icon: Icons.table_chart_outlined,
-                tooltip: 'Insert table',
-                onTap: _showInsertTableDialog,
-              ),
-              _ToolbarBtn(
-                icon: Icons.functions_outlined,
-                tooltip: 'Insert formula',
-                onTap: _showInsertMathDialog,
-              ),
-              divider(),
-              _ToolbarBtn(
-                icon: Icons.more_vert,
-                tooltip: 'Move or remove block',
-                onTap: focused == null ? null : _showBlockActions,
-              ),
-              if (focused?.type == _BlockType.math)
-                TextButton.icon(
-                  onPressed: () => _editFormula(focused!),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Edit formula'),
-                ),
-              if (focused?.cells != null)
-                PopupMenuButton<String>(
-                  tooltip: 'Table options',
-                  onSelected: _changeTable,
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(value: 'row', child: Text('Add row')),
-                    const PopupMenuItem(
-                      value: 'column',
-                      child: Text('Add column'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'remove-row',
-                      child: Text('Remove last empty row'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'remove-column',
-                      child: Text('Remove last empty column'),
-                    ),
-                    PopupMenuItem(
-                      value: 'header',
-                      child: Text(
-                        focused!.headerRow
-                            ? 'Remove header row style'
-                            : 'Use first row as header',
-                      ),
-                    ),
-                  ],
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Text('Table options'),
-                  ),
-                ),
-              Text(
-                isText
-                    ? 'Formatting applies to this paragraph'
-                    : focused == null
-                    ? 'Select text or an element to format'
-                    : 'Selected element',
-                style: AppTypography.helper.copyWith(fontSize: 11),
               ),
             ],
           ),
@@ -1297,11 +1240,74 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
   Widget _buildBlock(int index, _Block block) {
     final child = _buildBlockContent(index, block);
     if (widget.readOnly) return child;
+    final selected = _focusedIndex == index;
+    final kind = switch (block.type) {
+      _BlockType.image => 'image',
+      _BlockType.table => 'table',
+      _BlockType.math => 'formula',
+      _ => 'text',
+    };
     return Listener(
       onPointerDown: (_) {
-        if (_focusedIndex != index) setState(() => _focusedIndex = index);
+        if (_focusedIndex != index)
+          setState(() {
+            _focusedIndex = index;
+            _selectedCell = null;
+          });
       },
-      child: child,
+      child: AppTapTarget(
+        onTap: block.textController == null
+            ? () => _selectElement(index)
+            : null,
+        showHoverHighlight: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (selected && block.textController == null)
+              Wrap(
+                alignment: WrapAlignment.end,
+                children: [
+                  if (block.cells != null) ...[
+                    TextButton.icon(
+                      onPressed: () => _changeTable('row'),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Row'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _changeTable('column'),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Column'),
+                    ),
+                  ],
+                  if (block.type == _BlockType.math)
+                    IconButton(
+                      tooltip: 'Edit formula',
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      onPressed: () => _editFormula(block),
+                    ),
+                  if (index > 0)
+                    IconButton(
+                      tooltip: 'Move $kind up',
+                      icon: const Icon(Icons.arrow_upward, size: 18),
+                      onPressed: () => _moveBlock(index, -1),
+                    ),
+                  if (index < _blocks.length - 1)
+                    IconButton(
+                      tooltip: 'Move $kind down',
+                      icon: const Icon(Icons.arrow_downward, size: 18),
+                      onPressed: () => _moveBlock(index, 1),
+                    ),
+                  IconButton(
+                    tooltip: 'Delete $kind',
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    onPressed: () => _removeBlock(index),
+                  ),
+                ],
+              ),
+            child,
+          ],
+        ),
+      ),
     );
   }
 
@@ -1365,10 +1371,8 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       child: _ImageBlockWidget(
         block: block,
         isSelected: !widget.readOnly && _focusedIndex == index,
-        onSelect: widget.readOnly
-            ? null
-            : () => setState(() => _focusedIndex = index),
-        onRemove: widget.readOnly ? null : () => _removeBlock(index),
+        onSelect: widget.readOnly ? null : () => _selectElement(index),
+        onRemove: null,
         onMarkChanged: widget.readOnly ? null : () => _hasChanges = true,
       ),
     );
@@ -1378,105 +1382,45 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
     final cells = block.cells!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final cellWidth = (constraints.maxWidth / cells.first.length).clamp(
-            120.0,
-            double.infinity,
-          );
-          return Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: !widget.readOnly && _focusedIndex == index
-                        ? AppColors.primary
-                        : Colors.grey.shade300,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Align(
-                  alignment: block.elementAlignment,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: cells.asMap().entries.map((rowEntry) {
-                        final r = rowEntry.key;
-                        final row = rowEntry.value;
-                        return IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: row.asMap().entries.map((colEntry) {
-                              final c = colEntry.key;
-                              final isFirstRow = r == 0 && block.headerRow;
-                              return Container(
-                                width: cellWidth,
-                                decoration: BoxDecoration(
-                                  color: isFirstRow
-                                      ? AppColors.primary.withValues(
-                                          alpha: 0.06,
-                                        )
-                                      : Colors.white,
-                                  border: Border(
-                                    right: c < row.length - 1
-                                        ? BorderSide(
-                                            color: Colors.grey.shade300,
-                                          )
-                                        : BorderSide.none,
-                                    bottom: r < cells.length - 1
-                                        ? BorderSide(
-                                            color: Colors.grey.shade300,
-                                          )
-                                        : BorderSide.none,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 10,
-                                ),
-                                child: widget.readOnly
-                                    ? Text(
-                                        colEntry.value.text,
-                                        textAlign: block.textAlign,
-                                        style: block.textStyle.copyWith(
-                                          fontWeight: isFirstRow
-                                              ? FontWeight.w600
-                                              : null,
-                                        ),
-                                      )
-                                    : TextField(
-                                        key: ValueKey(
-                                          'notes-cell-$index-$r-$c',
-                                        ),
-                                        controller: colEntry.value,
-                                        minLines: 1,
-                                        maxLines: null,
-                                        textAlign: block.textAlign,
-                                        style: block.textStyle.copyWith(
-                                          fontWeight: isFirstRow
-                                              ? FontWeight.w600
-                                              : null,
-                                        ),
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                        onChanged: (_) => _hasChanges = true,
-                                      ),
-                              );
-                            }).toList(),
+      child: Table(
+        key: ValueKey('notes-table-$index'),
+        defaultColumnWidth: const FlexColumnWidth(),
+        defaultVerticalAlignment: TableCellVerticalAlignment.top,
+        border: TableBorder.all(color: const Color(0xFFCCD5CE)),
+        children: [
+          for (var r = 0; r < cells.length; r++)
+            TableRow(
+              children: [
+                for (var c = 0; c < cells[r].length; c++)
+                  ClipRect(
+                    child: widget.readOnly
+                        ? Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              cells[r][c].text,
+                              textAlign: block.cellAppearance(r, c).textAlign,
+                              style: block.cellAppearance(r, c).textStyle,
+                            ),
+                          )
+                        : EvidenceCellField(
+                            key: ValueKey('notes-cell-$index-$r-$c'),
+                            controller: cells[r][c],
+                            style: block.cellAppearance(r, c).textStyle,
+                            textAlign: block.cellAppearance(r, c).textAlign,
+                            onTap: () => setState(() {
+                              _focusedIndex = index;
+                              _selectedCell = (r, c);
+                            }),
+                            onChanged: (_) => setState(() {
+                              _focusedIndex = index;
+                              _selectedCell = (r, c);
+                              _hasChanges = true;
+                            }),
                           ),
-                        );
-                      }).toList(),
-                    ),
                   ),
-                ),
-              ),
-            ],
-          );
-        },
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -1487,15 +1431,14 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
       child: Stack(
         children: [
           AppTapTarget(
-            onTap: widget.readOnly
-                ? null
-                : () => setState(() => _focusedIndex = index),
+            onTap: widget.readOnly ? null : () => _selectElement(index),
             onDoubleTap: widget.readOnly ? null : () => _editFormula(block),
             child: Container(
+              key: ValueKey('notes-formula-$index'),
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: !widget.readOnly && _focusedIndex == index
@@ -1697,21 +1640,19 @@ class _ToolbarBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = onTap == null ? Colors.black26 : AppColors.primary;
+    final color = onTap == null
+        ? Colors.black26
+        : active
+        ? AppColors.primary
+        : Colors.black54;
 
     Widget inner = Icon(icon, size: 24, color: color);
 
-    Widget content = active
-        ? Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(child: inner),
-          )
-        : SizedBox(width: 44, height: 44, child: Center(child: inner));
+    Widget content = SizedBox(
+      width: 40,
+      height: 40,
+      child: Center(child: inner),
+    );
 
     if (tooltip != null) {
       content = Tooltip(message: tooltip!, child: content);
@@ -1721,127 +1662,6 @@ class _ToolbarBtn extends StatelessWidget {
 
     return AppTapTarget(onTap: onTap, child: content);
   }
-}
-
-// ── Table creator ────────────────────────────────────────────────────────────
-class _TableSizeDialog extends StatefulWidget {
-  const _TableSizeDialog();
-  @override
-  State<_TableSizeDialog> createState() => _TableSizeDialogState();
-}
-
-class _TableSizeDialogState extends State<_TableSizeDialog> {
-  int _rows = 3, _cols = 3;
-  bool _header = true;
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Insert Table'),
-    content: SingleChildScrollView(
-      child: SizedBox(
-        width: 320,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Choose a grid size. You can add rows and columns later.',
-              style: AppTypography.helper,
-            ),
-            const SizedBox(height: 16),
-            Text('$_rows rows × $_cols columns', style: AppTypography.body),
-            const SizedBox(height: 10),
-            for (var row = 1; row <= 6; row++)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var col = 1; col <= 6; col++)
-                    Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Tooltip(
-                        message: '$row rows, $col columns',
-                        child: InkWell(
-                          key: ValueKey('table-grid-$row-$col'),
-                          onTap: () => setState(() {
-                            _rows = row;
-                            _cols = col;
-                          }),
-                          child: Container(
-                            width: 32,
-                            height: 25,
-                            decoration: BoxDecoration(
-                              color: row <= _rows && col <= _cols
-                                  ? AppColors.primary.withValues(alpha: .18)
-                                  : Colors.white,
-                              border: Border.all(
-                                color: row <= _rows && col <= _cols
-                                    ? AppColors.primary
-                                    : AppColors.divider,
-                              ),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _rows,
-                    key: ValueKey('table-rows-$_rows'),
-                    decoration: const InputDecoration(labelText: 'Rows'),
-                    items: [
-                      for (var n = 1; n <= 20; n++)
-                        DropdownMenuItem(value: n, child: Text('$n')),
-                    ],
-                    onChanged: (v) => setState(() => _rows = v!),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _cols,
-                    key: ValueKey('table-cols-$_cols'),
-                    decoration: const InputDecoration(labelText: 'Columns'),
-                    items: [
-                      for (var n = 1; n <= 8; n++)
-                        DropdownMenuItem(value: n, child: Text('$n')),
-                    ],
-                    onChanged: (v) => setState(() => _cols = v!),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Use first row as header'),
-              value: _header,
-              onChanged: (v) => setState(() => _header = v!),
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
-          ],
-        ),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
-      ),
-      FilledButton(
-        onPressed: () => Navigator.pop(context, (
-          rows: _rows,
-          cols: _cols,
-          headerRow: _header,
-        )),
-        child: const Text('Insert'),
-      ),
-    ],
-  );
 }
 
 // ── Formula creator and editor ───────────────────────────────────────────────
@@ -2003,7 +1823,19 @@ class _Block {
   String? fontFamily;
   double? fontSize;
   bool bold = false, italic = false, underline = false;
-  bool headerRow = true;
+  bool headerRow = false;
+  Map<String, Map<String, dynamic>> cellFormatting = {};
+  Map<String, dynamic> get formattingJson => {
+    'alignment': alignment,
+    if (fontSize != null) 'fontSize': fontSize,
+    if (fontFamily != null) 'fontFamily': fontFamily,
+    'bold': bold,
+    'italic': italic,
+    'underline': underline,
+  };
+  _Block cellAppearance(int row, int col) =>
+      _Block(type: _BlockType.body)
+        ..readFormatting({...formattingJson, ...?cellFormatting['$row:$col']});
   TextAlign get textAlign => switch (alignment) {
     'center' => TextAlign.center,
     'right' => TextAlign.right,
@@ -2042,7 +1874,13 @@ class _Block {
     bold = json['bold'] == true;
     italic = json['italic'] == true;
     underline = json['underline'] == true;
-    headerRow = json['headerRow'] != false;
+    headerRow = json['headerRow'] == true;
+    if (json['cellFormatting'] is Map)
+      cellFormatting = {
+        for (final entry in (json['cellFormatting'] as Map).entries)
+          if (entry.value is Map)
+            entry.key.toString(): Map<String, dynamic>.from(entry.value as Map),
+      };
   }
 
   _Block({required this.type});
@@ -2098,7 +1936,7 @@ class _Block {
     'bold': bold,
     'italic': italic,
     'underline': underline,
-    if (type == _BlockType.table) 'headerRow': headerRow,
+    if (type == _BlockType.table) 'cellFormatting': cellFormatting,
   };
   Map<String, dynamic> _contentJson() {
     switch (type) {

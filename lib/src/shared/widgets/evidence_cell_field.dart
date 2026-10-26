@@ -8,14 +8,23 @@ class EvidenceCellField extends StatelessWidget {
     this.onChanged,
     this.numeric = false,
     this.label,
+    this.style,
+    this.textAlign = TextAlign.left,
+    this.onTap,
   });
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
   final bool numeric;
   final String? label;
+  final TextStyle? style;
+  final TextAlign textAlign;
+  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,
+    style: style,
+    textAlign: textAlign,
+    onTap: onTap,
     onChanged: onChanged,
     minLines: 1,
     maxLines: null,
@@ -24,6 +33,8 @@ class EvidenceCellField extends StatelessWidget {
         : TextInputType.multiline,
     decoration: InputDecoration(
       hintText: label,
+      filled: false,
+      fillColor: Colors.transparent,
       isDense: true,
       constraints: const BoxConstraints(minHeight: 44),
       border: InputBorder.none,
