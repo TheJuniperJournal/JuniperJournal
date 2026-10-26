@@ -696,14 +696,14 @@ void main() {
       expect(find.widgetWithText(InkWell, 'Current Component'), findsOneWidget);
       expect(
         tester
-            .widget<Checkbox>(
+            .widget<Radio<String>>(
               find.descendant(
                 of: find.widgetWithText(InkWell, 'Current Component'),
-                matching: find.byType(Checkbox),
+                matching: find.byType(Radio<String>),
               ),
             )
-            .value,
-        isTrue,
+            .groupValue,
+        isNotNull,
       );
       await tester.ensureVisible(find.text('Create New Component'));
       await tester.tap(
@@ -722,29 +722,52 @@ void main() {
       expect(find.widgetWithText(InkWell, 'Current Component'), findsOneWidget);
       expect(
         tester
-            .widget<Checkbox>(
+            .widget<Radio<String>>(
               find.descendant(
                 of: find.widgetWithText(InkWell, 'Second Component'),
-                matching: find.byType(Checkbox),
+                matching: find.byType(Radio<String>),
               ),
             )
-            .value,
-        isTrue,
+            .groupValue,
+        isNotNull,
       );
       await tester.tap(find.widgetWithText(InkWell, 'Current Component'));
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<Checkbox>(
+            .widget<Radio<String>>(
               find.descendant(
                 of: find.widgetWithText(InkWell, 'Second Component'),
-                matching: find.byType(Checkbox),
+                matching: find.byType(Radio<String>),
+              ),
+            )
+            .groupValue,
+        tester
+            .widget<Radio<String>>(
+              find.descendant(
+                of: find.widgetWithText(InkWell, 'Current Component'),
+                matching: find.byType(Radio<String>),
               ),
             )
             .value,
-        isFalse,
       );
       expect(find.text('Selected: Current Component'), findsOneWidget);
+      expect(find.text('Created in this entry'), findsOneWidget);
+      expect(find.text('Project components'), findsOneWidget);
+      expect(
+        tester
+            .getSize(find.widgetWithText(InkWell, 'Current Component'))
+            .height,
+        tester.getSize(find.widgetWithText(InkWell, 'Second Component')).height,
+      );
+      expect(
+        tester
+            .getSize(find.widgetWithText(InkWell, 'Current Component'))
+            .height,
+        tester
+            .getSize(find.widgetWithText(InkWell, 'Earlier Component'))
+            .height,
+      );
       expect(find.text('Current Component'), findsOneWidget);
       expect(find.text('Earlier Component'), findsOneWidget);
       expect(find.text('Current purpose'), findsOneWidget);
@@ -791,7 +814,7 @@ void main() {
   );
 
   testWidgets(
-    'component library search filters the single project list and selection can be edited or removed',
+    'component search selects from dropdown without filtering cards and selection can be cleared',
     (tester) async {
       final repo = _Repo([
         const JournalEntry(
@@ -847,22 +870,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No component'), findsNothing);
-      await tester.tap(find.text('Cover').last);
-      await tester.enterText(search, '');
+      expect(
+        find.byKey(const ValueKey('component-choice-lid')),
+        findsOneWidget,
+      );
+      final result = find.widgetWithText(ListTile, 'Cover');
+      expect(result, findsOneWidget);
+      await tester.tap(result);
+      await tester.pumpAndSettle();
+      expect(find.text('Selected: Cover'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Cover'), findsNothing);
+      expect(tester.widget<TextField>(search).controller!.text, isEmpty);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('component-choice-lid')));
       await tester.pumpAndSettle();
       expect(find.text('Selected: Lid Panel'), findsOneWidget);
       expect(
         tester
-            .widget<Checkbox>(
+            .widget<Radio<String>>(
               find.descendant(
                 of: find.byKey(const ValueKey('component-choice-cover')),
-                matching: find.byType(Checkbox),
+                matching: find.byType(Radio<String>),
               ),
             )
-            .value,
-        isFalse,
+            .groupValue,
+        'lid',
       );
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
@@ -877,13 +909,13 @@ void main() {
       expect(find.text('Cover'), findsNothing);
       final lidCheck = find.descendant(
         of: find.byKey(const ValueKey('component-choice-lid')),
-        matching: find.byType(Checkbox),
+        matching: find.byType(Radio<String>),
       );
       await tester.ensureVisible(lidCheck);
       await tester.tap(lidCheck);
       await tester.pumpAndSettle();
       expect(find.text('Selected: Lid Panel'), findsNothing);
-      expect(tester.widget<Checkbox>(lidCheck).value, isFalse);
+      expect(tester.widget<Radio<String>>(lidCheck).groupValue, isNull);
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
       final data = repo.entries.last.content.whereType<Map>().firstWhere(

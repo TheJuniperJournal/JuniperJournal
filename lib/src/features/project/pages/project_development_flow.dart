@@ -3857,7 +3857,7 @@ class _PrototypingJournalEntryPageState
   final List<UserProfile> _buildMembers = [];
   final Set<String> _involved = {};
   bool _loadingComponents = true;
-  String _componentQuery = '';
+  final _componentSearchFocus = FocusNode();
   final _componentSearch = TextEditingController();
   List<_PrototypeComponentDraft> get _selectedComponents =>
       _maps(_draft.data['selectedComponents']).isNotEmpty
@@ -3995,7 +3995,6 @@ class _PrototypingJournalEntryPageState
         insetPadding: const EdgeInsets.all(20),
         child: SizedBox(
           width: 600,
-          height: MediaQuery.sizeOf(context).height * .88,
           child: _CreateBuildingComponentSheet(component: existing),
         ),
       ),
@@ -4005,6 +4004,15 @@ class _PrototypingJournalEntryPageState
       _components.removeWhere((item) => item.id == component.id);
       _components.insert(0, component);
       final created = _maps(_draft.data['createdComponents']);
+      final createdHereIds =
+          (_draft.data['createdHereComponentIds'] is List
+                  ? (_draft.data['createdHereComponentIds'] as List).map(
+                      (id) => id.toString(),
+                    )
+                  : created.map((item) => item['id'].toString()))
+              .toSet();
+      if (existing == null) createdHereIds.add(component.id);
+      _draft.data['createdHereComponentIds'] = createdHereIds.toList();
       _draft.data['createdComponents'] = [
         ...created.where((item) => item['id'] != component.id),
         component.toMap(),
@@ -4013,7 +4021,7 @@ class _PrototypingJournalEntryPageState
         _draft.data['noComponent'] = false;
         _setSelectedComponents([component]);
       }
-      _componentQuery = '';
+
       _componentSearch.clear();
     });
   }
@@ -4035,7 +4043,11 @@ class _PrototypingJournalEntryPageState
     });
   }
 
-  Widget _componentChoice({required _PrototypeComponentDraft component}) {
+  Widget _componentChoice({
+    required _PrototypeComponentDraft component,
+    required double height,
+    required bool compact,
+  }) {
     final chosen = _selectedComponent?.id == component.id;
     final title = component.name;
     return Padding(
@@ -4056,65 +4068,79 @@ class _PrototypingJournalEntryPageState
             _setSelectedComponents(!chosen ? [component] : []);
             _draft.data['noComponent'] = false;
           }),
-          child: Row(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
+          child: SizedBox(
+            height: height,
+            child: Flex(
+              direction: compact ? Axis.vertical : Axis.horizontal,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.view_in_ar_outlined, color: _devGreen),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(title, style: AppTypography.fieldLabel),
+                              if (component.description.isNotEmpty)
+                                Text(
+                                  component.description,
+                                  style: AppTypography.helper,
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Radio<String>(
+                          value: component.id,
+                          groupValue: _selectedComponent?.id,
+                          toggleable: true,
+                          onChanged: (value) => setState(() {
+                            _setSelectedComponents(
+                              value == null ? [] : [component],
+                            );
+                            _draft.data['noComponent'] = false;
+                          }),
+                        ),
+                      ],
+                    ),
                   ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  widthFactor: compact ? null : 1,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.view_in_ar_outlined, color: _devGreen),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(title, style: AppTypography.fieldLabel),
-                            if (component.description.isNotEmpty)
-                              Text(
-                                component.description,
-                                style: AppTypography.helper,
-                              ),
-                          ],
+                      SizedBox(
+                        width: 44,
+                        child: IconButton(
+                          tooltip: 'Edit component ${component.name}',
+                          onPressed: () =>
+                              _createComponent(existing: component),
+                          icon: const Icon(Icons.edit_outlined),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Checkbox(
-                        value: chosen,
-                        onChanged: (value) => setState(() {
-                          _setSelectedComponents(
-                            value == true ? [component] : [],
-                          );
-                          _draft.data['noComponent'] = false;
-                        }),
+                      SizedBox(
+                        width: 44,
+                        child: IconButton(
+                          tooltip: 'Delete component ${component.name}',
+                          onPressed: () => _deleteComponent(component),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              ...[
-                SizedBox(
-                  width: 44,
-                  child: IconButton(
-                    tooltip: 'Edit component ${component.name}',
-                    onPressed: () => _createComponent(existing: component),
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                ),
-                SizedBox(
-                  width: 44,
-                  child: IconButton(
-                    tooltip: 'Delete component ${component.name}',
-                    onPressed: () => _deleteComponent(component),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ),
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -4123,15 +4149,6 @@ class _PrototypingJournalEntryPageState
 
   Widget _componentStage() {
     final selected = _selectedComponent;
-    final query = _componentQuery.trim().toLowerCase();
-    final filtered = _components
-        .where(
-          (c) =>
-              query.isEmpty ||
-              c.name.toLowerCase().contains(query) ||
-              c.description.toLowerCase().contains(query),
-        )
-        .toList();
     return _JournalStageLayout(
       children: [
         const JournalSectionHeader(title: 'Component'),
@@ -4140,14 +4157,76 @@ class _PrototypingJournalEntryPageState
           style: AppTypography.helper,
         ),
         const SizedBox(height: 20),
-        TextField(
-          key: const ValueKey('project-component-search'),
-          controller: _componentSearch,
-          onChanged: (value) => setState(() => _componentQuery = value),
-          decoration: const InputDecoration(
-            hintText: 'Search components',
-            prefixIcon: Icon(Icons.search),
-          ),
+        LayoutBuilder(
+          builder: (context, constraints) =>
+              RawAutocomplete<_PrototypeComponentDraft>(
+                textEditingController: _componentSearch,
+                focusNode: _componentSearchFocus,
+                displayStringForOption: (component) => component.name,
+                optionsBuilder: (value) {
+                  final query = value.text.trim().toLowerCase();
+                  return _components.where(
+                    (component) =>
+                        query.isEmpty ||
+                        component.name.toLowerCase().contains(query) ||
+                        component.description.toLowerCase().contains(query),
+                  );
+                },
+                onSelected: (component) => setState(() {
+                  _setSelectedComponents([component]);
+                  _draft.data['noComponent'] = false;
+                  _componentSearch.clear();
+                  _componentSearchFocus.unfocus();
+                }),
+                fieldViewBuilder:
+                    (context, controller, focusNode, onSubmitted) => TextField(
+                      key: const ValueKey('project-component-search'),
+                      controller: controller,
+                      focusNode: focusNode,
+                      onSubmitted: (_) => onSubmitted(),
+                      decoration: const InputDecoration(
+                        hintText: 'Search and select a component',
+                        prefixIcon: Icon(Icons.search),
+                        suffixIcon: Icon(Icons.expand_more),
+                      ),
+                    ),
+                optionsViewBuilder: (context, onSelected, options) => Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 240),
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          shrinkWrap: true,
+                          children: [
+                            for (final component in options)
+                              ListTile(
+                                leading: const Icon(
+                                  Icons.view_in_ar_outlined,
+                                  color: _devGreen,
+                                ),
+                                title: Text(component.name),
+                                subtitle: component.description.isEmpty
+                                    ? null
+                                    : Text(component.description),
+                                trailing: _selectedComponent?.id == component.id
+                                    ? const Icon(Icons.check, color: _devGreen)
+                                    : null,
+                                onTap: () => onSelected(component),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
         ),
         const SizedBox(height: 16),
         if (selected != null)
@@ -4158,24 +4237,81 @@ class _PrototypingJournalEntryPageState
               style: AppTypography.helper,
             ),
           ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_loadingComponents)
-              const Center(child: CircularProgressIndicator()),
-            for (final component in filtered)
-              _componentChoice(component: component),
-            if (!_loadingComponents && filtered.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  _components.isEmpty
-                      ? 'No components yet.'
-                      : 'No matching components.',
-                  style: AppTypography.helper,
-                ),
-              ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final createdIds =
+                (_draft.data['createdHereComponentIds'] is List
+                        ? (_draft.data['createdHereComponentIds'] as List).map(
+                            (id) => id.toString(),
+                          )
+                        : _maps(
+                            _draft.data['createdComponents'],
+                          ).map((item) => item['id'].toString()))
+                    .toSet();
+            final created = _components
+                .where((item) => createdIds.contains(item.id))
+                .toList();
+            final project = _components
+                .where((item) => !createdIds.contains(item.id))
+                .toList();
+            // Reserve the same icon, selection, and action lanes used by every card.
+            final compact = constraints.maxWidth < 400;
+            final textWidth = (constraints.maxWidth - (compact ? 136 : 224))
+                .clamp(1.0, double.infinity);
+            double cardHeight = 96;
+            for (final component in _components) {
+              double measure(String text, TextStyle style) {
+                final painter = TextPainter(
+                  text: TextSpan(text: text, style: style),
+                  textDirection: Directionality.of(context),
+                  textScaler: MediaQuery.textScalerOf(context),
+                )..layout(maxWidth: textWidth);
+                final height = painter.height;
+                painter.dispose();
+                return height;
+              }
+
+              final height =
+                  (compact ? 88 : 40) +
+                  measure(component.name, AppTypography.fieldLabel) +
+                  (component.description.isEmpty
+                      ? 0
+                      : measure(component.description, AppTypography.helper));
+              if (height > cardHeight) cardHeight = height;
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_loadingComponents)
+                  const Center(child: CircularProgressIndicator()),
+                for (final section in [
+                  ('Created in this entry', created),
+                  ('Project components', project),
+                ]) ...[
+                  if (section.$2.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 12),
+                      child: Text(section.$1, style: AppTypography.fieldLabel),
+                    ),
+                    for (final component in section.$2)
+                      _componentChoice(
+                        component: component,
+                        height: cardHeight,
+                        compact: compact,
+                      ),
+                  ],
+                ],
+                if (!_loadingComponents && _components.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text(
+                      'No components yet.',
+                      style: AppTypography.helper,
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -4718,6 +4854,7 @@ class _PrototypingJournalEntryPageState
   @override
   void dispose() {
     _componentSearch.dispose();
+    _componentSearchFocus.dispose();
     for (final controller in _fields.values) {
       controller.dispose();
     }
