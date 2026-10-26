@@ -171,10 +171,14 @@ class _PageObserver extends NavigatorObserver {
   }
 
   @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
-      host._changed(newRoute, replace: true);
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    top = newRoute;
+    host._changed(newRoute, replace: true);
+  }
+
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    top = previousRoute;
     if (route is PageRoute) host._changed(previousRoute);
   }
 }

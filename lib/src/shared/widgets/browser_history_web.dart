@@ -16,10 +16,15 @@ class BrowserHistory {
 
   void write(String path, {bool replace = false}) {
     if (location == path) return;
-    SystemNavigator.routeInformationUpdated(
-      uri: Uri.parse(path),
-      replace: replace,
-    );
+    // This host owns hash navigation; do not let Flutter's platform route
+    // reporting retain the initial login route while the nested Navigator moves.
+    final url =
+        '${html.window.location.pathname}${html.window.location.search}#$path';
+    if (replace) {
+      html.window.history.replaceState(null, '', url);
+    } else {
+      html.window.history.pushState(null, '', url);
+    }
   }
 
   void dispose() {

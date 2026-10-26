@@ -65,7 +65,19 @@ Future<Widget> _initializeApp() async {
   if (_launchPasswordRecovery) {
     return const MyApp(initialPage: PasswordRecoveryScreen());
   }
-  final requested = kIsWeb ? PageUrl.decode(_launchLocation) : null;
+  var requested = kIsWeb ? PageUrl.decode(_launchLocation) : null;
+  // Older browser sessions can retain /login after signing in. Restore the
+  // account's last actual destination instead of reopening authentication.
+  if (SupabaseDatabase.instance.client.auth.currentSession != null &&
+      const {'login', 'signup'}.contains(requested?['kind'])) {
+    final remembered = await PageRefreshState.read();
+    requested =
+        remembered != null &&
+            !const {'login', 'signup'}.contains(remembered['kind'])
+        ? remembered
+        : <String, dynamic>{'kind': 'home', 'section': 0};
+    _launchLocation = PageUrl.encode(requested);
+  }
   if (requested != null) {
     try {
       final page = await PageRefreshState.restore(requested, ProjectsRepo());
@@ -250,7 +262,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       scrollBehavior: const AppScrollBehavior(),
-      initialRoute: restored || _isLocalPreview ? '/' : null,
+      initialRoute: kIsWeb || restored || _isLocalPreview ? '/' : null,
       onGenerateInitialRoutes:
           (restored ||
               (_isLocalPreview &&
