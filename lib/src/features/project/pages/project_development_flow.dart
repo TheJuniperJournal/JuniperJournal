@@ -9128,7 +9128,10 @@ class _AnalysisSourcesPickerState extends State<_AnalysisSourcesPicker> {
                     ),
                   ),
                 const SizedBox(height: 20),
-                const Text('Your sources', style: AppTypography.fieldLabel),
+                const Text(
+                  'Sources created in this entry',
+                  style: AppTypography.fieldLabel,
+                ),
                 const SizedBox(height: 12),
                 for (final source in custom)
                   Padding(

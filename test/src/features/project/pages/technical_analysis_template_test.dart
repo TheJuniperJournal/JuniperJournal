@@ -220,4 +220,76 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('custom sources belong only to their journal entry', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = _Repo();
+    const original = JournalEntry(
+      id: 'original',
+      projectId: 'p',
+      title: 'Original analysis',
+      content: [
+        {
+          'stage': 'prototyping',
+          'entryType': 'technical_analysis',
+          'analysisWorkflow': true,
+          'customDataSources': [
+            {'label': 'Entry-specific lab notes'},
+          ],
+          'dataSources': [
+            {'label': 'Entry-specific lab notes'},
+          ],
+        },
+      ],
+    );
+    Future<void> open(Widget page) async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(MaterialApp(home: page));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('+ Data Source'));
+      await tester.tap(find.text('+ Data Source'));
+      await tester.pumpAndSettle();
+    }
+
+    await open(
+      PrototypingJournalEntryPage(
+        projectId: 'p',
+        projectsRepo: repo,
+        entry: original,
+      ),
+    );
+    expect(
+      find.widgetWithText(CheckboxListTile, 'Entry-specific lab notes'),
+      findsOneWidget,
+    );
+    expect(find.text('Sources created in this entry'), findsOneWidget);
+    await open(restoreEmptyPrototypingPage('p', repo, 'technical_analysis'));
+    expect(find.text('Entry-specific lab notes'), findsNothing);
+    expect(find.text('Add Selected (0)'), findsOneWidget);
+    expect(
+      find.widgetWithText(CheckboxListTile, 'Field Measurements'),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithText(CheckboxListTile, 'Equipment Specifications'),
+      findsOneWidget,
+    );
+    await open(
+      PrototypingJournalEntryPage(
+        projectId: 'p',
+        projectsRepo: repo,
+        entry: original,
+      ),
+    );
+    expect(
+      find.widgetWithText(CheckboxListTile, 'Entry-specific lab notes'),
+      findsOneWidget,
+    );
+    expect(find.text('Add Selected (1)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
