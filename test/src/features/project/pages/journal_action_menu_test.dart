@@ -664,7 +664,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
-      expect(find.text('Earlier Component'), findsOneWidget);
+      expect(find.text('Earlier Component'), findsNothing);
 
       await tester.tap(
         find.widgetWithText(OutlinedButton, 'Create New Component'),
@@ -719,7 +719,7 @@ void main() {
       await tester.ensureVisible(find.text('Add').last);
       await tester.tap(find.text('Add').last);
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(InkWell, 'Current Component'), findsOneWidget);
+      expect(find.widgetWithText(InkWell, 'Current Component'), findsNothing);
       expect(
         tester
             .widget<Radio<String>>(
@@ -731,45 +731,17 @@ void main() {
             .groupValue,
         isNotNull,
       );
-      await tester.tap(find.widgetWithText(InkWell, 'Current Component'));
+      final search = find.byKey(const ValueKey('project-component-search'));
+      await tester.enterText(search, 'Current Component');
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<Radio<String>>(
-              find.descendant(
-                of: find.widgetWithText(InkWell, 'Second Component'),
-                matching: find.byType(Radio<String>),
-              ),
-            )
-            .groupValue,
-        tester
-            .widget<Radio<String>>(
-              find.descendant(
-                of: find.widgetWithText(InkWell, 'Current Component'),
-                matching: find.byType(Radio<String>),
-              ),
-            )
-            .value,
-      );
+      await tester.tap(find.widgetWithText(ListTile, 'Current Component'));
+      await tester.pumpAndSettle();
       expect(find.text('Selected: Current Component'), findsOneWidget);
-      expect(find.text('Created in this entry'), findsOneWidget);
-      expect(find.text('Project components'), findsOneWidget);
-      expect(
-        tester
-            .getSize(find.widgetWithText(InkWell, 'Current Component'))
-            .height,
-        tester.getSize(find.widgetWithText(InkWell, 'Second Component')).height,
-      );
-      expect(
-        tester
-            .getSize(find.widgetWithText(InkWell, 'Current Component'))
-            .height,
-        tester
-            .getSize(find.widgetWithText(InkWell, 'Earlier Component'))
-            .height,
-      );
+      expect(find.text('Created in this entry'), findsNothing);
+      expect(find.text('Project components'), findsNothing);
+      expect(find.text('Second Component'), findsNothing);
       expect(find.text('Current Component'), findsOneWidget);
-      expect(find.text('Earlier Component'), findsOneWidget);
+      expect(find.text('Earlier Component'), findsNothing);
       expect(find.text('Current purpose'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
@@ -808,7 +780,13 @@ void main() {
       await tester.tap(find.byTooltip('Delete component Current Component'));
       await tester.pumpAndSettle();
       expect(find.text('Current Component'), findsNothing);
-      expect(find.text('Second Component'), findsOneWidget);
+      expect(find.text('Second Component'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('project-component-search')),
+        'Second Component',
+      );
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(ListTile, 'Second Component'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -863,17 +841,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('prototype-type-building')));
       await tester.pumpAndSettle();
-      expect(find.text('Lid Panel'), findsOneWidget);
+      expect(find.text('Lid Panel'), findsNothing);
       final search = find.byKey(const ValueKey('project-component-search'));
       await tester.tap(search);
       await tester.enterText(search, 'rain');
       await tester.pumpAndSettle();
 
       expect(find.text('No component'), findsNothing);
-      expect(
-        find.byKey(const ValueKey('component-choice-lid')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('component-choice-lid')), findsNothing);
       final result = find.widgetWithText(ListTile, 'Cover');
       expect(result, findsOneWidget);
       await tester.tap(result);
@@ -882,19 +857,14 @@ void main() {
       expect(find.widgetWithText(ListTile, 'Cover'), findsNothing);
       expect(tester.widget<TextField>(search).controller!.text, isEmpty);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('component-choice-lid')));
+      await tester.enterText(search, 'Lid Panel');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Lid Panel'));
       await tester.pumpAndSettle();
       expect(find.text('Selected: Lid Panel'), findsOneWidget);
       expect(
-        tester
-            .widget<Radio<String>>(
-              find.descendant(
-                of: find.byKey(const ValueKey('component-choice-cover')),
-                matching: find.byType(Radio<String>),
-              ),
-            )
-            .groupValue,
-        'lid',
+        find.byKey(const ValueKey('component-choice-cover')),
+        findsNothing,
       );
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
@@ -903,10 +873,18 @@ void main() {
           .firstWhere((row) => row['stage'] == 'prototyping');
       expect(selectedStage['selectedComponents'], hasLength(1));
       expect((selectedStage['component'] as Map)['id'], 'lid');
+      await tester.enterText(search, 'Cover');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Cover'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byTooltip('Delete component Cover'));
       await tester.tap(find.byTooltip('Delete component Cover'));
       await tester.pumpAndSettle();
       expect(find.text('Cover'), findsNothing);
+      await tester.enterText(search, 'Lid Panel');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Lid Panel'));
+      await tester.pumpAndSettle();
       final lidCheck = find.descendant(
         of: find.byKey(const ValueKey('component-choice-lid')),
         matching: find.byType(Radio<String>),
@@ -915,7 +893,7 @@ void main() {
       await tester.tap(lidCheck);
       await tester.pumpAndSettle();
       expect(find.text('Selected: Lid Panel'), findsNothing);
-      expect(tester.widget<Radio<String>>(lidCheck).groupValue, isNull);
+      expect(lidCheck, findsNothing);
       await tester.pump(const Duration(seconds: 1));
       await _keepDraft(tester);
       final data = repo.entries.last.content.whereType<Map>().firstWhere(
@@ -934,7 +912,7 @@ void main() {
         ),
       );
       expect(find.text('Cover'), findsNothing);
-      expect(find.text('Lid Panel'), findsOneWidget);
+      expect(find.text('Lid Panel'), findsNothing);
       expect(find.text('No component'), findsNothing);
       await tester.ensureVisible(find.text('Next'));
       await tester.tap(find.text('Next'));

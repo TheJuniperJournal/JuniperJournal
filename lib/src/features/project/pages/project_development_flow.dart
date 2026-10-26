@@ -4239,27 +4239,12 @@ class _PrototypingJournalEntryPageState
           ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final createdIds =
-                (_draft.data['createdHereComponentIds'] is List
-                        ? (_draft.data['createdHereComponentIds'] as List).map(
-                            (id) => id.toString(),
-                          )
-                        : _maps(
-                            _draft.data['createdComponents'],
-                          ).map((item) => item['id'].toString()))
-                    .toSet();
-            final created = _components
-                .where((item) => createdIds.contains(item.id))
-                .toList();
-            final project = _components
-                .where((item) => !createdIds.contains(item.id))
-                .toList();
             // Reserve the same icon, selection, and action lanes used by every card.
             final compact = constraints.maxWidth < 400;
             final textWidth = (constraints.maxWidth - (compact ? 136 : 224))
                 .clamp(1.0, double.infinity);
             double cardHeight = 96;
-            for (final component in _components) {
+            for (final component in [if (selected != null) selected]) {
               double measure(String text, TextStyle style) {
                 final painter = TextPainter(
                   text: TextSpan(text: text, style: style),
@@ -4284,28 +4269,17 @@ class _PrototypingJournalEntryPageState
               children: [
                 if (_loadingComponents)
                   const Center(child: CircularProgressIndicator()),
-                for (final section in [
-                  ('Created in this entry', created),
-                  ('Project components', project),
-                ]) ...[
-                  if (section.$2.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 12),
-                      child: Text(section.$1, style: AppTypography.fieldLabel),
-                    ),
-                    for (final component in section.$2)
-                      _componentChoice(
-                        component: component,
-                        height: cardHeight,
-                        compact: compact,
-                      ),
-                  ],
-                ],
-                if (!_loadingComponents && _components.isEmpty)
+                if (selected != null)
+                  _componentChoice(
+                    component: selected,
+                    height: cardHeight,
+                    compact: compact,
+                  ),
+                if (!_loadingComponents && selected == null)
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      'No components yet.',
+                      'Search for an existing component or create a new one below.',
                       style: AppTypography.helper,
                     ),
                   ),
