@@ -118,7 +118,7 @@ class _JournalReadingPageState extends State<JournalReadingPage> {
                   LayoutBuilder(
                     builder: (context, constraints) => Container(
                       key: const ValueKey('journal-reading-paper'),
-                      color: _canvas ? Colors.white : _readingPaper,
+                      color: _readingPaper,
                       padding: EdgeInsets.fromLTRB(
                         constraints.maxWidth < 500 ? 24 : 44,
                         36,
