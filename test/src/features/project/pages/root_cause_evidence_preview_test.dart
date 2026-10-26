@@ -113,16 +113,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(DiscoveryEntryPreviewPage), findsOneWidget);
-      await tester.tap(find.text('Overproduction'));
-      await tester.pumpAndSettle();
+      expect(find.byType(JournalReadingPage), findsOneWidget);
       for (final type in [
-        'Images',
-        'Sketch',
-        'Link',
-        'Video',
-        'Graph',
-        'Table',
+        'Lunch photos',
+        'Kitchen sketch',
+        'Source article',
+        'Food video',
+        'Waste trend',
+        'Measurements',
       ]) {
         expect(find.text(type), findsOneWidget);
       }
@@ -138,13 +136,12 @@ void main() {
       expect(find.text('—'), findsOneWidget);
       expect(find.text('Leftover food'), findsOneWidget);
       expect(find.text('Watch video'), findsOneWidget);
-      expect(find.text('Open link'), findsOneWidget);
+      expect(find.text('Open reference'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
       expect(find.byType(PopupMenuButton<String>), findsNothing);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.byTooltip('Collapse root cause'));
-      await tester.pumpAndSettle();
-      expect(find.byType(DataTable), findsNothing);
+      expect(find.byTooltip('Collapse root cause'), findsNothing);
+      expect(find.byType(DataTable), findsOneWidget);
     },
   );
 }

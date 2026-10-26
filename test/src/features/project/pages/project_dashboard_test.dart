@@ -974,10 +974,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(DiscoveryEntryPreviewPage), findsOneWidget);
-      Navigator.of(
-        tester.element(find.byType(DiscoveryEntryPreviewPage)),
-      ).pop();
+      expect(find.byType(JournalReadingPage), findsOneWidget);
+      Navigator.of(tester.element(find.byType(JournalReadingPage))).pop();
       await tester.pumpAndSettle();
       expect(find.text('Total Entries'), findsOneWidget);
       await tester.tap(find.text('Overview'));

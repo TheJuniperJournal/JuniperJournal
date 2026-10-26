@@ -59,7 +59,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       for (final text in [
-        'Observations',
+        'Observe',
         'Analyze',
         'Question',
         'Learning',
@@ -70,19 +70,16 @@ void main() {
       ]) {
         expect(find.text(text), findsOneWidget);
       }
-      expect(
-        find.text('Looking through an investigation lens'),
-        findsOneWidget,
-      );
+      expect(find.text('Investigate'), findsOneWidget);
       expect(find.text('What I learned'), findsOneWidget);
       expect(find.text('Water carefully'), findsOneWidget);
       // Connections are part of the preview without an expansion action.
       expect(find.byType(ExpansionTile), findsNothing);
-      expect(find.text('DCI'), findsOneWidget);
-      expect(find.text('SEP'), findsOneWidget);
-      expect(find.text('CCCs'), findsOneWidget);
+      expect(find.text('Disciplinary Core Ideas'), findsOneWidget);
+      expect(find.text('Science and Engineering Practices'), findsOneWidget);
+      expect(find.text('Crosscutting Concepts'), findsOneWidget);
       expect(find.text('Challenges and open questions'), findsNothing);
-      expect(find.text('What I’ll try next'), findsNothing);
+      expect(find.text('What I’ll try next'), findsOneWidget);
       expect(find.text('Learning connections'), findsOneWidget);
       expect(
         find.text('Use fewer resources or reduce waste and harmful impacts.'),

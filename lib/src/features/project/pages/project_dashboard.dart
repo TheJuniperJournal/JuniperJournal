@@ -1291,9 +1291,8 @@ class _ProjectDashboardState extends State<ProjectDashboard> {
               (!_canEditCover &&
                   entry.authorId != AuthService.instance.currentUser?.id),
         ),
-      'prototyping' => PrototypingDashboardPage(
-        projectId: widget.projectId,
-        isOwner: _canEditCover,
+      'prototyping' => JournalReadingPage(
+        entry: entry,
         projectsRepo: _projectsRepo,
       ),
       'implementation' => ImplementationPreviewPage(

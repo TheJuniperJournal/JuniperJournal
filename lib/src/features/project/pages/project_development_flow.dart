@@ -70,6 +70,8 @@ import 'package:juniper_journal/src/features/project/pages/materials_cost.dart';
 import 'package:juniper_journal/src/features/project/pages/project_timeline_tab.dart';
 import 'package:juniper_journal/src/shared/widgets/date_time_pickers.dart';
 
+part 'journal_reading_page.dart';
+
 String? _journalCurrentUserId() {
   try {
     return AuthService.instance.currentUser?.id;
@@ -204,19 +206,21 @@ Widget freeNotesEntryPage(
   JournalEntry entry,
   ProjectsRepo repo, {
   bool readOnly = true,
-}) => JournalEntryEditorScreen(
-  projectId: entry.projectId,
-  projectName: '',
-  tags: const [],
-  entryId: entry.id,
-  entryAuthorId: entry.authorId,
-  initialTitle: entry.title,
-  initialContent: entry.content,
-  initialProgress: entry.progress,
-  projectsRepo: repo,
-  freeNotes: true,
-  readOnly: readOnly,
-);
+}) => readOnly
+    ? JournalReadingPage(entry: entry, projectsRepo: repo)
+    : JournalEntryEditorScreen(
+        projectId: entry.projectId,
+        projectName: '',
+        tags: const [],
+        entryId: entry.id,
+        entryAuthorId: entry.authorId,
+        initialTitle: entry.title,
+        initialContent: entry.content,
+        initialProgress: entry.progress,
+        projectsRepo: repo,
+        freeNotes: true,
+        readOnly: readOnly,
+      );
 
 Future<bool> openFreeNotesIfNeeded(
   BuildContext context,
@@ -2240,147 +2244,19 @@ class _ImplementationTotalCard extends StatelessWidget {
   }
 }
 
-class ImplementationPreviewPage extends StatefulWidget {
+class ImplementationPreviewPage extends StatelessWidget {
   const ImplementationPreviewPage({
     super.key,
     required this.entry,
     required this.projectId,
     required this.projectsRepo,
   });
-
   final JournalEntry entry;
   final String projectId;
   final ProjectsRepo projectsRepo;
-
   @override
-  State<ImplementationPreviewPage> createState() =>
-      _ImplementationPreviewPageState();
-}
-
-class _ImplementationPreviewPageState extends State<ImplementationPreviewPage> {
-  var _stage = 0;
-
-  String _summary = '';
-  String _location = '';
-  DateTime? _date;
-  List<_EvidenceBlock> _evidence = [];
-
-  final Set<String> _dci = {};
-  final Set<String> _sep = {};
-  final Set<String> _ccc = {};
-  InquiryLensData _lens = const InquiryLensData();
-  AssessmentBlockData _assessment = const AssessmentBlockData();
-
-  String _worked = '';
-  String _notWorked = '';
-  String _takeaways = '';
-  String _change = '';
-
-  late final Set<int> _visitedStages = _readVisitedStages(
-    widget.entry.content,
-    ['overview', 'assessment', 'learning', 'reflection'],
-  );
-  @override
-  void initState() {
-    super.initState();
-    final e = widget.entry;
-    final ov = _implementationStageMap(e, 'overview');
-    _summary = ov['summary']?.toString() ?? '';
-    _location = ov['location']?.toString() ?? '';
-    _date = DateTime.tryParse(ov['dateImplemented']?.toString() ?? '');
-    _evidence = _maps(
-      ov['evidence'],
-    ).map(_EvidenceBlock.fromMap).whereType<_EvidenceBlock>().toList();
-    final l = _implementationStageMap(e, 'learning');
-    _dci.addAll(_stringSet(l['dci']));
-    _sep.addAll(_stringSet(l['sep']));
-    _ccc.addAll(_stringSet(l['ccc']));
-    _lens = InquiryLensData.fromJson(
-      l['inquiryLensData'],
-      legacyLens: l['inquiryLens']?.toString() ?? InquiryLensData.noneValue,
-    );
-    _assessment = AssessmentBlockData.fromJson(l['assessment']);
-    final r = _implementationStageMap(e, 'reflection');
-    _worked = r['workedWell']?.toString() ?? '';
-    _notWorked = r['didntWork']?.toString() ?? '';
-    _takeaways = r['keyTakeaways']?.toString() ?? '';
-    _change = r['change']?.toString() ?? '';
-  }
-
-  void _exit() => Navigator.of(context).pop();
-
-  @override
-  Widget build(BuildContext context) {
-    return _PrototypeScaffold(
-      title: 'Journal Entry: Implementation',
-      previewEntry: widget.entry,
-      onBack: _exit,
-      body: PageScrollWithFooter(
-        child: ListView(
-          padding: const EdgeInsets.all(40),
-          children: [
-            Text(widget.entry.title, style: AppTypography.pageTitle),
-            const SizedBox(height: AppMetrics.fieldGap),
-            _PreviewPanel(
-              title: 'Overview',
-              children: [
-                _PreviewField('Summary', _summary),
-                if (_date != null)
-                  _PreviewField(
-                    'Date',
-                    DateFormat('MMMM d, yyyy').format(_date!),
-                  ),
-                _PreviewField('Location', _location),
-                JournalInvolvedPeoplePreview(
-                  people: _maps(
-                    _implementationStageMap(
-                      widget.entry,
-                      'overview',
-                    )['involved'],
-                  ),
-                ),
-                if (_evidence.isNotEmpty) ...[
-                  const JournalSectionHeader(title: 'Evidence'),
-                  for (final block in _evidence)
-                    _EvidencePreviewBlock(evidence: block),
-                ],
-              ],
-            ),
-            _LearningPreviewContent(
-              reflection: _takeaways,
-              selectedDci: _dci,
-              selectedSep: _sep,
-              selectedCcc: _ccc,
-              inquiryLensData: _lens,
-              assessment: _assessment,
-            ),
-            _PreviewPanel(
-              title: 'Reflection',
-              children: [
-                _PreviewField('What worked well?', _worked),
-                _PreviewField('What did not work?', _notWorked),
-                _PreviewField('What would you change?', _change),
-                if (_implementationStageMap(
-                      widget.entry,
-                      'reflection',
-                    )['createdTimelineEvent']
-                    is Map)
-                  _CreatedTimelineEventPreview(
-                    event: Map<String, String>.from(
-                      _implementationStageMap(
-                            widget.entry,
-                            'reflection',
-                          )['createdTimelineEvent']
-                          as Map,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      JournalReadingPage(entry: entry, projectsRepo: projectsRepo);
 }
 
 class _ImplPreviewSection extends StatelessWidget {
@@ -3358,137 +3234,7 @@ class _CompletePrototypePreview extends StatelessWidget {
   final JournalEntry entry;
   final _PrototypeEntryType type;
   @override
-  Widget build(BuildContext context) {
-    final draft = _PrototypeJournalDraft(type, entry);
-    final components = _maps(draft.data['selectedComponents']).isNotEmpty
-        ? _maps(draft.data['selectedComponents'])
-        : [if (draft.data['component'] is Map) draft.data['component'] as Map];
-    return _PrototypeScaffold(
-      title: 'Journal Entry: Prototyping',
-      previewEntry: entry,
-      onBack: () => Navigator.pop(context),
-      body: PageScrollWithFooter(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-          children: [
-            Text(entry.title, style: AppTypography.pageTitle),
-            const SizedBox(height: AppMetrics.fieldGap),
-            for (final component in components.take(1))
-              _PreviewPanel(
-                title: 'Component',
-                children: [
-                  _PreviewField('Name', component['name']?.toString() ?? ''),
-                  _PreviewField(
-                    'Purpose of the Component',
-                    component['description']?.toString() ?? '',
-                  ),
-                  _PreviewField(
-                    'Key Features',
-                    _previewStringList(component['features']).join('\n'),
-                  ),
-                ],
-              ),
-            _PreviewPanel(
-              title: type == _PrototypeEntryType.building
-                  ? 'Build'
-                  : type == _PrototypeEntryType.testing
-                  ? 'Test'
-                  : type.label,
-              children: [
-                for (final field in type.fields)
-                  _PreviewField(
-                    field.$2,
-                    draft.data[field.$1]?.toString() ?? '',
-                  ),
-                if (type == _PrototypeEntryType.analysis) ...[
-                  _PreviewField(
-                    'Data Source',
-                    _maps(
-                      draft.data['dataSources'],
-                    ).map((source) => source['label']).join(', '),
-                  ),
-                  _PreviewField(
-                    'Calculation Type',
-                    draft.data['calculationType']?.toString() ?? '',
-                  ),
-                  _PreviewField(
-                    'Previously recorded method',
-                    draft.data['method']?.toString() ?? '',
-                  ),
-                  _PreviewField(
-                    'Previously recorded interpretation',
-                    draft.data['interpretation']?.toString() ?? '',
-                  ),
-                ],
-                _PreviewField(
-                  'Outcomes & Rating',
-                  draft.data['outcome']?.toString() ?? '',
-                ),
-                _PreviewField(
-                  'Previously recorded results',
-                  draft.data['results']?.toString() ?? '',
-                ),
-                JournalInvolvedPeoplePreview(
-                  people: _maps(draft.data['involved']),
-                ),
-                if (_maps(draft.data['evidence']).isNotEmpty) ...[
-                  const JournalSectionHeader(title: 'Evidence'),
-                  for (final item in _maps(draft.data['evidence']))
-                    if (_EvidenceBlock.fromMap(item) case final block?)
-                      _EvidencePreviewBlock(evidence: block),
-                ],
-              ],
-            ),
-            if (type == _PrototypeEntryType.building &&
-                draft.data['materialsWorkflow'] == true)
-              _PreviewPanel(
-                title: 'Materials & Cost',
-                children: [
-                  BuildMaterialsStage(
-                    showHeading: false,
-                    items: _maps(draft.data['materials']),
-                    currency:
-                        draft.data['materialsCurrency']?.toString() ?? 'USD',
-                    componentName: components
-                        .map((c) => c['name']?.toString() ?? '')
-                        .join(', '),
-                  ),
-                ],
-              ),
-            _LearningPreviewContent(
-              reflection: draft.nextAction['learned']?.toString() ?? '',
-              selectedDci: _stringSet(draft.learning['dci']),
-              selectedSep: _stringSet(draft.learning['sep']),
-              selectedCcc: _stringSet(draft.learning['ccc']),
-              inquiryLensData: InquiryLensData.fromJson(
-                draft.learning['inquiryLensData'],
-                legacyLens:
-                    draft.learning['inquiryLens']?.toString() ??
-                    InquiryLensData.noneValue,
-              ),
-              assessment: AssessmentBlockData.fromJson(
-                draft.learning['assessment'],
-              ),
-            ),
-            _NextActionPreviewContent(
-              projectId: entry.projectId,
-              includeLearned: false,
-              learned: draft.nextAction['learned']?.toString() ?? '',
-              challenges: draft.nextAction['challenges']?.toString() ?? '',
-              nextSteps: draft.nextAction['nextSteps']?.toString() ?? '',
-              notes: draft.nextAction['notes']?.toString() ?? '',
-              linkedTimelineEvent:
-                  draft.nextAction['createdTimelineEvent'] is Map
-                  ? Map<String, String>.from(
-                      draft.nextAction['createdTimelineEvent'] as Map,
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => JournalReadingPage(entry: entry);
 }
 
 class _CreateBuildingComponentSheet extends StatefulWidget {
@@ -8242,96 +7988,11 @@ String _attachmentContentType(String fileName) {
   };
 }
 
-class IdeatingEntryPreviewPage extends StatefulWidget {
+class IdeatingEntryPreviewPage extends StatelessWidget {
   const IdeatingEntryPreviewPage({super.key, required this.entry});
-
   final JournalEntry entry;
-
   @override
-  State<IdeatingEntryPreviewPage> createState() =>
-      _IdeatingEntryPreviewPageState();
-}
-
-class _IdeatingEntryPreviewPageState extends State<IdeatingEntryPreviewPage> {
-  late final _IdeatingPreviewData _data;
-  @override
-  void initState() {
-    super.initState();
-    _data = _IdeatingPreviewData.fromEntry(widget.entry);
-  }
-
-  @override
-  void dispose() {
-    _data.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: JournalPageLayout.widthFor(context),
-            ),
-            child: PageScrollWithFooter(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(40, 0, 40, 38),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _PrototypeTopBar(
-                      title: 'Journal Entry: Ideation',
-                      previewEntry: widget.entry,
-                      onBack: () => Navigator.of(context).pop(),
-                      inset: 0,
-                      trailingLabel: 'Exit',
-                      onTrailing: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    Text(widget.entry.title, style: AppTypography.pageTitle),
-                    const SizedBox(height: AppMetrics.fieldGap),
-                    for (final previewSection in _IdeatingStage.values)
-                      switch (previewSection) {
-                        _IdeatingStage.challenge => _IdeatingChallengePreview(
-                          data: _data,
-                        ),
-                        _IdeatingStage.ideas => _IdeatingIdeasPreview(
-                          data: _data,
-                        ),
-                        _IdeatingStage.decisionMatrix => _IdeatingMatrixPreview(
-                          data: _data,
-                        ),
-                        _IdeatingStage.learning => _LearningPreviewContent(
-                          reflection: _data.nextLearned,
-                          selectedDci: _data.selectedDci,
-                          selectedSep: _data.selectedSep,
-                          selectedCcc: _data.selectedCcc,
-                          inquiryLensData: _data.inquiryLensData,
-                          assessment: _data.learningAssessment,
-                        ),
-                        _IdeatingStage.nextAction => _NextActionPreviewContent(
-                          projectId: widget.entry.projectId,
-                          includeLearned: false,
-                          learned: _data.nextLearned,
-                          challenges: _data.nextChallenges,
-                          nextSteps: _data.nextSteps,
-                          notes: _data.nextNotes,
-                          linkedTimelineEvent: _data.linkedTimelineEvent,
-                        ),
-                      },
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => JournalReadingPage(entry: entry);
 }
 
 class _IdeatingChallengePreview extends StatelessWidget {
@@ -19447,128 +19108,11 @@ class JournalInvolvedPeopleField extends StatelessWidget {
 }
 
 /// Read-only rendering of the structured Discovery entry saved by the creator.
-class DiscoveryEntryPreviewPage extends StatefulWidget {
+class DiscoveryEntryPreviewPage extends StatelessWidget {
   const DiscoveryEntryPreviewPage({super.key, required this.entry});
   final JournalEntry entry;
   @override
-  State<DiscoveryEntryPreviewPage> createState() =>
-      _DiscoveryEntryPreviewPageState();
-}
-
-class _DiscoveryEntryPreviewPageState extends State<DiscoveryEntryPreviewPage> {
-  late final List<_RootCauseDraft> _causes = [
-    for (final stage in widget.entry.content.whereType<Map>())
-      if (stage['stage'] == 'analyze' && stage['rootCauses'] is List)
-        for (final cause in (stage['rootCauses'] as List).whereType<Map>())
-          _RootCauseDraft.fromMap(cause),
-  ];
-  final Set<int> _expanded = {};
-  @override
-  void dispose() {
-    for (final cause in _causes) {
-      cause.dispose();
-    }
-    super.dispose();
-  }
-
-  Widget _stagePreview(Map stage) {
-    final key = stage['stage'];
-    if (key == 'learning')
-      return _LearningPreviewContent(
-        reflection:
-            widget.entry.content
-                .whereType<Map>()
-                .firstWhere(
-                  (row) => row['stage'] == 'nextAction',
-                  orElse: () => {},
-                )['learned']
-                ?.toString() ??
-            '',
-        selectedDci: _stringSet(stage['dci']),
-        selectedSep: _stringSet(stage['sep']),
-        selectedCcc: _stringSet(stage['ccc']),
-        inquiryLensData: InquiryLensData.fromJson(
-          stage['inquiryLensData'],
-          legacyLens:
-              stage['inquiryLens']?.toString() ?? InquiryLensData.noneValue,
-        ),
-        assessment: AssessmentBlockData.fromJson(stage['assessment']),
-      );
-    if (key == 'nextAction')
-      return _NextActionPreviewContent(
-        projectId: widget.entry.projectId,
-        includeLearned: false,
-        learned: stage['learned']?.toString() ?? '',
-        challenges: stage['challenges']?.toString() ?? '',
-        nextSteps: stage['nextSteps']?.toString() ?? '',
-        notes: stage['notes']?.toString() ?? '',
-        linkedTimelineEvent: stage['createdTimelineEvent'] is Map
-            ? Map<String, String>.from(stage['createdTimelineEvent'])
-            : null,
-      );
-    final title = switch (key) {
-      'observations' || 'observation' => 'Observations',
-      'analyze' => 'Analyze',
-      'question' => 'Question',
-      _ => null,
-    };
-    if (title == null) return const SizedBox.shrink();
-    return _PreviewPanel(
-      title: title,
-      children: [
-        for (final field in const {
-          'title': 'Discovery Title',
-          'observed': 'What was observed?',
-          'location': 'Location',
-          'known': 'What is already known?',
-          'patternChange': 'Pattern Changes',
-          'patternExplanation': 'Pattern Explanation',
-        }.entries)
-          _PreviewField(field.value, stage[field.key]?.toString() ?? ''),
-        if (key == 'analyze')
-          for (var i = 0; i < _causes.length; i++)
-            _RootCauseCompactCard(rootCause: _causes[i]),
-        if (stage['questions'] is List)
-          for (final question in (stage['questions'] as List).whereType<Map>())
-            _PreviewField(
-              question['type']?.toString() ?? 'Question',
-              question['text']?.toString() ?? '',
-            ),
-        JournalInvolvedPeoplePreview(people: _maps(stage['involved'])),
-        for (final field in const {
-          'affectedCommunities': 'Who is affected?',
-        }.entries)
-          _PreviewField(
-            field.value,
-            _maps(stage[field.key])
-                .map((item) => item['name'] ?? item['title'] ?? '')
-                .where((value) => value.toString().trim().isNotEmpty)
-                .join(', '),
-          ),
-        for (final item in _maps(stage['evidence']))
-          if (_EvidenceBlock.fromMap(item) case final block?)
-            _EvidencePreviewBlock(evidence: block),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) => _PrototypeScaffold(
-    title: 'Journal Entry: Discovery',
-    previewEntry: widget.entry,
-    onBack: () => Navigator.of(context).pop(),
-    body: PageScrollWithFooter(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(40, 8, 40, 32),
-        children: [
-          Text(widget.entry.title, style: AppTypography.pageTitle),
-          const SizedBox(height: AppMetrics.fieldGap),
-          for (final stage in widget.entry.content.whereType<Map>())
-            _stagePreview(stage),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => JournalReadingPage(entry: entry);
 }
 
 class _RootCauseActions extends StatelessWidget {

@@ -12,9 +12,11 @@ class JournalInvolvedPeoplePreview extends StatefulWidget {
     super.key,
     required this.people,
     this.usersRepo,
+    this.readingStyle = false,
   });
   final List<Map> people;
   final UsersRepo? usersRepo;
+  final bool readingStyle;
   @override
   State<JournalInvolvedPeoplePreview> createState() =>
       _JournalInvolvedPeoplePreviewState();
@@ -72,14 +74,17 @@ class _JournalInvolvedPeoplePreviewState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Who was Involved?', style: AppTypography.fieldLabel),
+          Text(
+            widget.readingStyle ? 'People involved' : 'Who was Involved?',
+            style: AppTypography.fieldLabel.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
           FutureBuilder<List<UserProfile>>(
             future: _profiles,
-            builder: (context, snapshot) => Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
+            builder: (context, snapshot) {
+              final rows = <Widget>[
                 for (final person in widget.people)
                   Builder(
                     builder: (context) {
@@ -97,6 +102,30 @@ class _JournalInvolvedPeoplePreviewState
                           person['avatar_url']?.toString();
                       final clickable =
                           (person['id']?.toString() ?? '').isNotEmpty;
+                      if (widget.readingStyle)
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: clickable
+                                ? () => _open(person, profile)
+                                : null,
+                            child: Row(
+                              children: [
+                                _avatar(avatar, name, 18),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: AppTypography.body.copyWith(
+                                      fontSize: 16,
+                                      color: const Color(0xFF293D31),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
                       return ActionChip(
                         avatar: _avatar(avatar, name, 14),
                         label: Text(name, style: AppTypography.body),
@@ -108,8 +137,14 @@ class _JournalInvolvedPeoplePreviewState
                       );
                     },
                   ),
-              ],
-            ),
+              ];
+              return widget.readingStyle
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: rows,
+                    )
+                  : Wrap(spacing: 8, runSpacing: 8, children: rows);
+            },
           ),
         ],
       ),

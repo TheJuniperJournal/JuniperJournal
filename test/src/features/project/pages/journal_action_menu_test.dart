@@ -1048,7 +1048,7 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     await tester.tap(find.text('Learning').first);
     await tester.pumpAndSettle();
-    expect(find.text('Looking through a design lens'), findsOneWidget);
+    expect(find.text('Design'), findsOneWidget);
     expect(find.text('Assessment'), findsNothing);
     expect(find.text('No assessment type selected.'), findsNothing);
     expect(find.text('DCI'), findsNothing);

@@ -42,6 +42,7 @@ class JournalEntryEditorScreen extends StatefulWidget {
   final bool readOnly;
   final ProjectsRepo? projectsRepo;
   final bool freeNotes;
+  final bool canvasOnly;
   final Future<String?> Function(ImageSource)? uploadImage;
 
   const JournalEntryEditorScreen({
@@ -57,6 +58,7 @@ class JournalEntryEditorScreen extends StatefulWidget {
     this.readOnly = false,
     this.projectsRepo,
     this.freeNotes = false,
+    this.canvasOnly = false,
     this.uploadImage,
   });
 
@@ -630,6 +632,24 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.readOnly && widget.canvasOnly)
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < _blocks.length; i++) _buildBlock(i, _blocks[i]),
+        ],
+      );
+    if (widget.readOnly)
+      return JournalReadingPage(
+        entry: JournalEntry(
+          id: widget.entryId,
+          projectId: widget.projectId,
+          title: widget.initialTitle,
+          content: widget.initialContent,
+          progress: widget.initialProgress,
+        ),
+        projectsRepo: _projectsRepo,
+      );
     if (widget.initialContent.whereType<Map>().any(
       (row) => row['stage'] == 'prototyping' && row['entryType'] != null,
     )) {
@@ -1070,9 +1090,9 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                     )
                   : const TextStyle(
                       fontFamily: AppTypography.bodyFamily,
-                      fontSize: AppTypography.bodySize,
-                      color: Colors.black87,
-                      height: 1.55,
+                      fontSize: 16,
+                      color: Color(0xFF293D31),
+                      height: 1.65,
                     ),
             )
           : TextField(
@@ -1179,25 +1199,35 @@ class _JournalEntryEditorScreenState extends State<JournalEntryEditorScreen> {
                             horizontal: 8,
                             vertical: 4,
                           ),
-                          child: TextField(
-                            controller: colEntry.value,
-                            readOnly: widget.readOnly,
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFamily,
-                              fontSize: AppTypography.bodySize,
-                              fontWeight: isFirstRow
-                                  ? FontWeight.w500
-                                  : FontWeight.w400,
-                            ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            onChanged: widget.readOnly
-                                ? null
-                                : (_) => _hasChanges = true,
-                          ),
+                          child: widget.readOnly
+                              ? Text(
+                                  colEntry.value.text,
+                                  style: AppTypography.body.copyWith(
+                                    fontSize: 16,
+                                    fontWeight: isFirstRow
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                )
+                              : TextField(
+                                  controller: colEntry.value,
+                                  readOnly: widget.readOnly,
+                                  style: TextStyle(
+                                    fontFamily: AppTypography.bodyFamily,
+                                    fontSize: AppTypography.bodySize,
+                                    fontWeight: isFirstRow
+                                        ? FontWeight.w500
+                                        : FontWeight.w400,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onChanged: widget.readOnly
+                                      ? null
+                                      : (_) => _hasChanges = true,
+                                ),
                         );
                       }).toList(),
                     );
@@ -1396,32 +1426,38 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
 
             SizedBox(
               width: imgW,
-              child: TextField(
-                controller: widget.block.captionController,
-                readOnly: widget.onMarkChanged == null,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: AppTypography.bodyFamily,
-                  fontSize: AppTypography.bodySize,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-                decoration: InputDecoration(
-                  hintText: '',
-                  hintStyle: TextStyle(
-                    fontFamily: AppTypography.bodyFamily,
-                    color: Colors.grey.shade400,
-                    fontSize: AppTypography.helperSize,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  disabledBorder: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
+              child: widget.onMarkChanged == null
+                  ? Text(
+                      widget.block.captionController?.text ?? '',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.helper,
+                    )
+                  : TextField(
+                      controller: widget.block.captionController,
+                      readOnly: widget.onMarkChanged == null,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFamily,
+                        fontSize: AppTypography.bodySize,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '',
+                        hintStyle: TextStyle(
+                          fontFamily: AppTypography.bodyFamily,
+                          color: Colors.grey.shade400,
+                          fontSize: AppTypography.helperSize,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
             ),
 
             // Resize slider — visible when selected

@@ -81,35 +81,7 @@ class _JournalEntryViewContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final page = entry.isFreeNotes
-        ? freeNotesEntryPage(entry, projectsRepo)
-        : switch (normalizePhase(entry.progress)) {
-            'discover' => DiscoveryEntryPreviewPage(entry: entry),
-            'ideating' => IdeatingEntryPreviewPage(entry: entry),
-            'prototyping' when entry.prototypingTypeLabel != null =>
-              PrototypingJournalEntryPage(
-                projectId: entry.projectId,
-                projectsRepo: projectsRepo,
-                entry: entry,
-                readOnly: true,
-              ),
-            'implementation' => ImplementationPreviewPage(
-              entry: entry,
-              projectId: entry.projectId,
-              projectsRepo: projectsRepo,
-            ),
-            _ => JournalEntryEditorScreen(
-              projectId: entry.projectId,
-              projectName: project.projectName,
-              tags: project.tags,
-              entryId: entry.id,
-              entryAuthorId: entry.authorId,
-              initialTitle: entry.title,
-              initialContent: entry.content,
-              initialProgress: entry.progress,
-              readOnly: true,
-            ),
-          };
+    final page = JournalReadingPage(entry: entry, projectsRepo: projectsRepo);
     String? userId;
     try {
       userId = AuthService.instance.currentUser?.id;
