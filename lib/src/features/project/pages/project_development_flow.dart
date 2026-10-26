@@ -955,6 +955,7 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
     },
   );
 
+  Map<String, String>? _createdTimelineEvent;
   bool _assessmentComplete = false;
   var _stage = _ImplementationStage.overview;
   String? _entryId;
@@ -1084,6 +1085,11 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
     );
     _learningAssessment = AssessmentBlockData.fromJson(learning['assessment']);
     final reflection = _implementationStageMap(entry, 'reflection');
+    final event = reflection['createdTimelineEvent'];
+    if (event is Map)
+      _createdTimelineEvent = event.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
     _worked.text = reflection['workedWell']?.toString() ?? '';
     _notWorked.text = reflection['didntWork']?.toString() ?? '';
     _takeaways.text = reflection['keyTakeaways']?.toString() ?? '';
@@ -1125,6 +1131,8 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
         'didntWork': _notWorked.text.trim(),
         'keyTakeaways': _takeaways.text.trim(),
         'change': _change.text.trim(),
+        if (_createdTimelineEvent != null)
+          'createdTimelineEvent': _createdTimelineEvent,
         'submitted': submitted || _hasBeenSubmitted,
         if (submitted) 'submittedAt': DateTime.now().toUtc().toIso8601String(),
       },
@@ -1527,6 +1535,34 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
     );
   }
 
+  Future<void> _createTimelineEvent() => runActionOnce(
+    this,
+    'timeline-event',
+    () async {
+      final event = await showAppModalBottomSheet<Map<String, String>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => CreateJournalTimelineEventSheet(
+          projectId: widget.projectId,
+          projectsRepo: widget.projectsRepo,
+          members: _participantMembers,
+          entryId: null,
+          entryTitle: '',
+        ),
+      );
+      if (event == null || !mounted) return;
+      final timeline = await widget.projectsRepo.getTimeline(widget.projectId);
+      final ok = await widget.projectsRepo.updateTimeline(
+        id: widget.projectId,
+        timeline: [...?timeline, event],
+      );
+      if (!mounted || !ok) return;
+      setState(() => _createdTimelineEvent = Map<String, String>.from(event));
+      await _save();
+    },
+  );
+
   Widget _reflectionBody() {
     return _JournalStageLayout(
       padding: const EdgeInsets.fromLTRB(
@@ -1560,6 +1596,11 @@ class _ImplementationEntryPageState extends State<ImplementationEntryPage>
           label: 'What would you change?',
           controller: _change,
           maxLines: 4,
+        ),
+        const SizedBox(height: AppMetrics.fieldGap),
+        _TimelineEventSection(
+          event: _createdTimelineEvent,
+          onCreate: _createTimelineEvent,
         ),
       ],
       footer: Row(
@@ -2318,6 +2359,20 @@ class _ImplementationPreviewPageState extends State<ImplementationPreviewPage> {
                 _PreviewField('What worked well?', _worked),
                 _PreviewField('What did not work?', _notWorked),
                 _PreviewField('What would you change?', _change),
+                if (_implementationStageMap(
+                      widget.entry,
+                      'reflection',
+                    )['createdTimelineEvent']
+                    is Map)
+                  _CreatedTimelineEventPreview(
+                    event: Map<String, String>.from(
+                      _implementationStageMap(
+                            widget.entry,
+                            'reflection',
+                          )['createdTimelineEvent']
+                          as Map,
+                    ),
+                  ),
               ],
             ),
           ],
@@ -3422,9 +3477,9 @@ class _CompletePrototypePreview extends StatelessWidget {
               nextSteps: draft.nextAction['nextSteps']?.toString() ?? '',
               notes: draft.nextAction['notes']?.toString() ?? '',
               linkedTimelineEvent:
-                  draft.nextAction['linkedTimelineEvent'] is Map
+                  draft.nextAction['createdTimelineEvent'] is Map
                   ? Map<String, String>.from(
-                      draft.nextAction['linkedTimelineEvent'] as Map,
+                      draft.nextAction['createdTimelineEvent'] as Map,
                     )
                   : null,
             ),
@@ -5583,7 +5638,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
     _nextSteps.text = nextAction['nextSteps']?.toString() ?? '';
     _nextNotes.text = nextAction['notes']?.toString() ?? '';
     _submitted = nextAction['submitted'] == true;
-    final linked = nextAction['linkedTimelineEvent'];
+    final linked = nextAction['createdTimelineEvent'];
     if (linked is Map) {
       _linkedTimelineEvent = {
         for (final entry in linked.entries)
@@ -5717,6 +5772,8 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         'challenges': _nextChallenges.text.trim(),
         'nextSteps': _nextSteps.text.trim(),
         'notes': _nextNotes.text.trim(),
+        if (_linkedTimelineEvent != null)
+          'createdTimelineEvent': _linkedTimelineEvent,
         'submitted': _submitted,
         if (_submitted) 'submittedAt': DateTime.now().toUtc().toIso8601String(),
       },
@@ -6059,10 +6116,6 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
     this,
     'timeline-event',
     () async {
-      if (_entryId == null) {
-        final saved = await _save();
-        if (!mounted || !saved) return;
-      }
       final event = await showAppModalBottomSheet<Map<String, String>>(
         context: context,
         isScrollControlled: true,
@@ -6083,6 +6136,7 @@ class _IdeatingEntryPageState extends State<IdeatingEntryPage>
         timeline: events,
       );
       if (!mounted || !ok) return;
+      setState(() => _linkedTimelineEvent = Map<String, String>.from(event));
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Timeline event created.')));
@@ -8859,11 +8913,12 @@ class _NextActionPreviewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if ([
-      if (includeLearned) learned,
-      challenges,
-      nextSteps,
-      notes,
-    ].every((value) => value.trim().isEmpty))
+          if (includeLearned) learned,
+          challenges,
+          nextSteps,
+          notes,
+        ].every((value) => value.trim().isEmpty) &&
+        linkedTimelineEvent == null)
       return const SizedBox.shrink();
     return _PreviewPanel(
       title: 'Next Action',
@@ -8872,6 +8927,8 @@ class _NextActionPreviewContent extends StatelessWidget {
         _PreviewField('Challenges and open questions', challenges),
         _PreviewField('What I’ll try next', nextSteps),
         _PreviewField('Additional thoughts', notes),
+        if (linkedTimelineEvent != null)
+          _CreatedTimelineEventPreview(event: linkedTimelineEvent!),
       ],
     );
   }
@@ -8920,7 +8977,7 @@ class _IdeatingPreviewData {
       orElse: () => const {},
     );
     final supporting = challenge['supportingContext'];
-    final linked = nextAction['linkedTimelineEvent'];
+    final linked = nextAction['createdTimelineEvent'];
     return _IdeatingPreviewData(
       challengeTitle: challenge['title']?.toString() ?? '',
       challengeProblem: challenge['problem']?.toString() ?? '',
@@ -11147,7 +11204,7 @@ class _PrototypeLogLearningFlowState extends State<_PrototypeLogLearningFlow>
     _nextChallenges.text = nextAction['challenges']?.toString() ?? '';
     _nextSteps.text = nextAction['nextSteps']?.toString() ?? '';
     _nextNotes.text = nextAction['notes']?.toString() ?? '';
-    final linked = nextAction['linkedTimelineEvent'];
+    final linked = nextAction['createdTimelineEvent'];
     if (linked is Map) {
       _linkedTimelineEvent = {
         for (final e in linked.entries)
@@ -11186,6 +11243,8 @@ class _PrototypeLogLearningFlowState extends State<_PrototypeLogLearningFlow>
       'challenges': _nextChallenges.text.trim(),
       'nextSteps': _nextSteps.text.trim(),
       'notes': _nextNotes.text.trim(),
+      if (_linkedTimelineEvent != null)
+        'createdTimelineEvent': _linkedTimelineEvent,
       'submitted': submitted,
     };
     widget.onChanged();
@@ -11222,6 +11281,10 @@ class _PrototypeLogLearningFlowState extends State<_PrototypeLogLearningFlow>
         timeline: events,
       );
       if (!mounted || !ok) return;
+      setState(() => _linkedTimelineEvent = Map<String, String>.from(event));
+      _persistNextAction(
+        submitted: widget.target.nextAction['submitted'] == true,
+      );
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Timeline event created.')));
@@ -12868,7 +12931,7 @@ class _DiscoveryObservationEntryPageState
     _nextSteps.text = nextAction['nextSteps']?.toString() ?? '';
     _nextNotes.text = nextAction['notes']?.toString() ?? '';
     _submitted = nextAction['submitted'] == true;
-    final linked = nextAction['linkedTimelineEvent'];
+    final linked = nextAction['createdTimelineEvent'];
     if (linked is Map) {
       _linkedTimelineEvent = {
         for (final entry in linked.entries)
@@ -12967,6 +13030,8 @@ class _DiscoveryObservationEntryPageState
         'challenges': _nextChallenges.text.trim(),
         'nextSteps': _nextSteps.text.trim(),
         'notes': _nextNotes.text.trim(),
+        if (_linkedTimelineEvent != null)
+          'createdTimelineEvent': _linkedTimelineEvent,
         'submitted': _submitted,
         if (_submitted) 'submittedAt': DateTime.now().toUtc().toIso8601String(),
       },
@@ -13164,10 +13229,6 @@ class _DiscoveryObservationEntryPageState
     this,
     'timeline-event',
     () async {
-      if (_entryId == null) {
-        final saved = await _save();
-        if (!mounted || !saved) return;
-      }
       final event = await showAppModalBottomSheet<Map<String, String>>(
         context: context,
         isScrollControlled: true,
@@ -13190,6 +13251,7 @@ class _DiscoveryObservationEntryPageState
         timeline: events,
       );
       if (!mounted || !ok) return;
+      setState(() => _linkedTimelineEvent = Map<String, String>.from(event));
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Timeline event created.')));
@@ -15259,6 +15321,100 @@ class _LearningCheckboxRow extends StatelessWidget {
   }
 }
 
+class _TimelineEventSection extends StatelessWidget {
+  const _TimelineEventSection({required this.event, required this.onCreate});
+  final Map<String, String>? event;
+  final VoidCallback onCreate;
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Text('Timeline Event (Optional)', style: AppTypography.fieldLabel),
+      const SizedBox(height: 12),
+      if (event != null) ...[
+        _CreatedTimelineEventPreview(event: event!),
+        const SizedBox(height: 12),
+      ],
+      _TimelineLinkButton(
+        label: 'Create New Timeline Event',
+        addIcon: true,
+        onTap: onCreate,
+      ),
+    ],
+  );
+}
+
+/// A local display snapshot of a standalone project timeline event.
+class _CreatedTimelineEventPreview extends StatelessWidget {
+  const _CreatedTimelineEventPreview({required this.event});
+  final Map<String, String> event;
+  @override
+  Widget build(BuildContext context) {
+    final date = event['startDate'] ?? event['date'] ?? '';
+    final start = event['startTime'] ?? event['time'] ?? '';
+    final end = event['endTime'] ?? '';
+    final schedule = [
+      date,
+      if (start.isNotEmpty) end.isEmpty ? start : '$start – $end',
+    ].where((part) => part.isNotEmpty).join(' · ');
+    final assignees = (event['assigneeNames'] ?? '')
+        .split('|')
+        .where((name) => name.isNotEmpty)
+        .join(', ');
+    return Container(
+      key: const ValueKey('created-timeline-event-preview'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTint,
+        border: Border.all(color: _devGreen),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.timeline, color: _devGreen),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event['name'] ?? event['event'] ?? 'Timeline event',
+                  style: AppTypography.fieldLabel,
+                ),
+                if (schedule.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(schedule, style: AppTypography.helper),
+                  ),
+                if (assignees.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(assignees, style: AppTypography.helper),
+                  ),
+                if ((event['description'] ?? '').isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(event['description']!),
+                  ),
+                if ((event['location'] ?? '').isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      event['location']!,
+                      style: AppTypography.helper,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NextActionStageBody extends StatelessWidget {
   const _NextActionStageBody({
     required this.learned,
@@ -15307,10 +15463,9 @@ class _NextActionStageBody extends StatelessWidget {
         const SizedBox(height: AppMetrics.fieldGap),
         _CounterTextBox(label: 'What are next steps?', controller: nextSteps),
         const SizedBox(height: AppMetrics.fieldGap),
-        _TimelineLinkButton(
-          label: 'Create New Timeline Event',
-          addIcon: true,
-          onTap: onCreateTimelineEvent,
+        _TimelineEventSection(
+          event: linkedTimelineEvent,
+          onCreate: onCreateTimelineEvent,
         ),
         const SizedBox(height: AppMetrics.fieldGap),
         _CounterTextBox(label: 'Open Notes', optional: true, controller: notes),
@@ -19335,8 +19490,8 @@ class _DiscoveryEntryPreviewPageState extends State<DiscoveryEntryPreviewPage> {
         challenges: stage['challenges']?.toString() ?? '',
         nextSteps: stage['nextSteps']?.toString() ?? '',
         notes: stage['notes']?.toString() ?? '',
-        linkedTimelineEvent: stage['linkedTimelineEvent'] is Map
-            ? Map<String, String>.from(stage['linkedTimelineEvent'])
+        linkedTimelineEvent: stage['createdTimelineEvent'] is Map
+            ? Map<String, String>.from(stage['createdTimelineEvent'])
             : null,
       );
     final title = switch (key) {

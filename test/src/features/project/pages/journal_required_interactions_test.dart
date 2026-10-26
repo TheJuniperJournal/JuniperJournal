@@ -94,7 +94,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('component selection is required even with no text inputs', (
+  testWidgets('component selection is optional with no text inputs', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -115,15 +115,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _next(tester);
-    expect(
-      find.text('Select or create a component, or choose No component.'),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.text('No component'));
-    await tester.tap(find.text('No component'));
-    await tester.pumpAndSettle();
-    await _next(tester);
+    expect(find.text('No component'), findsNothing);
+    expect(find.byKey(const ValueKey('build-stage-heading')), findsOneWidget);
     expect(find.byType(Dialog), findsNothing);
     expect(tester.takeException(), isNull);
   });
