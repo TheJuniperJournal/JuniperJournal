@@ -24,8 +24,14 @@ function peopleField(people){
  }).join('');
  return rows?'<div class="field"><div class="label">People involved</div><ul class="people-list">'+rows+'</ul></div>':'';
 }
+const questionTypes={How:{color:'#2C70BF',assets:['how_figma_1','how_figma_2']},Where:{color:'#F3AA15',assets:['where_figma']},What:{color:'#5DB075',assets:['what_figma']},When:{color:'#9027BD',assets:['when_figma_1','when_figma_2']}};
+function questionField(type,value){
+ const option=questionTypes[type];
+ return '<div class="field question-field"><div class="label question-label" style="color:'+option.color+'"><span class="question-icon" aria-hidden="true">'+option.assets.map((asset,index)=>'<img class="question-layer'+(index?' question-detail':'')+'" alt="" src="/assets/assets/discovery/question_'+asset+'.svg">').join('')+'</span>'+escapeHtml(type)+'</div><div class="response"><p>'+escapeHtml(value)+'</p></div></div>';
+}
 function field(label,value){
  if(value==null)return '';
+ if(questionTypes[label]&&String(value).trim())return questionField(label,value);
  if(label==='Who is involved?'&&Array.isArray(value))return peopleField(value);
  if(label==='Data Source'&&Array.isArray(value)){
   const sources=value.map(item=>typeof item==='object'?item.label??item.name??'':item).filter(Boolean);
