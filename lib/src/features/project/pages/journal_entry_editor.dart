@@ -1,3 +1,4 @@
+import '../../../shared/widgets/image_resize_frame.dart';
 import 'package:juniper_journal/src/shared/widgets/page_scroll_with_footer.dart';
 import 'package:juniper_journal/src/shared/widgets/protected_image.dart';
 import 'package:juniper_journal/src/shared/widgets/app_tap_target.dart';
@@ -1366,8 +1367,16 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
           children: [
             AppTapTarget(
               onTap: widget.onSelect,
-              child: SizedBox(
+              child: ImageResizeFrame(
                 width: imgW,
+                maxWidth: maxW,
+                selected: widget.isSelected,
+                onResize: widget.onMarkChanged == null
+                    ? null
+                    : (fraction) {
+                        setState(() => widget.block.widthFraction = fraction);
+                        widget.onMarkChanged?.call();
+                      },
                 child: Stack(
                   children: [
                     ClipRRect(
@@ -1459,45 +1468,6 @@ class _ImageBlockWidgetState extends State<_ImageBlockWidget> {
                       ),
                     ),
             ),
-
-            // Resize slider — visible when selected
-            if (widget.isSelected) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.photo_size_select_large_outlined,
-                    size: 16,
-                    color: Colors.black38,
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: widget.block.widthFraction,
-                      min: 0.25,
-                      max: 1.0,
-                      activeColor: AppColors.primary,
-                      inactiveColor: Colors.black12,
-                      onChanged: (v) {
-                        setState(() => widget.block.widthFraction = v);
-                        widget.onMarkChanged?.call();
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: 36,
-                    child: Text(
-                      '${(widget.block.widthFraction * 100).round()}%',
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFamily,
-                        fontSize: AppTypography.helperSize,
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.end,
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         );
       },
